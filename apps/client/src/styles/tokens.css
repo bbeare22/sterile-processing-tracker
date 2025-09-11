@@ -1,0 +1,39 @@
+:root {
+  /* brand */
+  --color-brand: #2563eb; /* blue-600 */
+  --color-accent: #10b981; /* green */
+  --color-warn: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* neutrals */
+  --color-bg: #0b0f19;
+  --color-surface: #111827;
+  --color-border: #2d3748;
+  --color-text: #e5e7eb;
+  --color-text-muted: #9ca3af;
+
+  /* type & rhythm */
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --radius-xl: 24px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* shadows & motion */
+  --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.24);
+  --easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+}

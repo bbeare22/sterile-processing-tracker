@@ -1,0 +1,45 @@
+.shell {
+  display: flex;
+  min-height: 100dvh;
+}
+.shell__side {
+  width: 260px;
+  background: #0e1525;
+  border-right: 1px solid var(--color-border);
+  padding: var(--space-6);
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+}
+.shell__main {
+  flex: 1;
+  padding: var(--space-8);
+}
+.brand {
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.6px;
+  margin-bottom: var(--space-6);
+}
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.nav a {
+  color: #cbd5e1;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: background 0.2s var(--easing), color 0.2s var(--easing),
+    transform 0.12s var(--easing);
+}
+.nav a:hover {
+  background: #121a2b;
+  color: #fff;
+  transform: translateY(-1px);
+}
+.active {
+  background: #111e38;
+  color: #fff;
+}
