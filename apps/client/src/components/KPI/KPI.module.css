@@ -1,0 +1,33 @@
+.kpi {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+  transition: transform 0.18s var(--easing), box-shadow 0.18s var(--easing);
+}
+.kpi:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.kpi__label {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+.kpi__value {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.kpi--danger {
+  border-color: var(--color-danger);
+}
+.kpi--warn {
+  border-color: var(--color-warn);
+}
+.kpi--ok {
+  border-color: var(--color-accent);
+}
