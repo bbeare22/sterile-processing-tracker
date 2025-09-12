@@ -8,6 +8,7 @@ import Recalls from "./pages/Recalls";
 import Machines from "./pages/Machines";
 import About from "./pages/About";
 import Maintenance from "./pages/Maintenance";
+import MachineDetail from "./pages/MachineDetail";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/" element={<Dashboard />} />
           <Route path="/recalls" element={<Recalls />} />
           <Route path="/machines" element={<Machines />} />
+          <Route path="/machines/:id" element={<MachineDetail />} />
           <Route path="/maintenance" element={<Maintenance />} />
           <Route path="/about" element={<About />} />
         </Routes>
