@@ -59,3 +59,23 @@
   color: #fff;
   transform: translateY(-1px);
 }
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.chip--warn {
+  border-color: var(--color-warn);
+  color: var(--color-warn);
+}
+
+.chip--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
