@@ -27,6 +27,12 @@ export default function AppShell({ children }) {
             Machines
           </NavLink>
           <NavLink
+            to="/maintenance"
+            className={({ isActive }) => (isActive ? styles.active : undefined)}
+          >
+            Maintenance
+          </NavLink>
+          <NavLink
             to="/about"
             className={({ isActive }) => (isActive ? styles.active : undefined)}
           >
