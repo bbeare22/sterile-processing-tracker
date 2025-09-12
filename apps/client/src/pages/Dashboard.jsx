@@ -1,5 +1,6 @@
 import Card from "../components/Card/Card";
 import KPI from "../components/KPI/KPI";
+import common from "../components/common.module.css";
 import { machines } from "../data/machines";
 import { daysSince } from "../utils/date";
 import { Link } from "react-router-dom";
@@ -95,11 +96,24 @@ export default function Dashboard() {
                     : days > 7
                     ? "var(--color-warn)"
                     : "var(--color-text)";
+                const dot =
+                  m.status === "active"
+                    ? common["dot--ok"]
+                    : common["dot--down"];
                 return (
-                  <li key={m.id} style={{ color }}>
+                  <li
+                    key={m.id}
+                    style={{
+                      color,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span className={`${common.dot} ${dot}`}></span>
                     <Link to={`/machines/${m.id}`} style={link}>
                       {m.name}
-                    </Link>{" "}
+                    </Link>
                     — {days} days
                   </li>
                 );

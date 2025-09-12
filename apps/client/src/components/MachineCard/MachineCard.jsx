@@ -1,11 +1,12 @@
 import styles from "./MachineCard.module.css";
+import common from "../common.module.css";
 import { Link } from "react-router-dom";
 import { daysSince } from "../../utils/date";
 
 export default function MachineCard({ m }) {
   const isActive = m.status === "active";
   const badge = isActive ? styles["badge--ok"] : styles["badge--down"];
-  const dot = isActive ? styles["dot--ok"] : styles["dot--down"];
+  const dot = isActive ? common["dot--ok"] : common["dot--down"];
 
   // days since last descale
   const d = daysSince(m.lastDescaleAt);
@@ -28,7 +29,7 @@ export default function MachineCard({ m }) {
           </span>
           {/* status dot + badge */}
           <span className={`${styles.badge} ${badge}`}>
-            <span className={`${styles.dot} ${dot}`}></span>
+            <span className={`${common.dot} ${dot}`}></span>
             {m.status}
           </span>
         </div>
