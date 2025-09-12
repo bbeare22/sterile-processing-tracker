@@ -1,26 +1,39 @@
-# Node
-node_modules
+# --- Node ---
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Build outputs
-dist
-build
-.out
-.next
-.vercel
-.DS_Store
+# --- Build outputs ---
+dist/
+build/
+.out/
+.next/
+.vercel/
 
-# Env files (don’t leak secrets)
+# --- Env files (don’t commit secrets) ---
 .env
 apps/*/.env
 
-# Logs
+# --- Logs ---
 *.log
+logs/
+*.pid
+*.seed
+*.pid.lock
 
-# IDE files
+# --- Editor/OS ---
+.DS_Store
+Thumbs.db
+.idea/
 .vscode/*
 !.vscode/settings.json
-.idea/
+
+# --- Coverage/testing ---
+coverage/
+*.lcov
+
+# --- Misc ---
+*.cache
+*.tmp
