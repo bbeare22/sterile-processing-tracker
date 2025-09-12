@@ -3,18 +3,19 @@ import { Link } from "react-router-dom";
 import { daysSince } from "../../utils/date";
 
 export default function MachineCard({ m }) {
-  const badge =
-    m.status === "active" ? styles["badge--ok"] : styles["badge--down"];
+  const isActive = m.status === "active";
+  const badge = isActive ? styles["badge--ok"] : styles["badge--down"];
+  const dot = isActive ? styles["dot--ok"] : styles["dot--down"];
 
-  // days since last descale (Infinity if null)
+  // days since last descale
   const d = daysSince(m.lastDescaleAt);
   const chipTone = !isFinite(d)
-    ? "" // no date
+    ? ""
     : d > 14
-    ? styles["chip--danger"] // >14 red
+    ? styles["chip--danger"]
     : d > 7
-    ? styles["chip--warn"] // 8–14 amber
-    : ""; // ≤7 neutral
+    ? styles["chip--warn"]
+    : "";
 
   return (
     <article className={styles.card} aria-label={`${m.name} ${m.model}`}>
@@ -25,8 +26,11 @@ export default function MachineCard({ m }) {
           <span className={`${styles.chip} ${chipTone}`}>
             {isFinite(d) ? `${d}d since descale` : "—"}
           </span>
-          {/* status badge */}
-          <span className={`${styles.badge} ${badge}`}>{m.status}</span>
+          {/* status dot + badge */}
+          <span className={`${styles.badge} ${badge}`}>
+            <span className={`${styles.dot} ${dot}`}></span>
+            {m.status}
+          </span>
         </div>
       </div>
 

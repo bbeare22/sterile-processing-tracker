@@ -79,3 +79,21 @@
   border-color: var(--color-danger);
   color: var(--color-danger);
 }
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.dot--ok {
+  background-color: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent);
+}
+
+.dot--down {
+  background-color: var(--color-danger);
+  box-shadow: 0 0 6px var(--color-danger);
+}
