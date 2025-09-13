@@ -7,12 +7,14 @@ const axios = require("axios");
 
 const { connectDB } = require("./config/db");
 const machinesRoutes = require("./routes/machines");
+const maintenanceRoutes = require("./routes/maintenance");
 
 const app = express();
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
 app.use(morgan("tiny"));
+app.use("/api/maintenance", maintenanceRoutes);
 
 /** DEBUG: confirm env loaded */
 console.log("MONGO_URI present?", Boolean(process.env.MONGO_URI));
