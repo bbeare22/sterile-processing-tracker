@@ -1,6 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { findMachine } from "../data/machines";
 
 function formatDate(dt) {
   if (!dt) return "—";
@@ -10,9 +9,32 @@ function formatDate(dt) {
 
 export default function MachineDetail() {
   const { id } = useParams();
-  const m = useMemo(() => findMachine(id), [id]);
+  const [m, setM] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
-  if (!m) {
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_URL;
+    setLoading(true);
+    setErr("");
+    fetch(`${base}/api/machines`)
+      .then((r) =>
+        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
+      )
+      .then((d) => {
+        const found = (d.machines || []).find((x) => x._id === id);
+        setM(found || null);
+      })
+      .catch((e) => setErr(e.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <div>Loading…</div>;
+  if (err)
+    return (
+      <div style={{ color: "var(--color-danger)" }}>Failed to load: {err}</div>
+    );
+  if (!m)
     return (
       <div>
         <h1>Machine not found</h1>
@@ -21,7 +43,6 @@ export default function MachineDetail() {
         </Link>
       </div>
     );
-  }
 
   return (
     <div>
@@ -40,7 +61,7 @@ export default function MachineDetail() {
 
       <div style={panel}>
         <div>
-          <strong>ID:</strong> {m.id}
+          <strong>ID:</strong> {m._id}
         </div>
         <div>
           <strong>Model:</strong> {m.model}
@@ -58,13 +79,6 @@ export default function MachineDetail() {
           <strong>Last Descale:</strong> {formatDate(m.lastDescaleAt)}
         </div>
       </div>
-
-      <div style={{ marginTop: 16, opacity: 0.8 }}>
-        <em>
-          (Later show recent cycles, maintenance history, and a “Log
-          maintenance” shortcut.)
-        </em>
-      </div>
     </div>
   );
 }
@@ -78,7 +92,6 @@ const panel = {
   background: "var(--color-surface)",
   boxShadow: "var(--shadow-soft)",
 };
-
 const link = {
   color: "#cbd5e1",
   textDecoration: "none",

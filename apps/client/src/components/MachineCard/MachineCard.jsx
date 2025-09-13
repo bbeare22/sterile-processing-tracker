@@ -40,7 +40,7 @@ export default function MachineCard({ m }) {
       </div>
 
       <div className={styles.card__footer}>
-        <Link className={styles.link} to={`/machines/${m.id}`}>
+        <Link className={styles.link} to={`/machines/${m._id}`}>
           View details
         </Link>
       </div>

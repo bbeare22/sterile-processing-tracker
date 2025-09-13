@@ -5,15 +5,19 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const axios = require("axios");
 
-const app = express();
+const { connectDB } = require("./config/db");
+const machinesRoutes = require("./routes/machines");
 
-// Security + CORS + body parsing + logs
+const app = express();
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
 app.use(morgan("tiny"));
 
-// GET /api/external/recalls?brand=STERIS&limit=25
+/** DEBUG: confirm env loaded */
+console.log("MONGO_URI present?", Boolean(process.env.MONGO_URI));
+
+/** External proxy: OpenFDA Recalls */
 app.get("/api/external/recalls", async (req, res) => {
   try {
     const brand = (req.query.brand || "STERIS").trim();
@@ -22,9 +26,7 @@ app.get("/api/external/recalls", async (req, res) => {
     const url = `https://api.fda.gov/device/enforcement.json?search=${encodeURIComponent(
       search
     )}&limit=${limit}`;
-
     const { data } = await axios.get(url);
-
     const rows = (data.results || []).map((r) => ({
       recallNumber: r.recall_number,
       product: r.product_description,
@@ -37,7 +39,6 @@ app.get("/api/external/recalls", async (req, res) => {
       state: r.state,
       country: r.country,
     }));
-
     res.json({ rows });
   } catch (e) {
     res.status(502).json({
@@ -47,7 +48,19 @@ app.get("/api/external/recalls", async (req, res) => {
   }
 });
 
+/** API routes  */
+app.use("/api/machines", machinesRoutes);
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () =>
-  console.log(`SPT server listening on http://localhost:${PORT}`)
-);
+
+/** connect DB */
+connectDB(process.env.MONGO_URI)
+  .then(() => {
+    app.listen(PORT, () =>
+      console.log(`SPT server listening on http://localhost:${PORT}`)
+    );
+  })
+  .catch((err) => {
+    console.error("DB connection failed, exiting:", err.message);
+    process.exit(1);
+  });
