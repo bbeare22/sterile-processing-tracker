@@ -13,30 +13,33 @@ import AuthProvider from "./context/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ToastProvider from "./components/Toast/ToastProvider.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <AppShell>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/recalls" element={<Recalls />} />
-            <Route path="/machines" element={<Machines />} />
-            <Route path="/machines/:id" element={<MachineDetail />} />
-            <Route
-              path="/maintenance"
-              element={
-                <ProtectedRoute>
-                  <Maintenance />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/about" element={<About />} />
-          </Routes>
-        </AppShell>
+        <ToastProvider>
+          <AppShell>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/recalls" element={<Recalls />} />
+              <Route path="/machines" element={<Machines />} />
+              <Route path="/machines/:id" element={<MachineDetail />} />
+              <Route
+                path="/maintenance"
+                element={
+                  <ProtectedRoute>
+                    <Maintenance />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/about" element={<About />} />
+            </Routes>
+          </AppShell>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
