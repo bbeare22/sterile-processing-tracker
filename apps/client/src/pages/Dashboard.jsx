@@ -1,48 +1,61 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "../components/Card/Card";
 import KPI from "../components/KPI/KPI";
-import { daysSince } from "../utils/date";
+import { daysSince, formatDateTime } from "../utils/date";
 import { Link } from "react-router-dom";
 import common from "../components/common.module.css";
 
 const DESCALe_THRESHOLD_DAYS = 7;
 
 export default function Dashboard() {
-  const [rows, setRows] = useState([]);
+  const [machines, setMachines] = useState([]);
+  const [maint, setMaint] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     const base = import.meta.env.VITE_API_URL;
-    setLoading(true);
-    setErr("");
-    fetch(`${base}/api/machines`)
-      .then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
-      )
-      .then((d) => setRows(d.machines || []))
-      .catch((e) => setErr(e.message))
-      .finally(() => setLoading(false));
+    async function load() {
+      try {
+        setLoading(true);
+        setErr("");
+        const [mRes, maRes] = await Promise.all([
+          fetch(`${base}/api/machines`),
+          fetch(`${base}/api/maintenance?limit=5`),
+        ]);
+        if (!mRes.ok) throw new Error(`Machines HTTP ${mRes.status}`);
+        if (!maRes.ok) throw new Error(`Maintenance HTTP ${maRes.status}`);
+        const mJson = await mRes.json();
+        const maJson = await maRes.json();
+        setMachines(mJson.machines || []);
+        setMaint(maJson.maintenance || []);
+      } catch (e) {
+        setErr(String(e.message || e));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
   const { activeMachines, overdueDescales, cyclesToday, failedCyclesToday } =
     useMemo(() => {
-      const activeMachines = rows.filter((m) => m.status === "active").length;
-      const overdueDescales = rows.filter(
+      const activeMachines = machines.filter(
+        (m) => m.status === "active"
+      ).length;
+      const overdueDescales = machines.filter(
         (m) => daysSince(m.lastDescaleAt) > DESCALe_THRESHOLD_DAYS
       );
-
-      // placeholders for now
+      // placeholders until cycles are implemented
       const cyclesToday = 12;
       const failedCyclesToday = 1;
-
       return {
         activeMachines,
         overdueDescales,
         cyclesToday,
         failedCyclesToday,
       };
-    }, [rows]);
+    }, [machines]);
 
   return (
     <>
@@ -82,14 +95,14 @@ export default function Dashboard() {
         <div
           style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}
         >
-          {/* Recent (placeholder) */}
+          {/* Recent Cycles (keep for now) */}
           <Card title="Recent Cycles">
             <div style={{ opacity: 0.7 }}>
-              Coming soon — Replace this with Recent Maintenance next.
+              Coming soon — cycles integration.
             </div>
           </Card>
 
-          {/* Overdue Descales (with status dot + shortcut) */}
+          {/* Overdue Descales (unchanged, with Log shortcut) */}
           <Card title="Overdue Descales">
             {overdueDescales.length ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
@@ -121,7 +134,6 @@ export default function Dashboard() {
                         {m.name}
                       </Link>
                       — {days} days
-                      {/*  Quick action: preselect machine on the form */}
                       <Link
                         to={`/maintenance?machineId=${m._id}`}
                         style={{ ...chip }}
@@ -137,6 +149,45 @@ export default function Dashboard() {
               <div style={{ opacity: 0.7 }}>
                 All good. No overdue descales 🎉
               </div>
+            )}
+          </Card>
+
+          {/* Recent Maintenance (new) */}
+          <Card title="Recent Maintenance">
+            {maint.length ? (
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {maint.map((r) => (
+                  <li
+                    key={r._id}
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {/* tiny status dot same look across app (always green here) */}
+                    <span
+                      className={`${common.dot} ${common["dot--ok"]}`}
+                    ></span>
+                    <span style={{ opacity: 0.85 }}>
+                      <strong>
+                        {(r.machineId && r.machineId.name) || "Unknown"}
+                      </strong>
+                      &nbsp;— {r.type}
+                      &nbsp;• {formatDateTime(r.performedAt)}
+                    </span>
+                    <Link
+                      to={`/machines/${r.machineId?._id || ""}`}
+                      style={{ ...link, marginLeft: "auto" }}
+                    >
+                      View
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ opacity: 0.7 }}>No maintenance logged yet.</div>
             )}
           </Card>
         </div>

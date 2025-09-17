@@ -54,10 +54,13 @@ router.get("/", async (req, res) => {
     const { machineId, limit = 20 } = req.query;
     const filter = {};
     if (machineId) filter.machineId = machineId;
+
     const rows = await Maintenance.find(filter)
       .sort({ performedAt: -1 })
       .limit(Number(limit))
+      .populate("machineId", "name")
       .lean();
+
     res.json({ maintenance: rows });
   } catch (e) {
     res.status(500).json({ error: "Failed to list maintenance" });
