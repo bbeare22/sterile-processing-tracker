@@ -5,3 +5,9 @@ export function daysSince(isoDate) {
   const diffMs = Math.max(0, now - then);
   return Math.floor(diffMs / (1000 * 60 * 60 * 24)); // whole days
 }
+
+export function formatDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString();
+}

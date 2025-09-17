@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { mlToOz, ozToMl, round } from "../utils/units";
+import { useLocation } from "react-router-dom";
 
 export default function Maintenance() {
   const [machines, setMachines] = useState([]);
   const [loadingMachines, setLoadingMachines] = useState(true);
   const [submitMsg, setSubmitMsg] = useState("");
   const [submitErr, setSubmitErr] = useState("");
+
+  // Read ?machineId=... from the URL
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const preselectedId = params.get("machineId") || "";
 
   const {
     register,
@@ -17,7 +23,7 @@ export default function Maintenance() {
     reset,
   } = useForm({
     defaultValues: {
-      machineId: "",
+      machineId: preselectedId,
       type: "descale",
       performedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
         .toISOString()
@@ -27,6 +33,12 @@ export default function Maintenance() {
       volumeOz: "",
     },
   });
+
+  useEffect(() => {
+    if (!loadingMachines && preselectedId) {
+      setValue("machineId", preselectedId, { shouldValidate: true });
+    }
+  }, [loadingMachines, preselectedId, setValue]);
 
   // Load machines for dropdown
   useEffect(() => {
@@ -78,10 +90,12 @@ export default function Maintenance() {
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || `HTTP ${res.status}`);
       }
-      const j = await res.json();
+      await res.json();
       setSubmitMsg("Saved maintenance record ✔");
+
+      // Reset but keep the preselected machine in place
       reset({
-        machineId: "",
+        machineId: preselectedId,
         type: "descale",
         performedAt: new Date(
           Date.now() - new Date().getTimezoneOffset() * 60000
@@ -96,6 +110,19 @@ export default function Maintenance() {
       setSubmitErr(String(err.message || err));
     }
   };
+
+  // Custom reset that preserves the preselected machine
+  const handleReset = () =>
+    reset({
+      machineId: preselectedId,
+      type: "descale",
+      performedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16),
+      notes: "",
+      volumeMl: "",
+      volumeOz: "",
+    });
 
   return (
     <div>
@@ -199,7 +226,7 @@ export default function Maintenance() {
           <button type="submit" disabled={isSubmitting} style={btnPrimary}>
             {isSubmitting ? "Saving…" : "Save"}
           </button>
-          <button type="button" onClick={() => reset()} style={btnGhost}>
+          <button type="button" onClick={handleReset} style={btnGhost}>
             Reset
           </button>
         </div>

@@ -1,54 +1,54 @@
+import { useEffect, useMemo, useState } from "react";
 import Card from "../components/Card/Card";
 import KPI from "../components/KPI/KPI";
-import common from "../components/common.module.css";
-import { machines } from "../data/machines";
 import { daysSince } from "../utils/date";
 import { Link } from "react-router-dom";
-import { useMemo } from "react";
+import common from "../components/common.module.css";
 
 const DESCALe_THRESHOLD_DAYS = 7;
 
 export default function Dashboard() {
-  // Derive KPIs
-  const {
-    activeMachines,
-    overdueDescales,
-    recentCycles,
-    failedCyclesToday,
-    cyclesToday,
-  } = useMemo(() => {
-    const activeMachines = machines.filter((m) => m.status === "active").length;
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
-    const overdueDescales = machines.filter((m) => {
-      const d = daysSince(m.lastDescaleAt);
-      return d > DESCALe_THRESHOLD_DAYS;
-    });
-
-    // Placeholder “cycles”
-    const cyclesToday = 12;
-    const failedCyclesToday = 1;
-
-    // Small sample list to show structure
-    const recentCycles = [
-      { id: "c-001", machine: "AMSCO 5000", result: "Pass", time: "08:31" },
-      { id: "c-002", machine: "AMSCO 5000", result: "Pass", time: "09:12" },
-      { id: "c-003", machine: "Washer 2", result: "Fail", time: "10:05" },
-    ];
-
-    return {
-      activeMachines,
-      overdueDescales,
-      recentCycles,
-      failedCyclesToday,
-      cyclesToday,
-    };
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_URL;
+    setLoading(true);
+    setErr("");
+    fetch(`${base}/api/machines`)
+      .then((r) =>
+        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
+      )
+      .then((d) => setRows(d.machines || []))
+      .catch((e) => setErr(e.message))
+      .finally(() => setLoading(false));
   }, []);
+
+  const { activeMachines, overdueDescales, cyclesToday, failedCyclesToday } =
+    useMemo(() => {
+      const activeMachines = rows.filter((m) => m.status === "active").length;
+      const overdueDescales = rows.filter(
+        (m) => daysSince(m.lastDescaleAt) > DESCALe_THRESHOLD_DAYS
+      );
+
+      // placeholders for now
+      const cyclesToday = 12;
+      const failedCyclesToday = 1;
+
+      return {
+        activeMachines,
+        overdueDescales,
+        cyclesToday,
+        failedCyclesToday,
+      };
+    }, [rows]);
 
   return (
     <>
       <h1 style={{ marginBottom: 16 }}>Dashboard</h1>
 
-      {/* KPI row */}
+      {/* KPIs */}
       <div
         style={{
           display: "grid",
@@ -71,59 +71,76 @@ export default function Dashboard() {
         <KPI label="Active Machines" value={activeMachines} tone="ok" />
       </div>
 
-      {/* Two-up cards */}
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}>
-        {/* Recent Cycles */}
-        <Card title="Recent Cycles">
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {recentCycles.map((c) => (
-              <li key={c.id}>
-                {c.machine} — <strong>{c.result}</strong> — {c.time}
-              </li>
-            ))}
-          </ul>
-        </Card>
+      {loading && <div style={{ opacity: 0.7 }}>Loading data…</div>}
+      {err && (
+        <div style={{ color: "var(--color-danger)" }}>
+          Failed to load: {err}
+        </div>
+      )}
 
-        {/* Overdue Descales */}
-        <Card title="Overdue Descales">
-          {overdueDescales.length ? (
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {overdueDescales.map((m) => {
-                const days = daysSince(m.lastDescaleAt);
-                const color =
-                  days > 14
-                    ? "var(--color-danger)"
-                    : days > 7
-                    ? "var(--color-warn)"
-                    : "var(--color-text)";
-                const dot =
-                  m.status === "active"
-                    ? common["dot--ok"]
-                    : common["dot--down"];
-                return (
-                  <li
-                    key={m.id}
-                    style={{
-                      color,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <span className={`${common.dot} ${dot}`}></span>
-                    <Link to={`/machines/${m.id}`} style={link}>
-                      {m.name}
-                    </Link>
-                    — {days} days
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div style={{ opacity: 0.7 }}>All good. No overdue descales 🎉</div>
-          )}
-        </Card>
-      </div>
+      {!loading && !err && (
+        <div
+          style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}
+        >
+          {/* Recent (placeholder) */}
+          <Card title="Recent Cycles">
+            <div style={{ opacity: 0.7 }}>
+              Coming soon — Replace this with Recent Maintenance next.
+            </div>
+          </Card>
+
+          {/* Overdue Descales (with status dot + shortcut) */}
+          <Card title="Overdue Descales">
+            {overdueDescales.length ? (
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {overdueDescales.map((m) => {
+                  const days = daysSince(m.lastDescaleAt);
+                  const color =
+                    days > 14
+                      ? "var(--color-danger)"
+                      : days > 7
+                      ? "var(--color-warn)"
+                      : "var(--color-text)";
+                  const dot =
+                    m.status === "active"
+                      ? common["dot--ok"]
+                      : common["dot--down"];
+                  return (
+                    <li
+                      key={m._id}
+                      style={{
+                        color,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span className={`${common.dot} ${dot}`}></span>
+                      <Link to={`/machines/${m._id}`} style={link}>
+                        {m.name}
+                      </Link>
+                      — {days} days
+                      {/*  Quick action: preselect machine on the form */}
+                      <Link
+                        to={`/maintenance?machineId=${m._id}`}
+                        style={{ ...chip }}
+                        title="Log maintenance for this machine"
+                      >
+                        Log
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div style={{ opacity: 0.7 }}>
+                All good. No overdue descales 🎉
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
     </>
   );
 }
@@ -134,5 +151,15 @@ const link = {
   border: "1px solid var(--color-border)",
   borderRadius: 12,
   padding: "2px 8px",
-  marginLeft: 6,
+};
+
+const chip = {
+  marginLeft: "auto",
+  padding: "2px 8px",
+  borderRadius: 999,
+  border: "1px solid var(--color-brand)",
+  color: "#fff",
+  background: "var(--color-brand)",
+  textDecoration: "none",
+  fontSize: 12,
 };

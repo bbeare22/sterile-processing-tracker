@@ -1,6 +1,7 @@
 const express = require("express");
 const { z } = require("zod");
 const Machine = require("../models/Machine");
+const mongoose = require("mongoose");
 
 const router = express.Router();
 
@@ -45,6 +46,21 @@ router.post("/", async (req, res) => {
     res.status(201).json({ machine: doc });
   } catch (e) {
     res.status(500).json({ error: "Failed to create machine" });
+  }
+});
+
+// GET /api/machines/:id
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const m = await Machine.findById(id).lean();
+    if (!m) return res.status(404).json({ error: "Not found" });
+    res.json({ machine: m });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to get machine" });
   }
 });
 
