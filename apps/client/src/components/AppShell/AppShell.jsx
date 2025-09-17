@@ -1,11 +1,15 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import styles from "./AppShell.module.css";
 
 export default function AppShell({ children }) {
+  const { user, logout } = useAuth();
+
   return (
     <div className={styles.shell}>
       <aside className={styles.shell__side}>
         <div className={styles.brand}>SPT</div>
+
         <nav className={styles.nav}>
           <NavLink
             to="/"
@@ -39,7 +43,33 @@ export default function AppShell({ children }) {
             About
           </NavLink>
         </nav>
+
+        {/* Auth controls at bottom */}
+        <div className={styles.authBox}>
+          {user ? (
+            <>
+              <div className={styles.userHi}>Hi, {user.name || user.email}</div>
+              <div className={styles.userMeta}>
+                <div>ID: {user.employeeId}</div>
+                <div>Ster#: {user.sterilizationNumber}</div>
+              </div>
+              <button onClick={logout} className={styles.authBtn}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <div className={styles.authLinks}>
+              <NavLink to="/login" className={styles.authBtn}>
+                Login
+              </NavLink>
+              <NavLink to="/register" className={styles.authBtn}>
+                Register
+              </NavLink>
+            </div>
+          )}
+        </div>
       </aside>
+
       <main className={styles.shell__main}>{children}</main>
     </div>
   );

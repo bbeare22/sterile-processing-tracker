@@ -2,6 +2,7 @@ const express = require("express");
 const { z } = require("zod");
 const Machine = require("../models/Machine");
 const mongoose = require("mongoose");
+const { auth } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/machines
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   try {
     const parsed = machineSchema.safeParse(req.body);
     if (!parsed.success) {

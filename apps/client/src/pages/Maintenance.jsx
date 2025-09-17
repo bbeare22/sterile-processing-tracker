@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { mlToOz, ozToMl, round } from "../utils/units";
 import { useLocation } from "react-router-dom";
+import { apiFetch } from "../utils/api";
 
 export default function Maintenance() {
   const [machines, setMachines] = useState([]);
@@ -81,15 +82,19 @@ export default function Maintenance() {
         performedAt: new Date(data.performedAt).toISOString(),
         notes: data.notes || "",
       };
-      const res = await fetch(`${base}/api/maintenance`, {
+      const res = await apiFetch("/api/maintenance", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error("Please log in to perform this action.");
+        }
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || `HTTP ${res.status}`);
       }
+
       await res.json();
       setSubmitMsg("Saved maintenance record ✔");
 

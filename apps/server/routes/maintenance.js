@@ -2,6 +2,7 @@ const express = require("express");
 const { z } = require("zod");
 const Maintenance = require("../models/Maintenance");
 const Machine = require("../models/Machine");
+const { auth } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ const createSchema = z.object({
 });
 
 // POST /api/maintenance
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   try {
     // Parse numeric string volume if sent as string
     const body = {

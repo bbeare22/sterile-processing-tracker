@@ -6,18 +6,16 @@ const morgan = require("morgan");
 const axios = require("axios");
 
 const { connectDB } = require("./config/db");
+
 const machinesRoutes = require("./routes/machines");
 const maintenanceRoutes = require("./routes/maintenance");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
 app.use(morgan("tiny"));
-app.use("/api/maintenance", maintenanceRoutes);
-
-/** DEBUG: confirm env loaded */
-console.log("MONGO_URI present?", Boolean(process.env.MONGO_URI));
 
 /** External proxy: OpenFDA Recalls */
 app.get("/api/external/recalls", async (req, res) => {
@@ -43,19 +41,22 @@ app.get("/api/external/recalls", async (req, res) => {
     }));
     res.json({ rows });
   } catch (e) {
-    res.status(502).json({
-      error: "Third-party API error",
-      details: e?.response?.data || e.message,
-    });
+    res
+      .status(502)
+      .json({
+        error: "Third-party API error",
+        details: e?.response?.data || e.message,
+      });
   }
 });
 
-/** API routes  */
+/** Routes */
+app.use("/api/auth", authRoutes);
 app.use("/api/machines", machinesRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 const PORT = process.env.PORT || 3001;
 
-/** connect DB */
 connectDB(process.env.MONGO_URI)
   .then(() => {
     app.listen(PORT, () =>
