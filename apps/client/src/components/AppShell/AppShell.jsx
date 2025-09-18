@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./AppShell.module.css";
+import Footer from "../Footer/Footer";
 
 export default function AppShell({ children }) {
   const { user, logout } = useAuth();
@@ -70,7 +71,10 @@ export default function AppShell({ children }) {
         </div>
       </aside>
 
-      <main className={styles.shell__main}>{children}</main>
+      <main className={styles.shell__main}>
+        <div className={styles.content}>{children}</div>
+        <Footer />
+      </main>
     </div>
   );
 }

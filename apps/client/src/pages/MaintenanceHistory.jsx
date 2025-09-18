@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Skeleton from "../components/Skeleton/Skeleton";
 import { formatDateTime } from "../utils/date";
+import { toCSV, downloadFile } from "../utils/csv";
+import { useToast } from "../components/Toast/ToastProvider";
 
 export default function MaintenanceHistory() {
   const { id } = useParams();
@@ -10,6 +12,7 @@ export default function MaintenanceHistory() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [limit, setLimit] = useState(20);
+  const { show } = useToast();
 
   useEffect(() => {
     const base = import.meta.env.VITE_API_URL;
@@ -42,6 +45,28 @@ export default function MaintenanceHistory() {
     load();
   }, [id, limit]);
 
+  function onExportCSV() {
+    try {
+      const headers = [
+        { label: "Type", get: (r) => r.type },
+        {
+          label: "Performed At",
+          get: (r) => new Date(r.performedAt).toISOString(),
+        },
+        { label: "Volume (mL)", get: (r) => Number(r.volumeUsedMl || 0) },
+        { label: "Notes", get: (r) => r.notes || "" },
+        { label: "Maintenance ID", get: (r) => r._id },
+        { label: "Machine ID", get: (r) => r.machineId?._id || id },
+      ];
+      const csv = toCSV(rows, headers);
+      const name = (machine?.name || `machine_${id}`).replace(/\s+/g, "_");
+      downloadFile(`${name}_maintenance.csv`, csv);
+      show("Exported maintenance CSV ✔", { tone: "ok" });
+    } catch (e) {
+      show("Failed to export CSV", { tone: "danger", ms: 5000 });
+    }
+  }
+
   return (
     <div>
       <div
@@ -64,6 +89,9 @@ export default function MaintenanceHistory() {
           >
             Log maintenance
           </Link>
+          <button onClick={onExportCSV} style={{ ...btn, marginLeft: 8 }}>
+            Export CSV
+          </button>
         </div>
       </div>
 
