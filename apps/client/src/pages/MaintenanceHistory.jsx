@@ -1,27 +1,37 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { formatDateTime } from "../utils/date";
 import Skeleton from "../components/Skeleton/Skeleton";
+import { formatDateTime } from "../utils/date";
 
-export default function MachineDetail() {
+export default function MaintenanceHistory() {
   const { id } = useParams();
-  const [m, setM] = useState(null);
-  const [maint, setMaint] = useState([]);
+  const [machine, setMachine] = useState(null);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [loadingMaint, setLoadingMaint] = useState(true);
+  const [limit, setLimit] = useState(20);
 
   useEffect(() => {
     const base = import.meta.env.VITE_API_URL;
 
-    async function loadMachine() {
+    async function load() {
       try {
         setLoading(true);
         setErr("");
+
+        // fetch machine (for title)
         const mRes = await fetch(`${base}/api/machines/${id}`);
         if (!mRes.ok) throw new Error(`Machine HTTP ${mRes.status}`);
         const mJson = await mRes.json();
-        setM(mJson.machine || null);
+        setMachine(mJson.machine || null);
+
+        // fetch maintenance list
+        const r = await fetch(
+          `${base}/api/maintenance?machineId=${id}&limit=${limit}`
+        );
+        if (!r.ok) throw new Error(`Maintenance HTTP ${r.status}`);
+        const j = await r.json();
+        setRows(j.maintenance || []);
       } catch (e) {
         setErr(String(e.message || e));
       } finally {
@@ -29,44 +39,11 @@ export default function MachineDetail() {
       }
     }
 
-    async function loadMaint() {
-      try {
-        setLoadingMaint(true);
-        const maRes = await fetch(
-          `${base}/api/maintenance?machineId=${id}&limit=10`
-        );
-        if (!maRes.ok) throw new Error(`Maintenance HTTP ${maRes.status}`);
-        const maJson = await maRes.json();
-        setMaint(maJson.maintenance || []);
-      } catch {
-        setMaint([]);
-      } finally {
-        setLoadingMaint(false);
-      }
-    }
-
-    loadMachine();
-    loadMaint();
-  }, [id]);
-
-  if (loading) return <div>Loading…</div>;
-  if (err)
-    return (
-      <div style={{ color: "var(--color-danger)" }}>Failed to load: {err}</div>
-    );
-  if (!m)
-    return (
-      <div>
-        <h1>Machine not found</h1>
-        <Link to="/machines" style={link}>
-          Back to list
-        </Link>
-      </div>
-    );
+    load();
+  }, [id, limit]);
 
   return (
     <div>
-      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -74,13 +51,15 @@ export default function MachineDetail() {
           alignItems: "center",
         }}
       >
-        <h1 style={{ marginBottom: 16 }}>{m.name}</h1>
+        <h1 style={{ marginBottom: 16 }}>
+          {machine ? `Maintenance — ${machine.name}` : "Maintenance History"}
+        </h1>
         <div>
-          <Link to="/machines" style={link}>
-            Back to list
+          <Link to={`/machines/${id}`} style={link}>
+            Back to machine
           </Link>
           <Link
-            to={`/maintenance?machineId=${m._id}`}
+            to={`/maintenance?machineId=${id}`}
             style={{ ...link, marginLeft: 8 }}
           >
             Log maintenance
@@ -88,30 +67,12 @@ export default function MachineDetail() {
         </div>
       </div>
 
-      {/* Machine facts */}
-      <div style={panel}>
-        <div>
-          <strong>ID:</strong> {m._id}
+      {err && (
+        <div style={{ color: "var(--color-danger)", marginBottom: 12 }}>
+          Failed to load: {err}
         </div>
-        <div>
-          <strong>Model:</strong> {m.model}
-        </div>
-        <div>
-          <strong>Type:</strong> {m.type}
-        </div>
-        <div>
-          <strong>Location:</strong> {m.location}
-        </div>
-        <div>
-          <strong>Status:</strong> {m.status}
-        </div>
-        <div>
-          <strong>Last Descale:</strong> {formatDateTime(m.lastDescaleAt)}
-        </div>
-      </div>
+      )}
 
-      {/* Maintenance history */}
-      <h2 style={{ margin: "20px 0 12px" }}>Recent Maintenance</h2>
       <div style={tableWrap}>
         <table style={table}>
           <thead style={thead}>
@@ -123,8 +84,8 @@ export default function MachineDetail() {
             </tr>
           </thead>
           <tbody>
-            {loadingMaint ? (
-              Array.from({ length: 4 }).map((_, i) => (
+            {loading ? (
+              Array.from({ length: 8 }).map((_, i) => (
                 <tr key={`skel-${i}`} style={tr}>
                   <td
                     colSpan={4}
@@ -141,14 +102,14 @@ export default function MachineDetail() {
                   </td>
                 </tr>
               ))
-            ) : maint.length ? (
-              maint.map((row) => (
-                <tr key={row._id} style={tr}>
-                  <td style={td}>{row.type}</td>
-                  <td style={td}>{formatDateTime(row.performedAt)}</td>
-                  <td style={td}>{Number(row.volumeUsedMl || 0)}</td>
+            ) : rows.length ? (
+              rows.map((r) => (
+                <tr key={r._id} style={tr}>
+                  <td style={td}>{r.type}</td>
+                  <td style={td}>{formatDateTime(r.performedAt)}</td>
+                  <td style={td}>{Number(r.volumeUsedMl || 0)}</td>
                   <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {row.notes || "—"}
+                    {r.notes || "—"}
                   </td>
                 </tr>
               ))
@@ -163,36 +124,31 @@ export default function MachineDetail() {
         </table>
       </div>
 
-      {/* View all link */}
-      {!loadingMaint && maint.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <Link
-            to={`/machines/${m._id}/maintenance`}
-            style={{ fontSize: 14, opacity: 0.85 }}
-          >
-            View all maintenance →
-          </Link>
+      {!loading && rows.length >= limit && (
+        <div style={{ marginTop: 12 }}>
+          <button onClick={() => setLimit((n) => n + 20)} style={btn}>
+            Load more
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-const panel = {
-  display: "grid",
-  gap: 10,
-  padding: "24px",
-  border: "1px solid var(--color-border)",
-  borderRadius: "16px",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-};
 const link = {
   color: "#cbd5e1",
   textDecoration: "none",
   border: "1px solid var(--color-border)",
   borderRadius: 12,
   padding: "8px 12px",
+};
+const btn = {
+  padding: "10px 14px",
+  borderRadius: 12,
+  border: "1px solid var(--color-border)",
+  background: "transparent",
+  color: "var(--color-text)",
+  cursor: "pointer",
 };
 const tableWrap = {
   overflow: "auto",

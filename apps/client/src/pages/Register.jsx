@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "../components/Toast/ToastProvider";
 
 export default function Register() {
   const { register: reg } = useAuth();
@@ -11,21 +12,18 @@ export default function Register() {
   const [employeeId, setEmployeeId] = useState("");
   const [sterilizationNumber, setSterilizationNumber] = useState("");
   const [err, setErr] = useState("");
+  const { show } = useToast();
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     try {
-      await reg({
-        email,
-        password,
-        name,
-        employeeId,
-        sterilizationNumber,
-      });
+      await reg({ email, password, name, employeeId, sterilizationNumber });
+      show("Account created!", { tone: "ok" });
       nav("/");
     } catch (e) {
       setErr(String(e.message || e));
+      show(e.message || "Registration failed", { tone: "danger", ms: 5000 });
     }
   }
 

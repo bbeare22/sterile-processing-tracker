@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "../components/Toast/ToastProvider";
 
 export default function Login() {
   const { login } = useAuth();
@@ -8,15 +9,18 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const { show } = useToast();
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     try {
       await login({ email, password });
-      nav("/"); // go home on success
+      show("Welcome back!", { tone: "ok" });
+      nav("/");
     } catch (e) {
       setErr(String(e.message || e));
+      show(e.message || "Login failed", { tone: "danger", ms: 5000 });
     }
   }
 

@@ -50,7 +50,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Login (unchanged, but we can return new fields too)
+// Login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;

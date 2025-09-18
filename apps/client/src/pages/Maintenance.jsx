@@ -3,12 +3,14 @@ import { useForm } from "react-hook-form";
 import { mlToOz, ozToMl, round } from "../utils/units";
 import { useLocation } from "react-router-dom";
 import { apiFetch } from "../utils/api";
+import { useToast } from "../components/Toast/ToastProvider";
 
 export default function Maintenance() {
   const [machines, setMachines] = useState([]);
   const [loadingMachines, setLoadingMachines] = useState(true);
   const [submitMsg, setSubmitMsg] = useState("");
   const [submitErr, setSubmitErr] = useState("");
+  const { show } = useToast();
 
   // Read ?machineId=... from the URL
   const location = useLocation();
@@ -71,10 +73,7 @@ export default function Maintenance() {
   }, [volumeOz, setValue]);
 
   const onSubmit = async (data) => {
-    setSubmitMsg("");
-    setSubmitErr("");
     try {
-      const base = import.meta.env.VITE_API_URL;
       const payload = {
         machineId: data.machineId,
         type: data.type,
@@ -82,25 +81,24 @@ export default function Maintenance() {
         performedAt: new Date(data.performedAt).toISOString(),
         notes: data.notes || "",
       };
+
       const res = await apiFetch("/api/maintenance", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        if (res.status === 401) {
+        if (res.status === 401)
           throw new Error("Please log in to perform this action.");
-        }
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || `HTTP ${res.status}`);
       }
 
       await res.json();
-      setSubmitMsg("Saved maintenance record ✔");
+      show("Saved maintenance record ✔", { tone: "ok" });
 
-      // Reset but keep the preselected machine in place
       reset({
-        machineId: preselectedId,
+        machineId: "",
         type: "descale",
         performedAt: new Date(
           Date.now() - new Date().getTimezoneOffset() * 60000
@@ -112,7 +110,10 @@ export default function Maintenance() {
         volumeOz: "",
       });
     } catch (err) {
-      setSubmitErr(String(err.message || err));
+      show(err.message || "Failed to save maintenance", {
+        tone: "danger",
+        ms: 5000,
+      });
     }
   };
 

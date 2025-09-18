@@ -4,6 +4,7 @@ import KPI from "../components/KPI/KPI";
 import { daysSince, formatDateTime } from "../utils/date";
 import { Link } from "react-router-dom";
 import common from "../components/common.module.css";
+import Skeleton from "../components/Skeleton/Skeleton";
 
 const DESCALe_THRESHOLD_DAYS = 7;
 
@@ -152,9 +153,32 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* Recent Maintenance (new) */}
+          {/* Recent Maintenance (with skeleton) */}
           <Card title="Recent Maintenance">
-            {maint.length ? (
+            {loading ? (
+              // Skeleton list: 5 placeholder rows
+              <div style={{ display: "grid", gap: 8 }}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={`rm-skel-${i}`}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr auto",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Skeleton w={12} h={12} style={{ borderRadius: 999 }} />{" "}
+                    {/* dot */}
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <Skeleton w="40%" h={14} /> {/* machine name */}
+                      <Skeleton w="60%" h={12} /> {/* type + date */}
+                    </div>
+                    <Skeleton w={60} h={24} r={12} /> {/* View button */}
+                  </div>
+                ))}
+              </div>
+            ) : maint.length ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
                 {maint.map((r) => (
                   <li
@@ -166,7 +190,6 @@ export default function Dashboard() {
                       marginBottom: 6,
                     }}
                   >
-                    {/* tiny status dot same look across app (always green here) */}
                     <span
                       className={`${common.dot} ${common["dot--ok"]}`}
                     ></span>
