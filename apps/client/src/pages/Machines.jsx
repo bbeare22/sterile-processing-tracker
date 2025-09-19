@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import MachineCard from "../components/MachineCard/MachineCard";
-import Skeleton from "../components/Skeleton/Skeleton";
+import MachineForm from "../components/MachineForm/MachineForm";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast/ToastProvider";
+import { apiFetch } from "../utils/api";
 
 export default function Machines() {
   const [q, setQ] = useState("");
@@ -9,11 +12,18 @@ export default function Machines() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const { user } = useAuth();
+  const { show } = useToast();
+
+  // Load machines
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
     setLoading(true);
     setErr("");
-    fetch(`${base}/api/machines`)
+    apiFetch(`/api/machines`)
       .then((r) =>
         r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
       )
@@ -34,9 +44,95 @@ export default function Machines() {
     });
   }, [rows, q, type]);
 
+  function openAdd() {
+    setEditing(null);
+    setShowForm(true);
+  }
+  function openEdit(m) {
+    setEditing(m);
+    setShowForm(true);
+  }
+  function closeForm() {
+    setShowForm(false);
+    setEditing(null);
+  }
+
+  async function handleSave(formData) {
+    try {
+      setSubmitting(true);
+      const payload = {
+        ...formData,
+        lastDescaleAt: formData.lastDescaleAt
+          ? new Date(formData.lastDescaleAt).toISOString()
+          : undefined,
+      };
+
+      const url = editing ? `/api/machines/${editing._id}` : `/api/machines`;
+      const res = await apiFetch(url, {
+        method: editing ? "PUT" : "POST",
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || `HTTP ${res.status}`);
+      }
+      const j = await res.json();
+
+      if (editing) {
+        setRows((prev) =>
+          prev.map((x) => (x._id === editing._id ? j.machine : x))
+        );
+        show("Machine updated ✔", { tone: "ok" });
+      } else {
+        setRows((prev) => [j.machine, ...prev]);
+        show("Machine added ✔", { tone: "ok" });
+      }
+      closeForm();
+    } catch (e) {
+      show(e.message || "Failed to save machine", { tone: "danger", ms: 5000 });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(m) {
+    if (!confirm(`Delete machine "${m.name}"? This cannot be undone.`)) return;
+    try {
+      const res = await apiFetch(`/api/machines/${m._id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok && res.status !== 204) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || `HTTP ${res.status}`);
+      }
+      setRows((prev) => prev.filter((x) => x._id !== m._id));
+      show("Machine deleted ✔", { tone: "ok" });
+    } catch (e) {
+      show(e.message || "Failed to delete machine", {
+        tone: "danger",
+        ms: 5000,
+      });
+    }
+  }
+
   return (
     <>
-      <h1 style={{ marginBottom: 16 }}>Machines</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <h1 style={{ margin: 0 }}>Machines</h1>
+        {user && (
+          <button onClick={openAdd} style={btnPrimary}>
+            + Add Machine
+          </button>
+        )}
+      </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
         <input
@@ -57,51 +153,48 @@ export default function Machines() {
         </select>
       </div>
 
+      {loading && <div style={{ opacity: 0.7 }}>Loading machines…</div>}
       {err && (
-        <div style={{ color: "var(--color-danger)", marginBottom: 12 }}>
+        <div style={{ color: "var(--color-danger)" }}>
           Failed to load: {err}
         </div>
       )}
 
-      {/* Grid area — shows skeleton cards while loading */}
-      <div
-        style={{
-          display: "grid",
-          gap: 16,
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        }}
-      >
-        {loading
-          ? // Skeleton cards (6 placeholders)
-            Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={`skel-${i}`}
-                style={{
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 16,
-                  padding: 16,
-                  boxShadow: "var(--shadow-soft)",
-                  display: "grid",
-                  gap: 10,
-                }}
-              >
-                <Skeleton w="70%" h={18} /> {/* title */}
-                <Skeleton w="50%" h={14} /> {/* subtitle / model */}
-                <Skeleton w="60%" h={14} /> {/* location */}
-                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                  <Skeleton w="30%" h={28} r={8} /> {/* chip/button */}
-                  <Skeleton w="30%" h={28} r={8} /> {/* chip/button */}
-                </div>
-              </div>
-            ))
-          : // Real data
-            filtered.map((m) => <MachineCard key={m._id} m={m} />)}
+      {!loading && !err && (
+        <div
+          style={{
+            display: "grid",
+            gap: 16,
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          }}
+        >
+          {filtered.map((m) => (
+            <MachineCard
+              key={m._id}
+              m={m}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+          {!filtered.length && (
+            <div style={{ opacity: 0.7 }}>No machines match your filter.</div>
+          )}
+        </div>
+      )}
 
-        {!loading && !err && !filtered.length && (
-          <div style={{ opacity: 0.7 }}>No machines match your filter.</div>
-        )}
-      </div>
+      {showForm && (
+        <div style={overlay}>
+          <div style={overlayPanel}>
+            <MachineForm
+              title={editing ? "Edit Machine" : "Add Machine"}
+              initialValues={editing || undefined}
+              onCancel={closeForm}
+              onSubmit={handleSave}
+              submitting={submitting}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -112,4 +205,26 @@ const input = {
   border: "1px solid var(--color-border)",
   background: "#0e1525",
   color: "var(--color-text)",
+};
+
+const btnPrimary = {
+  padding: "10px 14px",
+  borderRadius: 12,
+  border: "1px solid var(--color-brand)",
+  background: "var(--color-brand)",
+  color: "#fff",
+  cursor: "pointer",
+};
+
+const overlay = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.5)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 50,
+};
+
+const overlayPanel = {
+  width: "min(720px, 92vw)",
 };

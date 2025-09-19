@@ -12,10 +12,19 @@ const maintenanceRoutes = require("./routes/maintenance");
 const authRoutes = require("./routes/auth");
 
 const app = express();
+
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
 app.use(morgan("tiny"));
+
+// ONE cors() with Authorization allowed
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 /** External proxy: OpenFDA Recalls */
 app.get("/api/external/recalls", async (req, res) => {
@@ -41,12 +50,10 @@ app.get("/api/external/recalls", async (req, res) => {
     }));
     res.json({ rows });
   } catch (e) {
-    res
-      .status(502)
-      .json({
-        error: "Third-party API error",
-        details: e?.response?.data || e.message,
-      });
+    res.status(502).json({
+      error: "Third-party API error",
+      details: e?.response?.data || e.message,
+    });
   }
 });
 

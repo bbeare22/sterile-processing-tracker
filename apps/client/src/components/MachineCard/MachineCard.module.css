@@ -45,19 +45,43 @@
 .card__footer {
   margin-top: var(--space-4);
 }
+
 .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1;
+
   color: #cbd5e1;
   text-decoration: none;
   padding: 8px 12px;
   border-radius: 12px;
   border: 1px solid var(--color-border);
   transition: background 0.2s var(--easing), color 0.2s var(--easing),
-    transform 0.12s var(--easing);
+    transform 0.12s var(--easing), border-color 0.2s var(--easing);
 }
+
 .link:hover {
   background: #121a2b;
   color: #fff;
   transform: translateY(-1px);
+}
+
+.buttonReset {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.linkDanger:hover {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
 }
 
 .chip {

@@ -6,17 +6,17 @@ export const useAuth = () => useContext(AuthCtx);
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
 
-  // restore user/token on page load
+  // restore user on page load
   useEffect(() => {
-    const token = localStorage.getItem("token");
     const userStr = localStorage.getItem("user");
     if (token && userStr) {
       try {
         setUser(JSON.parse(userStr));
       } catch {}
     }
-  }, []);
+  }, [token]);
 
   async function register({
     email,
@@ -36,10 +36,11 @@ export default function AuthProvider({ children }) {
       }),
     });
     if (!r.ok) throw new Error((await r.json()).error || `HTTP ${r.status}`);
-    const { token, user } = await r.json();
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
+    const { token: t, user: u } = await r.json();
+    localStorage.setItem("token", t);
+    localStorage.setItem("user", JSON.stringify(u));
+    setToken(t);
+    setUser(u);
   }
 
   async function login({ email, password }) {
@@ -48,20 +49,24 @@ export default function AuthProvider({ children }) {
       body: JSON.stringify({ email, password }),
     });
     if (!r.ok) throw new Error((await r.json()).error || `HTTP ${r.status}`);
-    const { token, user } = await r.json();
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
+    const { token: t, user: u } = await r.json();
+    localStorage.setItem("token", t);
+    localStorage.setItem("user", JSON.stringify(u));
+    setToken(t);
+    setUser(u);
   }
 
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    setToken(null);
     setUser(null);
   }
 
   return (
-    <AuthCtx.Provider value={{ user, register, login, logout }}>
+    <AuthCtx.Provider
+      value={{ user, token, isAuthed: !!token, register, login, logout }}
+    >
       {children}
     </AuthCtx.Provider>
   );

@@ -2,20 +2,18 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { mlToOz, ozToMl, round } from "../utils/units";
 import { useLocation } from "react-router-dom";
-import { apiFetch } from "../utils/api";
 import { useToast } from "../components/Toast/ToastProvider";
+import { apiFetch } from "../utils/api";
 
 export default function Maintenance() {
   const [machines, setMachines] = useState([]);
   const [loadingMachines, setLoadingMachines] = useState(true);
   const [submitMsg, setSubmitMsg] = useState("");
   const [submitErr, setSubmitErr] = useState("");
-  const { show } = useToast();
-
-  // Read ?machineId=... from the URL
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const preselectedId = params.get("machineId") || "";
+  const preselectedId = params.get("machineId");
+  const { show } = useToast();
 
   const {
     register,
@@ -26,7 +24,7 @@ export default function Maintenance() {
     reset,
   } = useForm({
     defaultValues: {
-      machineId: preselectedId,
+      machineId: preselectedId || "",
       type: "descale",
       performedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
         .toISOString()
@@ -38,16 +36,8 @@ export default function Maintenance() {
   });
 
   useEffect(() => {
-    if (!loadingMachines && preselectedId) {
-      setValue("machineId", preselectedId, { shouldValidate: true });
-    }
-  }, [loadingMachines, preselectedId, setValue]);
-
-  // Load machines for dropdown
-  useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
     setLoadingMachines(true);
-    fetch(`${base}/api/machines`)
+    apiFetch(`/api/machines`)
       .then((r) =>
         r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
       )
@@ -73,6 +63,8 @@ export default function Maintenance() {
   }, [volumeOz, setValue]);
 
   const onSubmit = async (data) => {
+    setSubmitMsg("");
+    setSubmitErr("");
     try {
       const payload = {
         machineId: data.machineId,
@@ -81,24 +73,20 @@ export default function Maintenance() {
         performedAt: new Date(data.performedAt).toISOString(),
         notes: data.notes || "",
       };
-
-      const res = await apiFetch("/api/maintenance", {
+      const res = await apiFetch(`/api/maintenance`, {
         method: "POST",
         body: JSON.stringify(payload),
       });
-
       if (!res.ok) {
-        if (res.status === 401)
-          throw new Error("Please log in to perform this action.");
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || `HTTP ${res.status}`);
       }
-
       await res.json();
+      setSubmitMsg("Saved maintenance record ✔");
       show("Saved maintenance record ✔", { tone: "ok" });
 
       reset({
-        machineId: "",
+        machineId: preselectedId || "",
         type: "descale",
         performedAt: new Date(
           Date.now() - new Date().getTimezoneOffset() * 60000
@@ -110,25 +98,11 @@ export default function Maintenance() {
         volumeOz: "",
       });
     } catch (err) {
-      show(err.message || "Failed to save maintenance", {
-        tone: "danger",
-        ms: 5000,
-      });
+      const msg = String(err.message || err);
+      setSubmitErr(msg);
+      show(msg, { tone: "danger", ms: 5000 });
     }
   };
-
-  // Custom reset that preserves the preselected machine
-  const handleReset = () =>
-    reset({
-      machineId: preselectedId,
-      type: "descale",
-      performedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16),
-      notes: "",
-      volumeMl: "",
-      volumeOz: "",
-    });
 
   return (
     <div>
@@ -137,10 +111,12 @@ export default function Maintenance() {
       {submitMsg && <Banner tone="ok" text={submitMsg} />}
       {submitErr && <Banner tone="danger" text={submitErr} />}
 
-      <form onSubmit={handleSubmit(onSubmit)} style={formShell}>
+      <form onSubmit={handleSubmit(onSubmit)} style={formCard}>
         {/* Machine select */}
-        <div>
-          <label htmlFor="machineId">Machine</label>
+        <div style={field}>
+          <label htmlFor="machineId" style={label}>
+            Machine
+          </label>
           <select
             id="machineId"
             {...register("machineId", { required: "Please select a machine." })}
@@ -160,8 +136,10 @@ export default function Maintenance() {
         </div>
 
         {/* Type */}
-        <div>
-          <label htmlFor="type">Type</label>
+        <div style={field}>
+          <label htmlFor="type" style={label}>
+            Type
+          </label>
           <select id="type" {...register("type")} style={inputStyle}>
             <option value="descale">Descale</option>
             <option value="cleaning">Cleaning</option>
@@ -171,8 +149,10 @@ export default function Maintenance() {
         </div>
 
         {/* Date/time */}
-        <div>
-          <label htmlFor="performedAt">Performed At</label>
+        <div style={field}>
+          <label htmlFor="performedAt" style={label}>
+            Performed At
+          </label>
           <input
             id="performedAt"
             type="datetime-local"
@@ -185,11 +165,11 @@ export default function Maintenance() {
         </div>
 
         {/* Volume (mL / oz) */}
-        <div
-          style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}
-        >
-          <div>
-            <label htmlFor="volumeMl">Volume (mL)</label>
+        <div style={row2}>
+          <div style={field}>
+            <label htmlFor="volumeMl" style={label}>
+              Volume (mL)
+            </label>
             <input
               id="volumeMl"
               inputMode="numeric"
@@ -202,8 +182,10 @@ export default function Maintenance() {
             />
             {errors.volumeMl && <FieldError msg={errors.volumeMl.message} />}
           </div>
-          <div>
-            <label htmlFor="volumeOz">Volume (oz)</label>
+          <div style={field}>
+            <label htmlFor="volumeOz" style={label}>
+              Volume (oz)
+            </label>
             <input
               id="volumeOz"
               inputMode="decimal"
@@ -218,8 +200,10 @@ export default function Maintenance() {
         </div>
 
         {/* Notes */}
-        <div>
-          <label htmlFor="notes">Notes (optional)</label>
+        <div style={field}>
+          <label htmlFor="notes" style={label}>
+            Notes (optional)
+          </label>
           <textarea
             id="notes"
             rows={3}
@@ -232,7 +216,7 @@ export default function Maintenance() {
           <button type="submit" disabled={isSubmitting} style={btnPrimary}>
             {isSubmitting ? "Saving…" : "Save"}
           </button>
-          <button type="button" onClick={handleReset} style={btnGhost}>
+          <button type="button" onClick={() => reset()} style={btnGhost}>
             Reset
           </button>
         </div>
@@ -251,8 +235,7 @@ function FieldError({ msg }) {
 function Banner({ tone = "ok", text }) {
   const color =
     tone === "danger" ? "var(--color-danger)" : "var(--color-accent)";
-  const border =
-    tone === "danger" ? "var(--color-danger)" : "var(--color-accent)";
+  const border = color;
   return (
     <div
       style={{
@@ -269,25 +252,47 @@ function Banner({ tone = "ok", text }) {
   );
 }
 
-const formShell = {
+/* ----- Layout-safe styles (match MachineForm) ----- */
+const formCard = {
+  width: "100%",
+  maxWidth: 720,
+  boxSizing: "border-box",
+  padding: 24,
+  borderRadius: 16,
+  border: "1px solid var(--color-border)",
+  background: "var(--color-surface)",
+  boxShadow: "var(--shadow-soft)",
   display: "grid",
   gap: 16,
-  maxWidth: 640,
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: "16px",
-  padding: "24px",
-  boxShadow: "var(--shadow-soft)",
+  overflow: "hidden",
 };
+
+const field = {
+  display: "grid",
+  gap: 8,
+  minWidth: 0,
+};
+
+const row2 = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
+  gap: 16,
+  minWidth: 0,
+};
+
+const label = { fontSize: 14, opacity: 0.9 };
+
 const inputStyle = {
   width: "100%",
-  marginTop: 6,
+  minWidth: 0,
   padding: "10px 12px",
   borderRadius: 12,
   border: "1px solid var(--color-border)",
   background: "#0e1525",
   color: "var(--color-text)",
+  boxSizing: "border-box",
 };
+
 const btnPrimary = {
   padding: "10px 14px",
   borderRadius: 12,
