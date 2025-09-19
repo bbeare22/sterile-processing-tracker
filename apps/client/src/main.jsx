@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ToastProvider from "./components/Toast/ToastProvider.jsx";
 import MaintenanceHistory from "./pages/MaintenanceHistory";
+import NotFound from "./pages/NotFound";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -43,6 +44,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/about" element={<About />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </AppShell>
         </ToastProvider>
