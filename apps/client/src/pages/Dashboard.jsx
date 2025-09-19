@@ -1,18 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "../components/Card/Card";
 import KPI from "../components/KPI/KPI";
-import {
-  daysSince,
-  formatDateTime,
-  startOfTodayLocalISO,
-  endOfTodayLocalISO,
-} from "../utils/date";
+import { daysSince, formatDateTime } from "../utils/date";
 import { Link } from "react-router-dom";
 import common from "../components/common.module.css";
 import Skeleton from "../components/Skeleton/Skeleton";
-import { apiFetch } from "../utils/api";
 
-const DESCALE_THRESHOLD_DAYS = 7; // only applies to washers
+const DESCALE_THRESHOLD_DAYS = 7;
 
 export default function Dashboard() {
   const [machines, setMachines] = useState([]);
@@ -22,33 +16,24 @@ export default function Dashboard() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    const base = import.meta.env.VITE_API_URL;
     async function load() {
       try {
         setLoading(true);
         setErr("");
-
-        // machines + recent maintenance
-        const [mRes, maRes] = await Promise.all([
-          apiFetch(`/api/machines`),
-          apiFetch(`/api/maintenance?limit=5`),
+        const [mRes, maRes, cRes] = await Promise.all([
+          fetch(`${base}/api/machines`),
+          fetch(`${base}/api/maintenance?limit=5`),
+          fetch(`${base}/api/cycles?todayOnly=true&limit=10`),
         ]);
         if (!mRes.ok) throw new Error(`Machines HTTP ${mRes.status}`);
         if (!maRes.ok) throw new Error(`Maintenance HTTP ${maRes.status}`);
+        if (!cRes.ok) throw new Error(`Cycles HTTP ${cRes.status}`);
         const mJson = await mRes.json();
         const maJson = await maRes.json();
+        const cJson = await cRes.json();
         setMachines(mJson.machines || []);
         setMaint(maJson.maintenance || []);
-
-        // today's sterilizer cycles (local day window)
-        const from = startOfTodayLocalISO();
-        const to = endOfTodayLocalISO();
-        const cRes = await apiFetch(
-          `/api/cycles?machineType=sterilizer&dateFrom=${encodeURIComponent(
-            from
-          )}&dateTo=${encodeURIComponent(to)}&limit=200`
-        );
-        if (!cRes.ok) throw new Error(`Cycles HTTP ${cRes.status}`);
-        const cJson = await cRes.json();
         setCycles(cJson.cycles || []);
       } catch (e) {
         setErr(String(e.message || e));
@@ -65,18 +50,17 @@ export default function Dashboard() {
         (m) => m.status === "active"
       ).length;
 
-      // descale only for washers
-      const washers = machines.filter((m) => m.type === "washer");
-      const overdueDescales = washers.filter(
-        (m) => daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
+      // Only washers count for descale
+      const overdueDescales = machines.filter(
+        (m) =>
+          m.type === "washer" &&
+          daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
       );
 
-      // real counts from today's cycles
       const cyclesToday = cycles.length;
       const failedCyclesToday = cycles.filter(
-        (c) => c.result !== "pass"
+        (c) => c.result === "fail"
       ).length;
-
       return {
         activeMachines,
         overdueDescales,
@@ -123,53 +107,52 @@ export default function Dashboard() {
         <div
           style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}
         >
-          {/* Recent Sterilizer Cycles */}
-          <Card title="Recent Sterilizer Cycles">
+          {/* Today's Sterilizer Cycles — now shows machine name */}
+          <Card title="Today’s Sterilizer Cycles">
             {cycles.length ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
-                {cycles.slice(0, 10).map((c) => (
-                  <li
-                    key={c._id}
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <span
-                      className={`${common.dot} ${
-                        c.result === "pass"
-                          ? common["dot--ok"]
-                          : common["dot--down"]
-                      }`}
-                    />
-                    <span style={{ opacity: 0.9 }}>
-                      <strong>{c.loadNumber || "Load"}</strong>
-                      &nbsp;—{" "}
-                      {new Date(c.startedAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      &nbsp;• {c.result}
-                    </span>
-                    {c.machineId && (
+                {cycles.map((c) => {
+                  const dot =
+                    c.result === "pass"
+                      ? common["dot--ok"]
+                      : common["dot--down"];
+                  return (
+                    <li
+                      key={c._id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span className={`${common.dot} ${dot}`} />
+                      <span style={{ opacity: 0.9 }}>
+                        <strong>
+                          {/* load number */}
+                          {c.loadNumber?.padStart?.(2, "0") ||
+                            c.loadNumber ||
+                            "—"}
+                        </strong>{" "}
+                        — <strong>{c.machineId?.name || "Unknown"}</strong> •{" "}
+                        {formatDateTime(c.startedAt)} • {c.result}
+                      </span>
                       <Link
-                        to={`/machines/${c.machineId}`}
+                        to={`/machines/${c.machineId?._id || ""}`}
                         style={{ ...link, marginLeft: "auto" }}
                       >
                         View
                       </Link>
-                    )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
-              <div style={{ opacity: 0.7 }}>No cycles logged today.</div>
+              <div style={{ opacity: 0.7 }}>No cycles yet today.</div>
             )}
           </Card>
 
-          {/* Overdue Descales — washers only */}
+          {/* Overdue Descales (washers only) */}
           <Card title="Overdue Descales">
             {overdueDescales.length ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
@@ -200,7 +183,7 @@ export default function Dashboard() {
                       <Link to={`/machines/${m._id}`} style={link}>
                         {m.name}
                       </Link>
-                      — {isFinite(days) ? `${days} days` : "no record"}
+                      — {days} days
                       <Link
                         to={`/maintenance?machineId=${m._id}`}
                         style={{ ...chip }}
@@ -219,7 +202,7 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* Recent Maintenance */}
+          {/* Recent Maintenance (unchanged except skeleton kept) */}
           <Card title="Recent Maintenance">
             {loading ? (
               <div style={{ display: "grid", gap: 8 }}>
@@ -254,14 +237,10 @@ export default function Dashboard() {
                       marginBottom: 6,
                     }}
                   >
-                    <span
-                      className={`${common.dot} ${common["dot--ok"]}`}
-                    ></span>
+                    <span className={`${common.dot} ${common["dot--ok"]}`} />
                     <span style={{ opacity: 0.85 }}>
-                      <strong>
-                        {(r.machineId && r.machineId.name) || "Unknown"}
-                      </strong>
-                      &nbsp;— {r.type}
+                      <strong>{r.machineId?.name || "Unknown"}</strong> —{" "}
+                      {r.type}
                       &nbsp;• {formatDateTime(r.performedAt)}
                     </span>
                     <Link

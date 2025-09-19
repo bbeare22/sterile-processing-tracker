@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./styles/tokens.css";
+
 import AppShell from "./components/AppShell/AppShell";
 import Dashboard from "./pages/Dashboard";
 import Recalls from "./pages/Recalls";
@@ -9,12 +10,14 @@ import Machines from "./pages/Machines";
 import About from "./pages/About";
 import Maintenance from "./pages/Maintenance";
 import MachineDetail from "./pages/MachineDetail";
+import MaintenanceHistory from "./pages/MaintenanceHistory";
+import CycleHistory from "./pages/CycleHistory"; // ← NEW
+
 import AuthProvider from "./context/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ToastProvider from "./components/Toast/ToastProvider.jsx";
-import MaintenanceHistory from "./pages/MaintenanceHistory";
 import NotFound from "./pages/NotFound";
 import LogCycle from "./pages/LogCycle";
 
@@ -30,6 +33,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <Route path="/machines" element={<Machines />} />
               <Route path="/machines/:id" element={<MachineDetail />} />
               <Route
+                path="/machines/:id/maintenance"
+                element={<MaintenanceHistory />}
+              />
+              <Route path="/machines/:id/cycles" element={<CycleHistory />} />
+
+              <Route
                 path="/maintenance"
                 element={
                   <ProtectedRoute>
@@ -37,10 +46,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   </ProtectedRoute>
                 }
               />
-              <Route path="/cycles" element={<LogCycle />} />
               <Route
-                path="/machines/:id/maintenance"
-                element={<MaintenanceHistory />}
+                path="/cycles"
+                element={
+                  <ProtectedRoute>
+                    <LogCycle />
+                  </ProtectedRoute>
+                }
               />
 
               <Route path="/login" element={<Login />} />
