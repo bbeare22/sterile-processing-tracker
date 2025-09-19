@@ -1,28 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "../components/Card/Card";
 import KPI from "../components/KPI/KPI";
-import { daysSince, formatDateTime } from "../utils/date";
+import {
+  daysSince,
+  formatDateTime,
+  startOfTodayLocalISO,
+  endOfTodayLocalISO,
+} from "../utils/date";
 import { Link } from "react-router-dom";
 import common from "../components/common.module.css";
 import Skeleton from "../components/Skeleton/Skeleton";
+import { apiFetch } from "../utils/api";
 
-const DESCALe_THRESHOLD_DAYS = 7;
+const DESCALE_THRESHOLD_DAYS = 7; // only applies to washers
 
 export default function Dashboard() {
   const [machines, setMachines] = useState([]);
   const [maint, setMaint] = useState([]);
+  const [cycles, setCycles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
     async function load() {
       try {
         setLoading(true);
         setErr("");
+
+        // machines + recent maintenance
         const [mRes, maRes] = await Promise.all([
-          fetch(`${base}/api/machines`),
-          fetch(`${base}/api/maintenance?limit=5`),
+          apiFetch(`/api/machines`),
+          apiFetch(`/api/maintenance?limit=5`),
         ]);
         if (!mRes.ok) throw new Error(`Machines HTTP ${mRes.status}`);
         if (!maRes.ok) throw new Error(`Maintenance HTTP ${maRes.status}`);
@@ -30,6 +38,18 @@ export default function Dashboard() {
         const maJson = await maRes.json();
         setMachines(mJson.machines || []);
         setMaint(maJson.maintenance || []);
+
+        // today's sterilizer cycles (local day window)
+        const from = startOfTodayLocalISO();
+        const to = endOfTodayLocalISO();
+        const cRes = await apiFetch(
+          `/api/cycles?machineType=sterilizer&dateFrom=${encodeURIComponent(
+            from
+          )}&dateTo=${encodeURIComponent(to)}&limit=200`
+        );
+        if (!cRes.ok) throw new Error(`Cycles HTTP ${cRes.status}`);
+        const cJson = await cRes.json();
+        setCycles(cJson.cycles || []);
       } catch (e) {
         setErr(String(e.message || e));
       } finally {
@@ -44,19 +64,26 @@ export default function Dashboard() {
       const activeMachines = machines.filter(
         (m) => m.status === "active"
       ).length;
-      const overdueDescales = machines.filter(
-        (m) => daysSince(m.lastDescaleAt) > DESCALe_THRESHOLD_DAYS
+
+      // descale only for washers
+      const washers = machines.filter((m) => m.type === "washer");
+      const overdueDescales = washers.filter(
+        (m) => daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
       );
-      // placeholders until cycles are implemented
-      const cyclesToday = 12;
-      const failedCyclesToday = 1;
+
+      // real counts from today's cycles
+      const cyclesToday = cycles.length;
+      const failedCyclesToday = cycles.filter(
+        (c) => c.result !== "pass"
+      ).length;
+
       return {
         activeMachines,
         overdueDescales,
         cyclesToday,
         failedCyclesToday,
       };
-    }, [machines]);
+    }, [machines, cycles]);
 
   return (
     <>
@@ -96,14 +123,53 @@ export default function Dashboard() {
         <div
           style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}
         >
-          {/* Recent Cycles (keep for now) */}
-          <Card title="Recent Cycles">
-            <div style={{ opacity: 0.7 }}>
-              Coming soon — cycles integration.
-            </div>
+          {/* Recent Sterilizer Cycles */}
+          <Card title="Recent Sterilizer Cycles">
+            {cycles.length ? (
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {cycles.slice(0, 10).map((c) => (
+                  <li
+                    key={c._id}
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span
+                      className={`${common.dot} ${
+                        c.result === "pass"
+                          ? common["dot--ok"]
+                          : common["dot--down"]
+                      }`}
+                    />
+                    <span style={{ opacity: 0.9 }}>
+                      <strong>{c.loadNumber || "Load"}</strong>
+                      &nbsp;—{" "}
+                      {new Date(c.startedAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      &nbsp;• {c.result}
+                    </span>
+                    {c.machineId && (
+                      <Link
+                        to={`/machines/${c.machineId}`}
+                        style={{ ...link, marginLeft: "auto" }}
+                      >
+                        View
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ opacity: 0.7 }}>No cycles logged today.</div>
+            )}
           </Card>
 
-          {/* Overdue Descales (unchanged, with Log shortcut) */}
+          {/* Overdue Descales — washers only */}
           <Card title="Overdue Descales">
             {overdueDescales.length ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
@@ -134,7 +200,7 @@ export default function Dashboard() {
                       <Link to={`/machines/${m._id}`} style={link}>
                         {m.name}
                       </Link>
-                      — {days} days
+                      — {isFinite(days) ? `${days} days` : "no record"}
                       <Link
                         to={`/maintenance?machineId=${m._id}`}
                         style={{ ...chip }}
@@ -153,10 +219,9 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* Recent Maintenance (with skeleton) */}
+          {/* Recent Maintenance */}
           <Card title="Recent Maintenance">
             {loading ? (
-              // Skeleton list: 5 placeholder rows
               <div style={{ display: "grid", gap: 8 }}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div
@@ -168,13 +233,12 @@ export default function Dashboard() {
                       gap: 8,
                     }}
                   >
-                    <Skeleton w={12} h={12} style={{ borderRadius: 999 }} />{" "}
-                    {/* dot */}
+                    <Skeleton w={12} h={12} style={{ borderRadius: 999 }} />
                     <div style={{ display: "grid", gap: 6 }}>
-                      <Skeleton w="40%" h={14} /> {/* machine name */}
-                      <Skeleton w="60%" h={12} /> {/* type + date */}
+                      <Skeleton w="40%" h={14} />
+                      <Skeleton w="60%" h={12} />
                     </div>
-                    <Skeleton w={60} h={24} r={12} /> {/* View button */}
+                    <Skeleton w={60} h={24} r={12} />
                   </div>
                 ))}
               </div>

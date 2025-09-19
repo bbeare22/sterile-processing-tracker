@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import Skeleton from "../components/Skeleton/Skeleton";
 import { formatDateTime } from "../utils/date";
 import { toCSV, downloadFile } from "../utils/csv";
-import { useToast } from "../components/Toast/ToastProvider";
+import { apiFetch } from "../utils/api";
 
 export default function MaintenanceHistory() {
   const { id } = useParams();
@@ -12,25 +12,22 @@ export default function MaintenanceHistory() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [limit, setLimit] = useState(20);
-  const { show } = useToast();
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
-
     async function load() {
       try {
         setLoading(true);
         setErr("");
 
         // fetch machine (for title)
-        const mRes = await fetch(`${base}/api/machines/${id}`);
+        const mRes = await apiFetch(`/api/machines/${id}`);
         if (!mRes.ok) throw new Error(`Machine HTTP ${mRes.status}`);
         const mJson = await mRes.json();
         setMachine(mJson.machine || null);
 
         // fetch maintenance list
-        const r = await fetch(
-          `${base}/api/maintenance?machineId=${id}&limit=${limit}`
+        const r = await apiFetch(
+          `/api/maintenance?machineId=${id}&limit=${limit}`
         );
         if (!r.ok) throw new Error(`Maintenance HTTP ${r.status}`);
         const j = await r.json();
@@ -45,30 +42,23 @@ export default function MaintenanceHistory() {
     load();
   }, [id, limit]);
 
-  function onExportCSV() {
-    try {
-      const headers = [
-        { label: "Type", get: (r) => r.type },
-        {
-          label: "Performed At",
-          get: (r) => new Date(r.performedAt).toISOString(),
-        },
-        { label: "Volume (mL)", get: (r) => Number(r.volumeUsedMl || 0) },
-        { label: "Notes", get: (r) => r.notes || "" },
-        { label: "Maintenance ID", get: (r) => r._id },
-        { label: "Machine ID", get: (r) => r.machineId?._id || id },
-      ];
-      const csv = toCSV(rows, headers);
-      const name = (machine?.name || `machine_${id}`).replace(/\s+/g, "_");
-      downloadFile(`${name}_maintenance.csv`, csv);
-      show("Exported maintenance CSV ✔", { tone: "ok" });
-    } catch (e) {
-      show("Failed to export CSV", { tone: "danger", ms: 5000 });
-    }
+  function exportCSV() {
+    const data = rows.map((r) => ({
+      Type: r.type,
+      PerformedAt: formatDateTime(r.performedAt),
+      Volume_mL: Number(r.volumeUsedMl || 0),
+      Notes: r.notes || "",
+      MachineName: r.machineId?.name || "",
+      MachineId: r.machineId?._id || r.machineId || "",
+      _id: r._id,
+    }));
+    const csv = toCSV(data);
+    downloadFile(csv, `maintenance_${id}.csv`, "text/csv;charset=utf-8");
   }
 
   return (
     <div>
+      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -79,19 +69,19 @@ export default function MaintenanceHistory() {
         <h1 style={{ marginBottom: 16 }}>
           {machine ? `Maintenance — ${machine.name}` : "Maintenance History"}
         </h1>
-        <div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={exportCSV} style={btn}>
+            Export CSV
+          </button>
           <Link to={`/machines/${id}`} style={link}>
             Back to machine
           </Link>
           <Link
             to={`/maintenance?machineId=${id}`}
-            style={{ ...link, marginLeft: 8 }}
+            style={{ ...link, marginLeft: 0 }}
           >
             Log maintenance
           </Link>
-          <button onClick={onExportCSV} style={{ ...btn, marginLeft: 8 }}>
-            Export CSV
-          </button>
         </div>
       </div>
 
@@ -101,6 +91,7 @@ export default function MaintenanceHistory() {
         </div>
       )}
 
+      {/* Table */}
       <div style={tableWrap}>
         <table style={table}>
           <thead style={thead}>

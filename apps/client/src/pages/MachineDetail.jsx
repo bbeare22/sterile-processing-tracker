@@ -1,52 +1,66 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { formatDateTime } from "../utils/date";
 import Skeleton from "../components/Skeleton/Skeleton";
+import { formatDateTime } from "../utils/date";
+import { apiFetch } from "../utils/api";
 
 export default function MachineDetail() {
   const { id } = useParams();
+
   const [m, setM] = useState(null);
-  const [maint, setMaint] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
+  // Maintenance
+  const [maint, setMaint] = useState([]);
   const [loadingMaint, setLoadingMaint] = useState(true);
 
-  useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
+  // Cycles (sterilizer only)
+  const [cycles, setCycles] = useState([]);
+  const [loadingCycles, setLoadingCycles] = useState(true);
 
-    async function loadMachine() {
+  useEffect(() => {
+    async function load() {
       try {
         setLoading(true);
         setErr("");
-        const mRes = await fetch(`${base}/api/machines/${id}`);
+
+        // fetch machine
+        const mRes = await apiFetch(`/api/machines/${id}`);
         if (!mRes.ok) throw new Error(`Machine HTTP ${mRes.status}`);
         const mJson = await mRes.json();
-        setM(mJson.machine || null);
+        const machine = mJson.machine || null;
+        setM(machine);
+
+        // fetch recent maintenance for this machine
+        setLoadingMaint(true);
+        const maRes = await apiFetch(
+          `/api/maintenance?machineId=${id}&limit=10`
+        );
+        if (!maRes.ok) throw new Error(`Maintenance HTTP ${maRes.status}`);
+        const maJson = await maRes.json();
+        setMaint(maJson.maintenance || []);
+        setLoadingMaint(false);
+
+        // if sterilizer, fetch recent cycles
+        if (machine && machine.type === "sterilizer") {
+          setLoadingCycles(true);
+          const cRes = await apiFetch(`/api/cycles?machineId=${id}&limit=10`);
+          if (!cRes.ok) throw new Error(`Cycles HTTP ${cRes.status}`);
+          const cJson = await cRes.json();
+          setCycles(cJson.cycles || []);
+          setLoadingCycles(false);
+        } else {
+          setCycles([]);
+          setLoadingCycles(false);
+        }
       } catch (e) {
         setErr(String(e.message || e));
       } finally {
         setLoading(false);
       }
     }
-
-    async function loadMaint() {
-      try {
-        setLoadingMaint(true);
-        const maRes = await fetch(
-          `${base}/api/maintenance?machineId=${id}&limit=10`
-        );
-        if (!maRes.ok) throw new Error(`Maintenance HTTP ${maRes.status}`);
-        const maJson = await maRes.json();
-        setMaint(maJson.maintenance || []);
-      } catch {
-        setMaint([]);
-      } finally {
-        setLoadingMaint(false);
-      }
-    }
-
-    loadMachine();
-    loadMaint();
+    load();
   }, [id]);
 
   if (loading) return <div>Loading…</div>;
@@ -64,9 +78,11 @@ export default function MachineDetail() {
       </div>
     );
 
+  const isSterilizer = m.type === "sterilizer";
+
   return (
     <div>
-      {/* Header */}
+      {/* Header and actions */}
       <div
         style={{
           display: "flex",
@@ -82,9 +98,19 @@ export default function MachineDetail() {
           <Link
             to={`/maintenance?machineId=${m._id}`}
             style={{ ...link, marginLeft: 8 }}
+            title="Log maintenance for this machine"
           >
             Log maintenance
           </Link>
+          {isSterilizer && (
+            <Link
+              to={`/cycles?machineId=${m._id}`}
+              style={{ ...link, marginLeft: 8 }}
+              title="Log sterilizer cycle"
+            >
+              Log cycle
+            </Link>
+          )}
         </div>
       </div>
 
@@ -105,10 +131,79 @@ export default function MachineDetail() {
         <div>
           <strong>Status:</strong> {m.status}
         </div>
-        <div>
-          <strong>Last Descale:</strong> {formatDateTime(m.lastDescaleAt)}
-        </div>
+        {/* Only show last descale for washers */}
+        {m.type === "washer" && (
+          <div>
+            <strong>Last Descale:</strong> {formatDateTime(m.lastDescaleAt)}
+          </div>
+        )}
       </div>
+
+      {/* Sterilizer cycles (only for sterilizers) */}
+      {isSterilizer && (
+        <>
+          <h2 style={{ margin: "20px 0 12px" }}>Recent Sterilizer Cycles</h2>
+          <div style={tableWrap}>
+            <table style={table}>
+              <thead style={thead}>
+                <tr>
+                  <th style={th}>Started</th>
+                  <th style={th}>Completed</th>
+                  <th style={th}>Load #</th>
+                  <th style={th}>Result</th>
+                  <th style={th}>Items</th>
+                  <th style={th}>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingCycles ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`cy-skel-${i}`} style={tr}>
+                      <td
+                        colSpan={6}
+                        style={{ ...td, paddingTop: 10, paddingBottom: 10 }}
+                      >
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <div style={{ display: "flex", gap: 16 }}>
+                            <Skeleton w="22%" h={14} />
+                            <Skeleton w="22%" h={14} />
+                            <Skeleton w="12%" h={14} />
+                            <Skeleton w="10%" h={14} />
+                          </div>
+                          <Skeleton w="40%" h={12} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : cycles.length ? (
+                  cycles.map((c) => (
+                    <tr key={c._id} style={tr}>
+                      <td style={td}>{formatDateTime(c.startedAt)}</td>
+                      <td style={td}>
+                        {c.completedAt ? formatDateTime(c.completedAt) : "—"}
+                      </td>
+                      <td style={td}>{c.loadNumber || "—"}</td>
+                      <td style={td}>{c.result}</td>
+                      <td style={{ ...td, color: "var(--color-text-muted)" }}>
+                        {(c.items || []).join(", ") || "—"}
+                      </td>
+                      <td style={{ ...td, color: "var(--color-text-muted)" }}>
+                        {c.notes || "—"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} style={{ ...td, opacity: 0.7 }}>
+                      No cycles yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {/* Maintenance history */}
       <h2 style={{ margin: "20px 0 12px" }}>Recent Maintenance</h2>
@@ -124,8 +219,8 @@ export default function MachineDetail() {
           </thead>
           <tbody>
             {loadingMaint ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <tr key={`skel-${i}`} style={tr}>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`ma-skel-${i}`} style={tr}>
                   <td
                     colSpan={4}
                     style={{ ...td, paddingTop: 10, paddingBottom: 10 }}
@@ -163,17 +258,12 @@ export default function MachineDetail() {
         </table>
       </div>
 
-      {/* View all link */}
-      {!loadingMaint && maint.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <Link
-            to={`/machines/${m._id}/maintenance`}
-            style={{ fontSize: 14, opacity: 0.85 }}
-          >
-            View all maintenance →
-          </Link>
-        </div>
-      )}
+      {/* Optional: link to full history page */}
+      <div style={{ marginTop: 12 }}>
+        <Link to={`/machines/${id}/maintenance`} style={link}>
+          View all maintenance
+        </Link>
+      </div>
     </div>
   );
 }

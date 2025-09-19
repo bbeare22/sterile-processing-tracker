@@ -16,6 +16,7 @@ import Register from "./pages/Register";
 import ToastProvider from "./components/Toast/ToastProvider.jsx";
 import MaintenanceHistory from "./pages/MaintenanceHistory";
 import NotFound from "./pages/NotFound";
+import LogCycle from "./pages/LogCycle";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   </ProtectedRoute>
                 }
               />
+              <Route path="/cycles" element={<LogCycle />} />
               <Route
                 path="/machines/:id/maintenance"
                 element={<MaintenanceHistory />}

@@ -10,6 +10,7 @@ const { connectDB } = require("./config/db");
 const machinesRoutes = require("./routes/machines");
 const maintenanceRoutes = require("./routes/maintenance");
 const authRoutes = require("./routes/auth");
+const cyclesRoutes = require("./routes/cycles");
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.get("/api/external/recalls", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/machines", machinesRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api/cycles", cyclesRoutes);
 
 const PORT = process.env.PORT || 3001;
 

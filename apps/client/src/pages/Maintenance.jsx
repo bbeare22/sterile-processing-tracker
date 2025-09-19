@@ -143,6 +143,8 @@ export default function Maintenance() {
           <select id="type" {...register("type")} style={inputStyle}>
             <option value="descale">Descale</option>
             <option value="cleaning">Cleaning</option>
+            <option value="daily_inspection">Daily inspection</option>
+            <option value="quarterly_cleaning">Quarterly cleaning</option>
             <option value="repair">Repair</option>
             <option value="qa">QA</option>
           </select>
