@@ -1,260 +1,252 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { mlToOz, ozToMl, round } from "../utils/units";
-import { useLocation } from "react-router-dom";
-import { useToast } from "../components/Toast/ToastProvider";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
+import { useToast } from "../components/Toast/ToastProvider";
 
 export default function Maintenance() {
-  const [machines, setMachines] = useState([]);
-  const [loadingMachines, setLoadingMachines] = useState(true);
-  const [submitMsg, setSubmitMsg] = useState("");
-  const [submitErr, setSubmitErr] = useState("");
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const preselectedId = params.get("machineId");
   const { show } = useToast();
+  const [params] = useSearchParams();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting },
-    reset,
-  } = useForm({
-    defaultValues: {
-      machineId: preselectedId || "",
-      type: "descale",
-      performedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16),
-      notes: "",
-      volumeMl: "",
-      volumeOz: "",
-    },
+  const [machines, setMachines] = useState([]);
+  const [form, setForm] = useState({
+    machineId: "",
+    type: "descale",
+    performedAt: new Date().toISOString(),
+    volumeUsedMl: "",
+    notes: "",
   });
+  const [submitting, setSubmitting] = useState(false);
+
+  const selectedMachine = useMemo(
+    () => machines.find((m) => m._id === form.machineId),
+    [machines, form.machineId]
+  );
+
+  const allowedTypes = useMemo(() => {
+    if (!selectedMachine) return [];
+    if (selectedMachine.type === "sterilizer") {
+      return [
+        { value: "daily_inspection", label: "Daily inspection" },
+        { value: "cleaning", label: "Quarterly cleaning" },
+      ];
+    }
+
+    return [{ value: "descale", label: "Descale" }];
+  }, [selectedMachine]);
+
+  const showVolume =
+    selectedMachine &&
+    selectedMachine.type !== "sterilizer" &&
+    form.type === "descale";
 
   useEffect(() => {
-    setLoadingMachines(true);
-    apiFetch(`/api/machines`)
-      .then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
-      )
-      .then((d) => setMachines(d.machines || []))
-      .catch(() => setMachines([]))
-      .finally(() => setLoadingMachines(false));
-  }, []);
+    async function load() {
+      const r = await apiFetch("/api/machines");
+      const j = await r.json();
+      setMachines(j.machines || []);
 
-  // Sync mL <-> oz
-  const volumeMl = watch("volumeMl");
-  const volumeOz = watch("volumeOz");
-
-  useEffect(() => {
-    if (volumeMl === "" || isNaN(Number(volumeMl))) return;
-    setValue("volumeOz", round(mlToOz(volumeMl), 2), { shouldValidate: true });
-  }, [volumeMl, setValue]);
+      const preset = params.get("machineId");
+      if (preset) {
+        setForm((f) => ({ ...f, machineId: preset }));
+      }
+    }
+    load();
+  }, [params]);
 
   useEffect(() => {
-    if (volumeOz === "" || isNaN(Number(volumeOz))) return;
-    setValue("volumeMl", Math.round(ozToMl(volumeOz)), {
-      shouldValidate: true,
-    });
-  }, [volumeOz, setValue]);
+    if (!selectedMachine) return;
+    const first = allowedTypes[0]?.value;
+    if (first && !allowedTypes.find((t) => t.value === form.type)) {
+      setForm((f) => ({ ...f, type: first }));
+    }
+  }, [selectedMachine, allowedTypes]);
 
-  const onSubmit = async (data) => {
-    setSubmitMsg("");
-    setSubmitErr("");
+  async function onSubmit(e) {
+    e.preventDefault();
     try {
+      setSubmitting(true);
+
       const payload = {
-        machineId: data.machineId,
-        type: data.type,
-        volumeUsedMl: Number(data.volumeMl || 0),
-        performedAt: new Date(data.performedAt).toISOString(),
-        notes: data.notes || "",
+        machineId: form.machineId,
+        type: form.type,
+        performedAt: new Date(form.performedAt).toISOString(),
+        notes: form.notes?.trim() || "",
       };
-      const res = await apiFetch(`/api/maintenance`, {
+      if (showVolume) {
+        payload.volumeUsedMl = Number(form.volumeUsedMl || 0);
+      }
+
+      const r = await apiFetch("/api/maintenance", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.error || `HTTP ${res.status}`);
-      }
-      await res.json();
-      setSubmitMsg("Saved maintenance record ✔");
-      show("Saved maintenance record ✔", { tone: "ok" });
 
-      reset({
-        machineId: preselectedId || "",
-        type: "descale",
-        performedAt: new Date(
-          Date.now() - new Date().getTimezoneOffset() * 60000
-        )
-          .toISOString()
-          .slice(0, 16),
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${r.status}`);
+      }
+
+      setForm((f) => ({
+        ...f,
+        type: allowedTypes[0]?.value || "descale",
+        volumeUsedMl: "",
         notes: "",
-        volumeMl: "",
-        volumeOz: "",
+      }));
+      show("Maintenance saved ✔", { tone: "ok" });
+    } catch (e2) {
+      show(e2.message || "Failed to save maintenance", {
+        tone: "danger",
+        ms: 5000,
       });
-    } catch (err) {
-      const msg = String(err.message || err);
-      setSubmitErr(msg);
-      show(msg, { tone: "danger", ms: 5000 });
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }
 
   return (
-    <div>
+    <>
       <h1 style={{ marginBottom: 16 }}>Log Maintenance</h1>
-
-      {submitMsg && <Banner tone="ok" text={submitMsg} />}
-      {submitErr && <Banner tone="danger" text={submitErr} />}
-
-      <form onSubmit={handleSubmit(onSubmit)} style={formCard}>
-        {/* Machine select */}
+      <form onSubmit={onSubmit} style={formCard}>
+        {/* Machine */}
         <div style={field}>
-          <label htmlFor="machineId" style={label}>
-            Machine
-          </label>
+          <label style={label}>Machine</label>
           <select
-            id="machineId"
-            {...register("machineId", { required: "Please select a machine." })}
+            value={form.machineId}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, machineId: e.target.value }))
+            }
             style={inputStyle}
-            disabled={loadingMachines}
+            required
           >
-            <option value="">
-              {loadingMachines ? "Loading…" : "Select a machine"}
+            <option value="" disabled>
+              Select a machine
             </option>
             {machines.map((m) => (
               <option key={m._id} value={m._id}>
-                {m.name} — {m.location}
+                {m.name}
               </option>
             ))}
           </select>
-          {errors.machineId && <FieldError msg={errors.machineId.message} />}
         </div>
 
-        {/* Type */}
+        {/* Type (driven by machine) */}
         <div style={field}>
-          <label htmlFor="type" style={label}>
-            Type
-          </label>
-          <select id="type" {...register("type")} style={inputStyle}>
-            <option value="descale">Descale</option>
-            <option value="cleaning">Cleaning</option>
-            <option value="daily_inspection">Daily inspection</option>
-            <option value="quarterly_cleaning">Quarterly cleaning</option>
-            <option value="repair">Repair</option>
-            <option value="qa">QA</option>
+          <label style={label}>Type</label>
+          <select
+            value={form.type}
+            onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+            style={inputStyle}
+            disabled={!selectedMachine}
+            required
+          >
+            {!selectedMachine && (
+              <option value="">Select a machine first</option>
+            )}
+            {allowedTypes.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
           </select>
         </div>
 
-        {/* Date/time */}
+        {/* Performed At */}
         <div style={field}>
-          <label htmlFor="performedAt" style={label}>
-            Performed At
-          </label>
+          <label style={label}>Performed At</label>
           <input
-            id="performedAt"
             type="datetime-local"
-            {...register("performedAt", { required: "Date/time is required." })}
+            value={toLocalInput(form.performedAt)}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                performedAt: fromLocalInput(e.target.value),
+              }))
+            }
             style={inputStyle}
+            required
           />
-          {errors.performedAt && (
-            <FieldError msg={errors.performedAt.message} />
-          )}
         </div>
 
-        {/* Volume (mL / oz) */}
-        <div style={row2}>
-          <div style={field}>
-            <label htmlFor="volumeMl" style={label}>
-              Volume (mL)
-            </label>
-            <input
-              id="volumeMl"
-              inputMode="numeric"
-              placeholder="e.g., 500"
-              {...register("volumeMl", {
-                validate: (v) =>
-                  v === "" || !isNaN(Number(v)) || "Enter a number",
-              })}
-              style={inputStyle}
-            />
-            {errors.volumeMl && <FieldError msg={errors.volumeMl.message} />}
+        {/* Volume (only for descale-capable machines) */}
+        {showVolume && (
+          <div style={row2}>
+            <div style={field}>
+              <label style={label}>Volume (mL)</label>
+              <input
+                type="number"
+                min={0}
+                placeholder="e.g., 500"
+                value={form.volumeUsedMl}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, volumeUsedMl: e.target.value }))
+                }
+                style={inputStyle}
+                required
+              />
+            </div>
+            <div style={field}>
+              <label style={label}>Volume (oz)</label>
+              <input
+                value={
+                  form.volumeUsedMl
+                    ? (Number(form.volumeUsedMl) / 29.5735).toFixed(1)
+                    : "auto-calculated"
+                }
+                readOnly
+                style={inputStyle}
+              />
+            </div>
           </div>
-          <div style={field}>
-            <label htmlFor="volumeOz" style={label}>
-              Volume (oz)
-            </label>
-            <input
-              id="volumeOz"
-              inputMode="decimal"
-              placeholder="auto-calculated"
-              {...register("volumeOz", {
-                validate: (v) =>
-                  v === "" || !isNaN(Number(v)) || "Enter a number",
-              })}
-              style={inputStyle}
-            />
-          </div>
-        </div>
+        )}
 
         {/* Notes */}
         <div style={field}>
-          <label htmlFor="notes" style={label}>
-            Notes (optional)
-          </label>
+          <label style={label}>Notes (optional)</label>
           <textarea
-            id="notes"
             rows={3}
-            {...register("notes")}
-            style={inputStyle}
+            value={form.notes}
+            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+            style={{ ...inputStyle, resize: "vertical" }}
           />
         </div>
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <button type="submit" disabled={isSubmitting} style={btnPrimary}>
-            {isSubmitting ? "Saving…" : "Save"}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="submit" disabled={submitting} style={btnPrimary}>
+            {submitting ? "Saving…" : "Save"}
           </button>
-          <button type="button" onClick={() => reset()} style={btnGhost}>
+          <button
+            type="button"
+            onClick={() =>
+              setForm((f) => ({
+                ...f,
+                type: allowedTypes[0]?.value || "descale",
+                volumeUsedMl: "",
+                notes: "",
+              }))
+            }
+            style={btnGhost}
+          >
             Reset
           </button>
         </div>
       </form>
-    </div>
+    </>
   );
 }
 
-function FieldError({ msg }) {
-  return (
-    <div style={{ color: "var(--color-danger)", fontSize: 12, marginTop: 6 }}>
-      {msg}
-    </div>
-  );
+/* ------- helpers & styles ------- */
+function toLocalInput(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
 }
-function Banner({ tone = "ok", text }) {
-  const color =
-    tone === "danger" ? "var(--color-danger)" : "var(--color-accent)";
-  const border = color;
-  return (
-    <div
-      style={{
-        marginBottom: 12,
-        border: `1px solid ${border}`,
-        background: "#0e1525",
-        borderRadius: 12,
-        padding: "10px 12px",
-        color,
-      }}
-    >
-      {text}
-    </div>
-  );
+function fromLocalInput(local) {
+  const d = new Date(local);
+  return d.toISOString();
 }
 
-/* ----- Layout-safe styles (match MachineForm) ----- */
 const formCard = {
   width: "100%",
   maxWidth: 720,
@@ -268,22 +260,14 @@ const formCard = {
   gap: 16,
   overflow: "hidden",
 };
-
-const field = {
-  display: "grid",
-  gap: 8,
-  minWidth: 0,
-};
-
+const field = { display: "grid", gap: 8, minWidth: 0 };
 const row2 = {
   display: "grid",
   gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
   gap: 16,
   minWidth: 0,
 };
-
 const label = { fontSize: 14, opacity: 0.9 };
-
 const inputStyle = {
   width: "100%",
   minWidth: 0,
@@ -294,7 +278,6 @@ const inputStyle = {
   color: "var(--color-text)",
   boxSizing: "border-box",
 };
-
 const btnPrimary = {
   padding: "10px 14px",
   borderRadius: 12,

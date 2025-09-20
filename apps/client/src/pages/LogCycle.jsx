@@ -1,247 +1,497 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { useToast } from "../components/Toast/ToastProvider";
 
 export default function LogCycle() {
   const { show } = useToast();
-  const [machines, setMachines] = useState([]);
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { isSubmitting, errors },
-  } = useForm({
-    defaultValues: {
-      machineId: "",
-      loadNumber: "",
-      startedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16),
-      completedAt: "",
-      result: "pass",
-      itemsText: "",
-      notes: "",
+  // machines
+  const [machines, setMachines] = useState([]);
+  const [loadingMachines, setLoadingMachines] = useState(true);
+  const [err, setErr] = useState("");
+
+  // form
+  const [form, setForm] = useState({
+    machineId: "",
+    startedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16),
+    completedAt: "",
+    loadNumber: "",
+    result: "pass",
+    clinicName: "",
+    loadStaff: "",
+    unloadStaff: "",
+    sterileDryMinutes: "",
+    maxTempPressure: "",
+    items: "",
+    notes: "",
+    sporeRan: false,
+    spore: {
+      well: "",
+      lot: "",
+      expireDate: "",
+      incubatedAt: "",
+      result: "negative",
+      verifiedAt: "",
+      verifiedBy: "",
     },
   });
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const m = await apiFetch("/api/machines");
-        const mj = await m.json();
-        const ster = (mj.machines || []).filter((x) => x.type === "sterilizer");
-        setMachines(ster);
+  const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setSpore = (k, v) =>
+    setForm((f) => ({ ...f, spore: { ...f.spore, [k]: v } }));
 
-        if (ster[0]?._id) {
-          await fetchCycles(ster[0]._id);
-        }
+  // load sterilizers
+  useEffect(() => {
+    let cancel = false;
+    async function load() {
+      try {
+        setErr("");
+        setLoadingMachines(true);
+        const r = await apiFetch("/api/machines?type=sterilizer&status=active");
+        if (!r.ok) throw new Error(`Machines HTTP ${r.status}`);
+        const j = await r.json();
+        if (!cancel) setMachines(j.machines || []);
+      } catch (e) {
+        if (!cancel) setErr(e.message || "Failed to load machines");
       } finally {
-        setLoading(false);
+        if (!cancel) setLoadingMachines(false);
       }
     }
     load();
+    return () => {
+      cancel = true;
+    };
   }, []);
 
-  async function fetchCycles(machineId) {
-    const r = await apiFetch(`/api/cycles?machineId=${machineId}&limit=20`);
-    const j = await r.json();
-    setRows(j.cycles || []);
+  const sterilizers = useMemo(
+    () => (machines || []).filter((m) => m.type === "sterilizer"),
+    [machines]
+  );
+
+  // helpers
+  function toISOOrUndefined(v) {
+    if (!v) return undefined;
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return undefined;
+    return d.toISOString();
   }
 
-  async function onSubmit(data) {
-    try {
-      const items = data.itemsText
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
+  function stripEmpty(obj) {
+    const out = {};
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (v === "" || v === null || v === undefined) continue;
+      if (typeof v === "object" && !Array.isArray(v)) {
+        const nested = stripEmpty(v);
+        if (Object.keys(nested).length) out[k] = nested;
+      } else {
+        out[k] = v;
+      }
+    }
+    return out;
+  }
 
-      const payload = {
-        machineId: data.machineId,
-        loadNumber: data.loadNumber,
-        startedAt: new Date(data.startedAt).toISOString(),
-        completedAt: data.completedAt
-          ? new Date(data.completedAt).toISOString()
-          : null,
-        result: data.result,
-        items,
-        notes: data.notes || "",
+  function buildPayload() {
+    const base = {
+      machineId: form.machineId || undefined,
+      machineType: "sterilizer",
+      startedAt: toISOOrUndefined(form.startedAt),
+      completedAt: toISOOrUndefined(form.completedAt),
+      loadNumber: form.loadNumber,
+      result: form.result,
+      items: form.items,
+      notes: form.notes,
+      clinicName: form.clinicName,
+      loadStaff: form.loadStaff,
+      unloadStaff: form.unloadStaff,
+      maxTempPressure: form.maxTempPressure,
+    };
+
+    if (form.sterileDryMinutes !== "") {
+      const n = Number(form.sterileDryMinutes);
+      if (!isNaN(n)) base.sterileDryMinutes = n;
+    }
+
+    if (form.sporeRan) {
+      const spore = {
+        ran: true,
+        well: form.spore.well,
+        lot: form.spore.lot,
+        expireDate: toISOOrUndefined(form.spore.expireDate),
+        incubatedAt: toISOOrUndefined(form.spore.incubatedAt),
+        result: form.spore.result,
+        verifiedAt: toISOOrUndefined(form.spore.verifiedAt),
+        verifiedBy: form.spore.verifiedBy,
       };
+      base.spore = stripEmpty(spore);
+      if (!Object.keys(base.spore).length) base.spore = { ran: true };
+    }
+
+    return stripEmpty(base);
+  }
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    setErr("");
+
+    try {
+      const payload = buildPayload();
+      if (!payload.machineId) throw new Error("Please select a sterilizer.");
+      if (!payload.startedAt) throw new Error("Start time is required.");
 
       const r = await apiFetch("/api/cycles", {
         method: "POST",
         body: JSON.stringify(payload),
       });
+
       if (!r.ok) {
-        const e = await r.json().catch(() => ({}));
-        throw new Error(e.error || `HTTP ${r.status}`);
+        const bodyText = await r.text();
+        let msg = bodyText?.trim();
+        try {
+          const j = JSON.parse(bodyText);
+          msg = j.error || j.message || bodyText;
+        } catch {}
+        throw new Error(msg || `HTTP ${r.status}`);
       }
-      const j = await r.json();
+
       show("Cycle saved ✔", { tone: "ok" });
-      reset({
-        machineId: data.machineId,
-        loadNumber: "",
+
+      // soft reset (keep selected machine)
+      setForm((f) => ({
+        ...f,
         startedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
           .toISOString()
           .slice(0, 16),
         completedAt: "",
+        loadNumber: "",
         result: "pass",
-        itemsText: "",
+        clinicName: "",
+        loadStaff: "",
+        unloadStaff: "",
+        sterileDryMinutes: "",
+        maxTempPressure: "",
+        items: "",
         notes: "",
-      });
-      await fetchCycles(data.machineId);
+        sporeRan: false,
+        spore: {
+          well: "",
+          lot: "",
+          expireDate: "",
+          incubatedAt: "",
+          result: "negative",
+          verifiedAt: "",
+          verifiedBy: "",
+        },
+      }));
     } catch (e) {
-      show(e.message || "Failed to save", { tone: "danger", ms: 5000 });
+      const msg = e.message || "Failed to save cycle";
+      setErr(msg);
+      show(msg, { tone: "danger", ms: 8000 });
     }
+  }
+
+  function onReset() {
+    setForm((f) => ({
+      ...f,
+      completedAt: "",
+      loadNumber: "",
+      result: "pass",
+      clinicName: "",
+      loadStaff: "",
+      unloadStaff: "",
+      sterileDryMinutes: "",
+      maxTempPressure: "",
+      items: "",
+      notes: "",
+      sporeRan: false,
+      spore: {
+        well: "",
+        lot: "",
+        expireDate: "",
+        incubatedAt: "",
+        result: "negative",
+        verifiedAt: "",
+        verifiedBy: "",
+      },
+    }));
   }
 
   return (
     <div>
       <h1 style={{ marginBottom: 16 }}>Log Sterilizer Cycle</h1>
+      {err && (
+        <div
+          style={{
+            marginBottom: 12,
+            border: "1px solid var(--color-danger)",
+            background: "#0e1525",
+            color: "var(--color-danger)",
+            padding: "10px 12px",
+            borderRadius: 12,
+          }}
+        >
+          {err}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit(onSubmit)} style={formCard}>
+      <form onSubmit={onSubmit} style={formCard}>
+        {/* Machine */}
         <div style={field}>
-          <label style={label}>Sterilizer</label>
+          <label style={label}>Machine</label>
           <select
-            {...register("machineId", { required: "Select a sterilizer" })}
-            style={input}
-            onChange={(e) => fetchCycles(e.target.value)}
+            value={form.machineId}
+            onChange={(e) => setField("machineId", e.target.value)}
+            style={inputStyle}
+            disabled={loadingMachines}
           >
             <option value="">
-              {loading ? "Loading…" : "Select a sterilizer"}
+              {loadingMachines ? "Loading…" : "Select a sterilizer"}
             </option>
-            {machines.map((m) => (
+            {sterilizers.map((m) => (
               <option key={m._id} value={m._id}>
-                {m.name} — {m.location}
+                {m.name}
               </option>
             ))}
           </select>
-          {errors.machineId && <Err msg={errors.machineId.message} />}
         </div>
 
-        <div style={row2}>
-          <div style={field}>
-            <label style={label}>Load Number</label>
-            <input
-              {...register("loadNumber")}
-              style={input}
-              placeholder="Optional"
-            />
-          </div>
-          <div style={field}>
-            <label style={label}>Result</label>
-            <select {...register("result")} style={input}>
-              <option value="pass">Pass</option>
-              <option value="fail">Fail</option>
-              <option value="abort">Abort</option>
-            </select>
-          </div>
-        </div>
-
+        {/* times */}
         <div style={row2}>
           <div style={field}>
             <label style={label}>Started At</label>
             <input
               type="datetime-local"
-              {...register("startedAt", { required: true })}
-              style={input}
+              value={form.startedAt}
+              onChange={(e) => setField("startedAt", e.target.value)}
+              style={inputStyle}
             />
           </div>
           <div style={field}>
             <label style={label}>Completed At</label>
             <input
               type="datetime-local"
-              {...register("completedAt")}
-              style={input}
+              value={form.completedAt}
+              onChange={(e) => setField("completedAt", e.target.value)}
+              style={inputStyle}
             />
           </div>
         </div>
 
+        {/* load + result */}
+        <div style={row2}>
+          <div style={field}>
+            <label style={label}>Load #</label>
+            <input
+              placeholder="e.g., 01"
+              value={form.loadNumber}
+              onChange={(e) => setField("loadNumber", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div style={field}>
+            <label style={label}>Result</label>
+            <select
+              value={form.result}
+              onChange={(e) => setField("result", e.target.value)}
+              style={inputStyle}
+            >
+              <option value="pass">pass</option>
+              <option value="fail">fail</option>
+            </select>
+          </div>
+        </div>
+
+        {/* clinic + staff */}
         <div style={field}>
-          <label style={label}>Contents (one per line)</label>
-          <textarea
-            {...register("itemsText")}
-            rows={4}
-            style={input}
-            placeholder={`e.g.\nOrtho set A\nLap set B\nPeel-packs x6`}
+          <label style={label}>Clinic / Department (optional)</label>
+          <input
+            placeholder="e.g., Jet Wing"
+            value={form.clinicName}
+            onChange={(e) => setField("clinicName", e.target.value)}
+            style={inputStyle}
           />
         </div>
 
+        <div style={row2}>
+          <div style={field}>
+            <label style={label}>Load Staff</label>
+            <input
+              placeholder="e.g., BB"
+              value={form.loadStaff}
+              onChange={(e) => setField("loadStaff", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div style={field}>
+            <label style={label}>Unload Staff</label>
+            <input
+              placeholder="e.g., BB"
+              value={form.unloadStaff}
+              onChange={(e) => setField("unloadStaff", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+
+        {/* timing + gauge */}
+        <div style={row2}>
+          <div style={field}>
+            <label style={label}>Sterile & Dry Time (minutes)</label>
+            <input
+              inputMode="numeric"
+              placeholder="e.g., 7m 35m"
+              value={form.sterileDryMinutes}
+              onChange={(e) => setField("sterileDryMinutes", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div style={field}>
+            <label style={label}>Max Temp/Pressure</label>
+            <input
+              placeholder="e.g., 270°F / 27 psi"
+              value={form.maxTempPressure}
+              onChange={(e) => setField("maxTempPressure", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+
+        {/* items */}
         <div style={field}>
-          <label style={label}>Notes</label>
-          <textarea {...register("notes")} rows={3} style={input} />
+          <label style={label}>Items (what’s inside the load)</label>
+          <textarea
+            rows={3}
+            placeholder="e.g., ×15 Pouches, ×6 OS, ×8 Restorative, ×12 XCP, ×15 basic"
+            value={form.items}
+            onChange={(e) => setField("items", e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
+        {/* spore toggle */}
+        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            type="checkbox"
+            checked={form.sporeRan}
+            onChange={(e) => setField("sporeRan", e.target.checked)}
+          />
+          Spore Test Ran
+        </label>
+
+        {/* spore fields */}
+        {form.sporeRan && (
+          <div
+            style={{
+              borderTop: "1px dashed var(--color-border)",
+              paddingTop: 12,
+              display: "grid",
+              gap: 16,
+            }}
+          >
+            <div style={row2}>
+              <div style={field}>
+                <label style={label}>Placed in Well #</label>
+                <input
+                  placeholder="e.g., 2"
+                  value={form.spore.well}
+                  onChange={(e) => setSpore("well", e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={field}>
+                <label style={label}>Spore Lot #</label>
+                <input
+                  placeholder="e.g., 20261018"
+                  value={form.spore.lot}
+                  onChange={(e) => setSpore("lot", e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={row2}>
+              <div style={field}>
+                <label style={label}>Spore Expire Date</label>
+                <input
+                  type="date"
+                  value={form.spore.expireDate}
+                  onChange={(e) => setSpore("expireDate", e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={field}>
+                <label style={label}>Incubation Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={form.spore.incubatedAt}
+                  onChange={(e) => setSpore("incubatedAt", e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={row2}>
+              <div style={field}>
+                <label style={label}>Spore Result</label>
+                <select
+                  value={form.spore.result}
+                  onChange={(e) => setSpore("result", e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="negative">Negative</option>
+                  <option value="positive">Positive</option>
+                </select>
+              </div>
+              <div style={field}>
+                <label style={label}>Readout Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={form.spore.verifiedAt}
+                  onChange={(e) => setSpore("verifiedAt", e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={field}>
+              <label style={label}>Readout Verify Staff’s Printed Name</label>
+              <input
+                placeholder="e.g., WM"
+                value={form.spore.verifiedBy}
+                onChange={(e) => setSpore("verifiedBy", e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* notes + actions */}
+        <div style={field}>
+          <label style={label}>Notes (optional)</label>
+          <textarea
+            rows={3}
+            value={form.notes}
+            onChange={(e) => setField("notes", e.target.value)}
+            style={inputStyle}
+          />
         </div>
 
         <div style={{ display: "flex", gap: 12 }}>
-          <button type="submit" disabled={isSubmitting} style={btnPrimary}>
-            {isSubmitting ? "Saving…" : "Save"}
+          <button type="submit" style={btnPrimary}>
+            Save
           </button>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              reset();
-            }}
-            style={btnGhost}
-          >
+          <button type="button" onClick={onReset} style={btnGhost}>
             Reset
-          </a>
+          </button>
         </div>
       </form>
-
-      <h2 style={{ margin: "20px 0 12px" }}>Recent Cycles</h2>
-      <div style={tableWrap}>
-        <table style={table}>
-          <thead style={thead}>
-            <tr>
-              <th style={th}>When</th>
-              <th style={th}>Load #</th>
-              <th style={th}>Result</th>
-              <th style={th}>Items</th>
-              <th style={th}>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? (
-              rows.map((c) => (
-                <tr key={c._id} style={tr}>
-                  <td style={td}>{new Date(c.startedAt).toLocaleString()}</td>
-                  <td style={td}>{c.loadNumber || "—"}</td>
-                  <td style={td}>{c.result}</td>
-                  <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {(c.items || []).join(", ") || "—"}
-                  </td>
-                  <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {c.notes || "—"}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} style={{ ...td, opacity: 0.7 }}>
-                  No cycles yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
 
-function Err({ msg }) {
-  return (
-    <div style={{ color: "var(--color-danger)", fontSize: 12, marginTop: 6 }}>
-      {msg}
-    </div>
-  );
-}
-
+/* styles aligned with Maintenance */
 const formCard = {
   width: "100%",
   maxWidth: 720,
@@ -263,7 +513,7 @@ const row2 = {
   minWidth: 0,
 };
 const label = { fontSize: 14, opacity: 0.9 };
-const input = {
+const inputStyle = {
   width: "100%",
   minWidth: 0,
   padding: "10px 12px",
@@ -289,15 +539,3 @@ const btnGhost = {
   color: "var(--color-text)",
   cursor: "pointer",
 };
-const tableWrap = {
-  overflow: "auto",
-  border: "1px solid var(--color-border)",
-  borderRadius: 16,
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-};
-const table = { width: "100%", borderCollapse: "separate", borderSpacing: 0 };
-const thead = { background: "#0e1525", position: "sticky", top: 0 };
-const th = { textAlign: "left", padding: "12px 16px" };
-const tr = { borderTop: "1px solid var(--color-border)" };
-const td = { padding: "12px 16px" };

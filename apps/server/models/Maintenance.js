@@ -7,12 +7,14 @@ const MaintenanceSchema = new mongoose.Schema(
       ref: "Machine",
       required: true,
     },
+
     type: {
       type: String,
-      enum: ["descale", "cleaning", "repair", "qa"],
+      enum: ["descale", "daily_inspection", "cleaning"],
       required: true,
     },
-    volumeUsedMl: { type: Number, default: 0 }, // for descale
+
+    volumeUsedMl: { type: Number, default: null },
     performedAt: { type: Date, required: true },
     notes: { type: String, default: "" },
   },

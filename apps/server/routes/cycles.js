@@ -2,118 +2,154 @@ const express = require("express");
 const { z } = require("zod");
 const mongoose = require("mongoose");
 const Cycle = require("../models/Cycle");
+const Machine = require("../models/Machine");
 const { auth } = require("../middleware/auth");
 
 const router = express.Router();
 
-/** Validation for create/update */
-const cycleSchema = z.object({
-  machineId: z.string().min(1),
+const cycleBody = z.object({
+  machineId: z.string().min(1, "machineId is required"),
+  machineType: z.enum(["washer", "sterilizer", "ultrasonic"]).optional(),
+
+  startedAt: z.string().min(1, "startedAt is required"),
+  completedAt: z.string().optional().nullable(),
+
   loadNumber: z.string().optional().default(""),
-  result: z.enum(["pass", "fail"]).default("pass"),
-  itemsText: z.string().optional().default(""),
+  result: z.enum(["pass", "fail"], { required_error: "result is required" }),
+
+  clinicName: z.string().optional().default(""),
+  loadStaff: z.string().optional().default(""),
+  unloadStaff: z.string().optional().default(""),
+
+  sterileDryMinutes: z.union([z.string(), z.number()]).optional(),
+  maxTempPressure: z.string().optional().default(""),
+
+  items: z.string().optional().default(""),
   notes: z.string().optional().default(""),
-  startedAt: z.string().datetime(),
-  completedAt: z.string().datetime(),
+
+  spore: z
+    .object({
+      ran: z.boolean().optional(),
+      well: z.string().optional().default(""),
+      lot: z.string().optional().default(""),
+      expireDate: z.string().optional().nullable(),
+      incubatedAt: z.string().optional().nullable(),
+      result: z.enum(["negative", "positive"]).optional(),
+      verifiedAt: z.string().optional().nullable(),
+      verifiedBy: z.string().optional().default(""),
+    })
+    .optional(),
 });
 
+/** GET /api/cycles  (populates machine name) */
 router.get("/", async (req, res) => {
   try {
-    const { machineId, todayOnly, from, to } = req.query;
-    const limit = Math.min(Number(req.query.limit || 20), 200);
-
+    const limit = Math.min(Number(req.query.limit || 25), 200);
     const filter = {};
-    if (machineId) {
-      if (!mongoose.isValidObjectId(machineId)) {
-        return res.status(400).json({ error: "Invalid machineId" });
-      }
-      filter.machineId = machineId;
+    if (req.query.machineId && mongoose.isValidObjectId(req.query.machineId)) {
+      filter.machineId = req.query.machineId;
     }
-    if (todayOnly === "true") {
-      const now = new Date();
-      const start = new Date(now);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(now);
-      end.setHours(23, 59, 59, 999);
-      filter.startedAt = { $gte: start, $lte: end };
-    }
-    if (from || to) {
-      filter.startedAt = filter.startedAt || {};
-      if (from) filter.startedAt.$gte = new Date(from);
-      if (to) filter.startedAt.$lte = new Date(to);
-    }
-
-    const cycles = await Cycle.find(filter)
-      .sort({ startedAt: -1 })
+    const rows = await Cycle.find(filter)
+      .sort({ startedAt: -1, createdAt: -1 })
       .limit(limit)
-      .populate("machineId", "name type location")
+      .populate({ path: "machineId", select: "name type location" })
       .lean();
-
-    res.json({ cycles });
+    res.json({ cycles: rows });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: "Failed to list cycles" });
   }
 });
 
-/** POST /api/cycles */
+/** POST /api/cycles  (create) */
 router.post("/", auth, async (req, res) => {
   try {
-    const parsed = cycleSchema.safeParse(req.body);
+    const parsed = cycleBody.safeParse(req.body);
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({ error: "Validation failed", issues: parsed.error.issues });
+      const issues = parsed.error.issues.map(
+        (i) => `${i.path.join(".")}: ${i.message}`
+      );
+      return res.status(400).json({ error: "Validation failed", issues });
     }
-    const payload = {
-      ...parsed.data,
-      startedAt: new Date(parsed.data.startedAt),
-      completedAt: new Date(parsed.data.completedAt),
-    };
-    const doc = await Cycle.create(payload);
-    const populated = await doc.populate("machineId", "name type location");
-    res.status(201).json({ cycle: populated.toJSON() });
+
+    const data = { ...parsed.data };
+
+    if (!mongoose.isValidObjectId(data.machineId)) {
+      return res.status(400).json({ error: "Invalid machineId" });
+    }
+    const machine = await Machine.findById(data.machineId).lean();
+    if (!machine) return res.status(404).json({ error: "Machine not found" });
+
+    const machineType = data.machineType || machine.type;
+    if (!["washer", "sterilizer", "ultrasonic"].includes(machineType)) {
+      return res.status(400).json({ error: "Invalid machineType" });
+    }
+
+    const startedAt = toDateOrNull(data.startedAt);
+    if (!startedAt)
+      return res.status(400).json({ error: "startedAt must be a valid date" });
+    const completedAt = toDateOrNull(data.completedAt);
+
+    let sterileDryMinutes = undefined;
+    if (data.sterileDryMinutes !== undefined && data.sterileDryMinutes !== "") {
+      const n = Number(data.sterileDryMinutes);
+      if (Number.isFinite(n)) sterileDryMinutes = n;
+    }
+
+    let spore = undefined;
+    if (data.spore && data.spore.ran) {
+      spore = {
+        ran: true,
+        well: data.spore.well || "",
+        lot: data.spore.lot || "",
+        expireDate: toDateOnlyOrNull(data.spore.expireDate),
+        incubatedAt: toDateOrNull(data.spore.incubatedAt),
+        result: data.spore.result || "negative",
+        verifiedAt: toDateOrNull(data.spore.verifiedAt),
+        verifiedBy: data.spore.verifiedBy || "",
+      };
+    }
+
+    const doc = await Cycle.create({
+      machineId: data.machineId,
+      machineType,
+      startedAt,
+      completedAt,
+      loadNumber: data.loadNumber || "",
+      result: data.result,
+      clinicName: data.clinicName || "",
+      loadStaff: data.loadStaff || "",
+      unloadStaff: data.unloadStaff || "",
+      sterileDryMinutes,
+      maxTempPressure: data.maxTempPressure || "",
+      items: data.items || "",
+      notes: data.notes || "",
+      spore,
+    });
+
+    const populated = await Cycle.findById(doc._id)
+      .populate({ path: "machineId", select: "name type location" })
+      .lean();
+
+    res.status(201).json({ cycle: populated });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Failed to create cycle" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-/** PUT /api/cycles/:id */
-router.put("/:id", auth, async (req, res) => {
-  try {
-    const parsed = cycleSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res
-        .status(400)
-        .json({ error: "Validation failed", issues: parsed.error.issues });
-    }
-    const update = {
-      ...parsed.data,
-      startedAt: new Date(parsed.data.startedAt),
-      completedAt: new Date(parsed.data.completedAt),
-    };
-    const doc = await Cycle.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-    }).populate("machineId", "name type location");
-    if (!doc) return res.status(404).json({ error: "Not found" });
-    res.json({ cycle: doc.toJSON() });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to update cycle" });
-  }
-});
+function toDateOrNull(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
 
-/** DELETE /api/cycles/:id */
-router.delete("/:id", auth, async (req, res) => {
-  try {
-    const gone = await Cycle.findByIdAndDelete(req.params.id);
-    if (!gone) return res.status(404).json({ error: "Not found" });
-    res.status(204).end();
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to delete cycle" });
-  }
-});
+// Accepts "YYYY-MM-DD" or ISO; stores as Date at 00:00Z for date-only
+function toDateOnlyOrNull(v) {
+  if (!v) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(`${v}T00:00:00.000Z`);
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 module.exports = router;

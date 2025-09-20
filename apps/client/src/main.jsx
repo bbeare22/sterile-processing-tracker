@@ -11,7 +11,7 @@ import About from "./pages/About";
 import Maintenance from "./pages/Maintenance";
 import MachineDetail from "./pages/MachineDetail";
 import MaintenanceHistory from "./pages/MaintenanceHistory";
-import CycleHistory from "./pages/CycleHistory"; // ← NEW
+import CycleHistory from "./pages/CyclesHistory";
 
 import AuthProvider from "./context/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";

@@ -43,17 +43,30 @@ export default function MaintenanceHistory() {
   }, [id, limit]);
 
   function exportCSV() {
-    const data = rows.map((r) => ({
+    if (!Array.isArray(rows) || rows.length === 0) {
+      const csv = toCSV([]);
+      downloadFile(
+        csv,
+        `${machine?.name || "machine"}-maintenance.csv`,
+        "text/csv"
+      );
+      return;
+    }
+
+    const csvRows = rows.map((r) => ({
+      Machine: machine?.name || "",
       Type: r.type,
-      PerformedAt: formatDateTime(r.performedAt),
-      Volume_mL: Number(r.volumeUsedMl || 0),
+      PerformedAt: r.performedAt ? new Date(r.performedAt).toISOString() : "",
+      VolumeMl: r.volumeUsedMl ?? "",
       Notes: r.notes || "",
-      MachineName: r.machineId?.name || "",
-      MachineId: r.machineId?._id || r.machineId || "",
-      _id: r._id,
     }));
-    const csv = toCSV(data);
-    downloadFile(csv, `maintenance_${id}.csv`, "text/csv;charset=utf-8");
+
+    const csv = toCSV(csvRows);
+    downloadFile(
+      csv,
+      `${machine?.name || "machine"}-maintenance.csv`,
+      "text/csv"
+    );
   }
 
   return (

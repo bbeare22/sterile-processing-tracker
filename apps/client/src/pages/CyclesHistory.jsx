@@ -1,31 +1,33 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { formatDateTime } from "../utils/date";
 import { toCSV, downloadFile } from "../utils/csv";
 
-export default function CycleHistory() {
+export default function CyclesHistory() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [machine, setMachine] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [limit, setLimit] = useState(20);
 
   useEffect(() => {
     const base = import.meta.env.VITE_API_URL;
+
     async function load() {
       try {
         setLoading(true);
         setErr("");
 
+        // machine (title)
         const mRes = await fetch(`${base}/api/machines/${id}`);
         if (!mRes.ok) throw new Error(`Machine HTTP ${mRes.status}`);
         const mJson = await mRes.json();
         setMachine(mJson.machine || null);
 
-        const r = await fetch(
-          `${base}/api/cycles?machineId=${id}&limit=${limit}`
-        );
+        // cycles (all for this machine)
+        const r = await fetch(`${base}/api/cycles?machineId=${id}`);
         if (!r.ok) throw new Error(`Cycles HTTP ${r.status}`);
         const j = await r.json();
         setRows(j.cycles || []);
@@ -35,46 +37,56 @@ export default function CycleHistory() {
         setLoading(false);
       }
     }
+
     load();
-  }, [id, limit]);
+  }, [id]);
 
   function exportCSV() {
-    const data = rows.map((c) => ({
-      Machine: machine?.name || c.machineId?.name || "",
-      LoadNumber: c.loadNumber || "",
-      Result: c.result,
-      StartedAt: c.startedAt,
-      CompletedAt: c.completedAt,
-      Items: c.itemsText || "",
+    const data = (rows || []).map((c) => ({
+      "Load #": c.loadNumber || "",
+      Started: c.startedAt ? formatDateTime(c.startedAt) : "",
+      Completed: c.completedAt ? formatDateTime(c.completedAt) : "",
+      Result: c.result || "",
+      Items: c.items || "",
       Notes: c.notes || "",
+      "Clinic/Dept": c.clinicName || "",
+      "Load Staff": c.loadStaff || "",
+      "Unload Staff": c.unloadStaff || "",
+      "Sterile & Dry (min)": c.sterileDryMinutes ?? "",
+      "Max Temp/Pressure": c.maxTempPressure || "",
+      "Spore Ran": c.spore?.ran ? "yes" : "no",
+      "Spore Well": c.spore?.well || "",
+      "Spore Lot": c.spore?.lot || "",
+      "Spore Exp": c.spore?.expireDate
+        ? formatDateTime(c.spore.expireDate)
+        : "",
+      "Spore Incubated": c.spore?.incubatedAt
+        ? formatDateTime(c.spore.incubatedAt)
+        : "",
+      "Spore Result": c.spore?.result || "",
+      "Spore Verified By": c.spore?.verifiedBy || "",
     }));
+
     const csv = toCSV(data);
-    downloadFile(
-      csv,
-      `${(machine?.name || "cycles").replace(/\s+/g, "_")}_cycles.csv`,
-      "text/csv"
-    );
+    const name = `cycles-${machine?.name || id}.csv`;
+    downloadFile(csv, name, "text/csv");
   }
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h1 style={{ marginBottom: 16 }}>
-          {machine ? `Cycles — ${machine.name}` : "Cycles"}
-        </h1>
-        <div>
-          <Link to={`/machines/${id}`} style={link}>
-            Back to machine
-          </Link>
-          <button onClick={exportCSV} style={{ ...linkBtn, marginLeft: 8 }}>
+      {/* Header Bar */}
+      <div style={headerBar}>
+        <h1 style={{ margin: 0 }}>Cycles — {machine ? machine.name : "…"}</h1>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={exportCSV} style={btnGhost}>
             Export CSV
           </button>
+          <Link to={`/machines/${id}`} style={linkBtn}>
+            Back to machine
+          </Link>
+          <Link to={`/cycles?machineId=${id}`} style={linkBtn}>
+            Log cycle
+          </Link>
         </div>
       </div>
 
@@ -84,43 +96,40 @@ export default function CycleHistory() {
         </div>
       )}
 
+      {/* Table */}
       <div style={tableWrap}>
         <table style={table}>
           <thead style={thead}>
             <tr>
+              <th style={th}>Load #</th>
               <th style={th}>Started</th>
               <th style={th}>Completed</th>
-              <th style={th}>Load #</th>
               <th style={th}>Result</th>
               <th style={th}>Items</th>
-              <th style={th}>Notes</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={td}>
+                <td colSpan={5} style={{ ...td, opacity: 0.7 }}>
                   Loading…
                 </td>
               </tr>
             ) : rows.length ? (
-              rows.map((c) => (
-                <tr key={c._id} style={tr}>
-                  <td style={td}>{formatDateTime(c.startedAt)}</td>
-                  <td style={td}>{formatDateTime(c.completedAt)}</td>
-                  <td style={td}>{c.loadNumber || "—"}</td>
-                  <td style={td}>{c.result}</td>
+              rows.map((r) => (
+                <tr key={r._id} style={tr}>
+                  <td style={td}>{r.loadNumber || "—"}</td>
+                  <td style={td}>{formatDateTime(r.startedAt)}</td>
+                  <td style={td}>{formatDateTime(r.completedAt)}</td>
+                  <td style={td}>{r.result || "—"}</td>
                   <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {c.itemsText || "—"}
-                  </td>
-                  <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {c.notes || "—"}
+                    {r.items || "—"}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} style={{ ...td, opacity: 0.7 }}>
+                <td colSpan={5} style={{ ...td, opacity: 0.7 }}>
                   No cycles yet.
                 </td>
               </tr>
@@ -128,26 +137,27 @@ export default function CycleHistory() {
           </tbody>
         </table>
       </div>
-
-      {!loading && rows.length >= limit && (
-        <div style={{ marginTop: 12 }}>
-          <button onClick={() => setLimit((n) => n + 20)} style={linkBtn}>
-            Load more
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-const link = {
+/* ---- styles (matches MaintenanceHistory look) ---- */
+const headerBar = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 16,
+};
+
+const linkBtn = {
   color: "#cbd5e1",
   textDecoration: "none",
   border: "1px solid var(--color-border)",
   borderRadius: 12,
   padding: "8px 12px",
 };
-const linkBtn = {
+
+const btnGhost = {
   padding: "8px 12px",
   borderRadius: 12,
   border: "1px solid var(--color-border)",
@@ -155,6 +165,7 @@ const linkBtn = {
   color: "var(--color-text)",
   cursor: "pointer",
 };
+
 const tableWrap = {
   overflow: "auto",
   border: "1px solid var(--color-border)",
@@ -162,6 +173,7 @@ const tableWrap = {
   background: "var(--color-surface)",
   boxShadow: "var(--shadow-soft)",
 };
+
 const table = { width: "100%", borderCollapse: "separate", borderSpacing: 0 };
 const thead = { background: "#0e1525", position: "sticky", top: 0 };
 const th = { textAlign: "left", padding: "12px 16px" };

@@ -4,7 +4,7 @@ import KPI from "../components/KPI/KPI";
 import { daysSince, formatDateTime } from "../utils/date";
 import { Link } from "react-router-dom";
 import common from "../components/common.module.css";
-import Skeleton from "../components/Skeleton/Skeleton";
+import { apiFetch } from "../utils/api";
 
 const DESCALE_THRESHOLD_DAYS = 7;
 
@@ -16,25 +16,24 @@ export default function Dashboard() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
     async function load() {
       try {
         setLoading(true);
         setErr("");
-        const [mRes, maRes, cRes] = await Promise.all([
-          fetch(`${base}/api/machines`),
-          fetch(`${base}/api/maintenance?limit=5`),
-          fetch(`${base}/api/cycles?todayOnly=true&limit=10`),
+        const [mRes, maRes, cyRes] = await Promise.all([
+          apiFetch(`/api/machines`),
+          apiFetch(`/api/maintenance?limit=5`),
+          apiFetch(`/api/cycles?limit=5`),
         ]);
         if (!mRes.ok) throw new Error(`Machines HTTP ${mRes.status}`);
         if (!maRes.ok) throw new Error(`Maintenance HTTP ${maRes.status}`);
-        if (!cRes.ok) throw new Error(`Cycles HTTP ${cRes.status}`);
+        if (!cyRes.ok) throw new Error(`Cycles HTTP ${cyRes.status}`);
         const mJson = await mRes.json();
         const maJson = await maRes.json();
-        const cJson = await cRes.json();
+        const cyJson = await cyRes.json();
         setMachines(mJson.machines || []);
         setMaint(maJson.maintenance || []);
-        setCycles(cJson.cycles || []);
+        setCycles(cyJson.cycles || []);
       } catch (e) {
         setErr(String(e.message || e));
       } finally {
@@ -50,17 +49,28 @@ export default function Dashboard() {
         (m) => m.status === "active"
       ).length;
 
-      // Only washers count for descale
+      // descales only for washers
       const overdueDescales = machines.filter(
         (m) =>
           m.type === "washer" &&
           daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
       );
 
-      const cyclesToday = cycles.length;
-      const failedCyclesToday = cycles.filter(
+      // KPIs from today's cycles
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const todayCycles = cycles.filter((c) => {
+        const d = new Date(c.startedAt);
+        return d >= startOfDay && d <= endOfDay;
+      });
+      const cyclesToday = todayCycles.length;
+      const failedCyclesToday = todayCycles.filter(
         (c) => c.result === "fail"
       ).length;
+
       return {
         activeMachines,
         overdueDescales,
@@ -107,11 +117,12 @@ export default function Dashboard() {
         <div
           style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}
         >
-          {/* Today's Sterilizer Cycles — now shows machine name */}
-          <Card title="Today’s Sterilizer Cycles">
+          {/* Recent Cycles (last 5, with machine names) */}
+          <Card title="Recent Cycles">
             {cycles.length ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
                 {cycles.map((c) => {
+                  const machineName = c.machineId?.name || "Unknown";
                   const dot =
                     c.result === "pass"
                       ? common["dot--ok"]
@@ -121,20 +132,15 @@ export default function Dashboard() {
                       key={c._id}
                       style={{
                         display: "flex",
-                        alignItems: "center",
                         gap: 8,
+                        alignItems: "center",
                         marginBottom: 6,
                       }}
                     >
-                      <span className={`${common.dot} ${dot}`} />
-                      <span style={{ opacity: 0.9 }}>
-                        <strong>
-                          {/* load number */}
-                          {c.loadNumber?.padStart?.(2, "0") ||
-                            c.loadNumber ||
-                            "—"}
-                        </strong>{" "}
-                        — <strong>{c.machineId?.name || "Unknown"}</strong> •{" "}
+                      <span className={`${common.dot} ${dot}`}></span>
+                      <span style={{ opacity: 0.85 }}>
+                        <strong>{machineName}</strong>&nbsp;—{" "}
+                        {c.loadNumber ? `Load ${c.loadNumber}` : "Cycle"} •{" "}
                         {formatDateTime(c.startedAt)} • {c.result}
                       </span>
                       <Link
@@ -148,7 +154,7 @@ export default function Dashboard() {
                 })}
               </ul>
             ) : (
-              <div style={{ opacity: 0.7 }}>No cycles yet today.</div>
+              <div style={{ opacity: 0.7 }}>No cycles yet.</div>
             )}
           </Card>
 
@@ -202,30 +208,9 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* Recent Maintenance (unchanged except skeleton kept) */}
+          {/* Recent Maintenance (unchanged) */}
           <Card title="Recent Maintenance">
-            {loading ? (
-              <div style={{ display: "grid", gap: 8 }}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={`rm-skel-${i}`}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "auto 1fr auto",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Skeleton w={12} h={12} style={{ borderRadius: 999 }} />
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <Skeleton w="40%" h={14} />
-                      <Skeleton w="60%" h={12} />
-                    </div>
-                    <Skeleton w={60} h={24} r={12} />
-                  </div>
-                ))}
-              </div>
-            ) : maint.length ? (
+            {maint.length ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
                 {maint.map((r) => (
                   <li
@@ -237,10 +222,14 @@ export default function Dashboard() {
                       marginBottom: 6,
                     }}
                   >
-                    <span className={`${common.dot} ${common["dot--ok"]}`} />
+                    <span
+                      className={`${common.dot} ${common["dot--ok"]}`}
+                    ></span>
                     <span style={{ opacity: 0.85 }}>
-                      <strong>{r.machineId?.name || "Unknown"}</strong> —{" "}
-                      {r.type}
+                      <strong>
+                        {(r.machineId && r.machineId.name) || "Unknown"}
+                      </strong>
+                      &nbsp;— {r.type}
                       &nbsp;• {formatDateTime(r.performedAt)}
                     </span>
                     <Link

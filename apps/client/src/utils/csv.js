@@ -1,27 +1,46 @@
-export function toCSV(rows, headers) {
-  const esc = (v) => {
-    if (v == null) return "";
-    const s = String(v);
+export function toCSV(rows) {
+  const arr = Array.isArray(rows) ? rows : [];
+  if (arr.length === 0) {
+    return "\uFEFF";
+  }
+
+  const headerSet = new Set();
+  for (const r of arr) {
+    Object.keys(r || {}).forEach((k) => headerSet.add(k));
+  }
+  const headers = Array.from(headerSet);
+
+  const esc = (val) => {
+    if (val === null || val === undefined) return "";
+    const s = String(val);
+
     const needsWrap = /[",\n]/.test(s);
-    const quoted = s.replace(/"/g, '""');
-    return needsWrap ? `"${quoted}"` : quoted;
+    const safe = s.replace(/"/g, '""');
+    return needsWrap ? `"${safe}"` : safe;
   };
 
-  const headerLine = headers.map((h) => esc(h.label)).join(",");
-  const body = rows
-    .map((r) => headers.map((h) => esc(h.get(r))).join(","))
-    .join("\n");
-  return headerLine + "\n" + body;
+  const lines = [];
+
+  lines.push("\uFEFF" + headers.map(esc).join(","));
+  for (const row of arr) {
+    const line = headers.map((h) => esc(row?.[h]));
+    lines.push(line.join(","));
+  }
+  return lines.join("\n");
 }
 
-export function downloadFile(filename, text, mime = "text/csv;charset=utf-8") {
-  const blob = new Blob([text], { type: mime });
+export function downloadFile(
+  content,
+  filename = "export.csv",
+  mime = "text/csv;charset=utf-8"
+) {
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
   a.remove();
+  URL.revokeObjectURL(url);
 }

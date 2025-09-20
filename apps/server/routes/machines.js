@@ -32,7 +32,7 @@ function normalizePayload(p) {
   return payload;
 }
 
-/** GET /api/machines?type=&status= */
+/** GET /api/machines */
 router.get("/", async (req, res) => {
   try {
     const { type, status } = req.query;
