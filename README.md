@@ -41,7 +41,7 @@ Built with **React (Vite)**, **Express**, **MongoDB**, and **JWT auth**.
 ```env
 PORT=3001
 CLIENT_URL=http://localhost:5173
-MONGO_URI=your-mongo-uri # e.g. mongodb://localhost:27017/spt or your Atlas URI
+MONGO_URI=mongodb://localhost:27017/spt
 JWT_SECRET=dev-super-secret-change-this
 JWT_EXPIRES_IN=7d
 ```
