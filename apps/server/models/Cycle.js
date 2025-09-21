@@ -9,11 +9,9 @@ const SporeSchema = new mongoose.Schema(
     incubatedAt: { type: Date },
     result: {
       type: String,
-      enum: ["negative", "positive"],
-      default: "negative",
+      enum: ["negative", "positive", "invalid", ""],
+      default: "",
     },
-    verifiedAt: { type: Date },
-    verifiedBy: { type: String, default: "" },
   },
   { _id: false }
 );
@@ -27,29 +25,34 @@ const CycleSchema = new mongoose.Schema(
     },
     machineType: {
       type: String,
-      enum: ["washer", "sterilizer", "ultrasonic"],
+      enum: ["sterilizer", "washer", "ultrasonic"],
       required: true,
     },
 
     startedAt: { type: Date, required: true },
     completedAt: { type: Date },
-
     loadNumber: { type: String, default: "" },
-    result: { type: String, enum: ["pass", "fail"], required: true },
-
-    clinicName: { type: String, default: "" },
-    loadStaff: { type: String, default: "" },
-    unloadStaff: { type: String, default: "" },
-
-    sterileDryMinutes: { type: Number },
-    maxTempPressure: { type: String, default: "" },
+    result: { type: String, enum: ["pass", "fail", "aborted"], required: true },
 
     items: { type: String, default: "" },
     notes: { type: String, default: "" },
 
-    spore: { type: SporeSchema, default: undefined },
+    clinicName: { type: String, default: "" },
+    loadStaff: { type: String, default: "" },
+    unloadStaff: { type: String, default: "" },
+    sterileDryMinutes: { type: String, default: "" },
+    maxTempPressure: { type: String, default: "" },
+
+    spore: { type: SporeSchema, default: () => ({}) },
+
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String, default: "" },
   },
   { timestamps: true }
 );
+
+CycleSchema.index({ machineId: 1, startedAt: -1 });
+CycleSchema.index({ startedAt: -1 });
+CycleSchema.index({ machineType: 1, startedAt: -1 });
 
 module.exports = mongoose.model("Cycle", CycleSchema);

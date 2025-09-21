@@ -10,14 +10,12 @@ const MachineSchema = new mongoose.Schema(
       required: true,
     },
     location: { type: String, default: "" },
-    status: {
-      type: String,
-      enum: ["active", "out_of_service"],
-      default: "active",
-    },
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
     lastDescaleAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
+
+MachineSchema.index({ type: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Machine", MachineSchema);

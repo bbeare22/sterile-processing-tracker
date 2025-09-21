@@ -7,18 +7,20 @@ const MaintenanceSchema = new mongoose.Schema(
       ref: "Machine",
       required: true,
     },
-
     type: {
       type: String,
-      enum: ["descale", "daily_inspection", "cleaning"],
+      enum: ["descale", "cleaning", "daily_inspection", "repair", "qa"],
       required: true,
     },
-
-    volumeUsedMl: { type: Number, default: null },
+    // for descale (washers/ultrasonic)
+    volumeUsedMl: { type: Number, default: 0 },
     performedAt: { type: Date, required: true },
     notes: { type: String, default: "" },
   },
   { timestamps: true }
 );
+
+MaintenanceSchema.index({ machineId: 1, performedAt: -1 });
+MaintenanceSchema.index({ performedAt: -1 });
 
 module.exports = mongoose.model("Maintenance", MaintenanceSchema);
