@@ -143,7 +143,7 @@ function toDateOrNull(v) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-// Accepts "YYYY-MM-DD" or ISO; stores as Date at 00:00Z for date-only
+// Accepts "YYYY-MM-DD" or ISO
 function toDateOnlyOrNull(v) {
   if (!v) return null;
 
