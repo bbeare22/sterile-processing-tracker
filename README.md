@@ -172,3 +172,45 @@ Auth uses Authorization: Bearer <jwt>.
 5. Cycles: log a sterilizer cycle (load #, items, result)
 
 6. Export CSV from “View all …” pages
+
+---
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.jpg)
+
+### Machines
+
+![Machines](screenshots/machines.jpg)
+
+### Machine Detail — Washer
+
+![Machine Detail — Washer](screenshots/machine-detail-washer.jpg)
+
+### Machine Detail — Sterilizer
+
+![Machine Detail — Sterilizer](screenshots/machine-detail-sterilizer.jpg)
+
+### Log Maintenance Form
+
+![Log Maintenance](screenshots/log-maintenance.jpg)
+
+### Log Cycle Form
+
+![Log Cycle](screenshots/log-cycle.jpg)
+
+### Maintenance History (with CSV export)
+
+![Maintenance History](screenshots/maintenance-history.jpg)
+
+### Cycles History (with CSV export)
+
+![Cycles History](screenshots/cycles-history.jpg)
+
+### Login
+
+![Login](screenshots/login.jpg)
+
+### Register
+
+![Register](screenshots/register.jpg)
