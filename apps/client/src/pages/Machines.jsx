@@ -4,6 +4,7 @@ import MachineForm from "../components/MachineForm/MachineForm";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast/ToastProvider";
 import { apiFetch } from "../utils/api";
+import Modal from "../components/Modal/Modal";
 
 export default function Machines() {
   const [q, setQ] = useState("");
@@ -140,11 +141,13 @@ export default function Machines() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           style={input}
+          aria-label="Search machines"
         />
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
           style={input}
+          aria-label="Filter by type"
         >
           <option value="all">All types</option>
           <option value="washer">Washer</option>
@@ -182,19 +185,21 @@ export default function Machines() {
         </div>
       )}
 
-      {showForm && (
-        <div style={overlay}>
-          <div style={overlayPanel}>
-            <MachineForm
-              title={editing ? "Edit Machine" : "Add Machine"}
-              initialValues={editing || undefined}
-              onCancel={closeForm}
-              onSubmit={handleSave}
-              submitting={submitting}
-            />
-          </div>
-        </div>
-      )}
+      {/* Reusable Modal for Add/Edit */}
+      <Modal
+        open={showForm}
+        onClose={closeForm}
+        title={editing ? "Edit Machine" : "Add Machine"}
+        width={720}
+      >
+        <MachineForm
+          title={editing ? "Edit Machine" : "Add Machine"}
+          initialValues={editing || undefined}
+          onCancel={closeForm}
+          onSubmit={handleSave}
+          submitting={submitting}
+        />
+      </Modal>
     </>
   );
 }
@@ -214,17 +219,4 @@ const btnPrimary = {
   background: "var(--color-brand)",
   color: "#fff",
   cursor: "pointer",
-};
-
-const overlay = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.5)",
-  display: "grid",
-  placeItems: "center",
-  zIndex: 50,
-};
-
-const overlayPanel = {
-  width: "min(720px, 92vw)",
 };
