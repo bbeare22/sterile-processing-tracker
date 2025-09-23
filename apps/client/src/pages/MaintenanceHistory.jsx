@@ -4,6 +4,7 @@ import Skeleton from "../components/Skeleton/Skeleton";
 import { formatDateTime } from "../utils/date";
 import { toCSV, downloadFile } from "../utils/csv";
 import { apiFetch } from "../utils/api";
+import "./maintenance-history.css";
 
 export default function MaintenanceHistory() {
   const { id } = useParams();
@@ -72,59 +73,43 @@ export default function MaintenanceHistory() {
   return (
     <div>
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h1 style={{ marginBottom: 16 }}>
+      <div className="mh__header">
+        <h1 className="mh__title">
           {machine ? `Maintenance — ${machine.name}` : "Maintenance History"}
         </h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={exportCSV} style={btn}>
+        <div className="mh__actions">
+          <button onClick={exportCSV} className="mh__btn">
             Export CSV
           </button>
-          <Link to={`/machines/${id}`} style={link}>
+          <Link to={`/machines/${id}`} className="mh__linkBtn">
             Back to machine
           </Link>
-          <Link
-            to={`/maintenance?machineId=${id}`}
-            style={{ ...link, marginLeft: 0 }}
-          >
+          <Link to={`/maintenance?machineId=${id}`} className="mh__linkBtn">
             Log maintenance
           </Link>
         </div>
       </div>
 
-      {err && (
-        <div style={{ color: "var(--color-danger)", marginBottom: 12 }}>
-          Failed to load: {err}
-        </div>
-      )}
+      {err && <div className="mh__error">Failed to load: {err}</div>}
 
       {/* Table */}
-      <div style={tableWrap}>
-        <table style={table}>
-          <thead style={thead}>
+      <div className="mh__tableWrap">
+        <table className="mh__table">
+          <thead className="mh__thead">
             <tr>
-              <th style={th}>Type</th>
-              <th style={th}>Performed At</th>
-              <th style={th}>Volume (mL)</th>
-              <th style={th}>Notes</th>
+              <th className="mh__th">Type</th>
+              <th className="mh__th">Performed At</th>
+              <th className="mh__th">Volume (mL)</th>
+              <th className="mh__th">Notes</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
-                <tr key={`skel-${i}`} style={tr}>
-                  <td
-                    colSpan={4}
-                    style={{ ...td, paddingTop: 10, paddingBottom: 10 }}
-                  >
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <div style={{ display: "flex", gap: 16 }}>
+                <tr key={`skel-${i}`} className="mh__tr">
+                  <td colSpan={4} className="mh__td mh__td--padTight">
+                    <div className="mh__skeletonRow">
+                      <div className="mh__skeletonCols">
                         <Skeleton w="18%" h={14} />
                         <Skeleton w="24%" h={14} />
                         <Skeleton w="12%" h={14} />
@@ -136,18 +121,16 @@ export default function MaintenanceHistory() {
               ))
             ) : rows.length ? (
               rows.map((r) => (
-                <tr key={r._id} style={tr}>
-                  <td style={td}>{r.type}</td>
-                  <td style={td}>{formatDateTime(r.performedAt)}</td>
-                  <td style={td}>{Number(r.volumeUsedMl || 0)}</td>
-                  <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {r.notes || "—"}
-                  </td>
+                <tr key={r._id} className="mh__tr">
+                  <td className="mh__td">{r.type}</td>
+                  <td className="mh__td">{formatDateTime(r.performedAt)}</td>
+                  <td className="mh__td">{Number(r.volumeUsedMl || 0)}</td>
+                  <td className="mh__td mh__td--muted">{r.notes || "—"}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} style={{ ...td, opacity: 0.7 }}>
+                <td colSpan={4} className="mh__td mh__td--empty">
                   No maintenance yet.
                 </td>
               </tr>
@@ -157,8 +140,8 @@ export default function MaintenanceHistory() {
       </div>
 
       {!loading && rows.length >= limit && (
-        <div style={{ marginTop: 12 }}>
-          <button onClick={() => setLimit((n) => n + 20)} style={btn}>
+        <div className="mh__loadMoreWrap">
+          <button onClick={() => setLimit((n) => n + 20)} className="mh__btn">
             Load more
           </button>
         </div>
@@ -166,31 +149,3 @@ export default function MaintenanceHistory() {
     </div>
   );
 }
-
-const link = {
-  color: "#cbd5e1",
-  textDecoration: "none",
-  border: "1px solid var(--color-border)",
-  borderRadius: 12,
-  padding: "8px 12px",
-};
-const btn = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "transparent",
-  color: "var(--color-text)",
-  cursor: "pointer",
-};
-const tableWrap = {
-  overflow: "auto",
-  border: "1px solid var(--color-border)",
-  borderRadius: "16px",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-};
-const table = { width: "100%", borderCollapse: "separate", borderSpacing: 0 };
-const thead = { background: "#0e1525", position: "sticky", top: 0 };
-const th = { textAlign: "left", padding: "12px 16px" };
-const tr = { borderTop: "1px solid var(--color-border)" };
-const td = { padding: "12px 16px" };

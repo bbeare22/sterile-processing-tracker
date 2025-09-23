@@ -1,0 +1,86 @@
+.dashboard__title {
+  margin-bottom: 16px;
+}
+
+.dashboard__kpis {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 24px;
+}
+
+.dashboard__loading {
+  opacity: 0.7;
+}
+
+.dashboard__error {
+  color: var(--color-danger);
+}
+
+.dashboard__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.dashboard__list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.dashboard__listItem {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.dashboard__mutedWrap {
+  opacity: 0.85;
+}
+
+.dashboard__link {
+  color: #cbd5e1;
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 2px 8px;
+}
+
+.dashboard__chip {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-brand);
+  color: #fff;
+  background: var(--color-brand);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.dashboard__empty {
+  opacity: 0.7;
+}
+
+.dashboard__skeletonList {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard__skelRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard__skelText {
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+}

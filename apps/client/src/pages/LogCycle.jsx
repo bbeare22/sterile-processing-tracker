@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { useToast } from "../components/Toast/ToastProvider";
 import { formatLocalInputDateTime, localInputToISO } from "../utils/date";
+import "./logcycle.css";
 
 export default function LogCycle() {
   const { show } = useToast();
@@ -217,30 +218,22 @@ export default function LogCycle() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: 16 }}>Log Sterilizer Cycle</h1>
+      <h1 className="logcycle__title">Log Sterilizer Cycle</h1>
+
       {err && (
-        <div
-          style={{
-            marginBottom: 12,
-            border: "1px solid var(--color-danger)",
-            background: "#0e1525",
-            color: "var(--color-danger)",
-            padding: "10px 12px",
-            borderRadius: 12,
-          }}
-        >
+        <div className="logcycle__error" role="alert">
           {err}
         </div>
       )}
 
-      <form onSubmit={onSubmit} style={formCard}>
+      <form onSubmit={onSubmit} className="logcycle__card">
         {/* Machine */}
-        <div style={field}>
-          <label style={label}>Machine</label>
+        <div className="logcycle__field">
+          <label className="logcycle__label">Machine</label>
           <select
             value={form.machineId}
             onChange={(e) => setField("machineId", e.target.value)}
-            style={inputStyle}
+            className="logcycle__input"
             disabled={loadingMachines}
             required
           >
@@ -256,45 +249,45 @@ export default function LogCycle() {
         </div>
 
         {/* times */}
-        <div style={row2}>
-          <div style={field}>
-            <label style={label}>Started At</label>
+        <div className="logcycle__row2">
+          <div className="logcycle__field">
+            <label className="logcycle__label">Started At</label>
             <input
               type="datetime-local"
               value={form.startedAt}
               onChange={(e) => setField("startedAt", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
               required
             />
           </div>
-          <div style={field}>
-            <label style={label}>Completed At</label>
+          <div className="logcycle__field">
+            <label className="logcycle__label">Completed At</label>
             <input
               type="datetime-local"
               value={form.completedAt}
               onChange={(e) => setField("completedAt", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
             />
           </div>
         </div>
 
         {/* load + result */}
-        <div style={row2}>
-          <div style={field}>
-            <label style={label}>Load #</label>
+        <div className="logcycle__row2">
+          <div className="logcycle__field">
+            <label className="logcycle__label">Load #</label>
             <input
               placeholder="e.g., 01"
               value={form.loadNumber}
               onChange={(e) => setField("loadNumber", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
             />
           </div>
-          <div style={field}>
-            <label style={label}>Result</label>
+          <div className="logcycle__field">
+            <label className="logcycle__label">Result</label>
             <select
               value={form.result}
               onChange={(e) => setField("result", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
             >
               <option value="pass">pass</option>
               <option value="fail">fail</option>
@@ -303,74 +296,80 @@ export default function LogCycle() {
         </div>
 
         {/* clinic + staff */}
-        <div style={field}>
-          <label style={label}>Clinic / Department (optional)</label>
+        <div className="logcycle__field">
+          <label className="logcycle__label">
+            Clinic / Department (optional)
+          </label>
           <input
             placeholder="e.g., Jet Wing"
             value={form.clinicName}
             onChange={(e) => setField("clinicName", e.target.value)}
-            style={inputStyle}
+            className="logcycle__input"
           />
         </div>
 
-        <div style={row2}>
-          <div style={field}>
-            <label style={label}>Load Staff</label>
+        <div className="logcycle__row2">
+          <div className="logcycle__field">
+            <label className="logcycle__label">Load Staff</label>
             <input
               placeholder="e.g., BB"
               value={form.loadStaff}
               onChange={(e) => setField("loadStaff", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
             />
           </div>
-          <div style={field}>
-            <label style={label}>Unload Staff</label>
+          <div className="logcycle__field">
+            <label className="logcycle__label">Unload Staff</label>
             <input
               placeholder="e.g., BB"
               value={form.unloadStaff}
               onChange={(e) => setField("unloadStaff", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
             />
           </div>
         </div>
 
         {/* timing + gauge */}
-        <div style={row2}>
-          <div style={field}>
-            <label style={label}>Sterile & Dry Time (minutes)</label>
+        <div className="logcycle__row2">
+          <div className="logcycle__field">
+            <label className="logcycle__label">
+              Sterile & Dry Time (minutes)
+            </label>
             <input
               inputMode="numeric"
               placeholder="e.g., 7m 35m"
               value={form.sterileDryMinutes}
               onChange={(e) => setField("sterileDryMinutes", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
             />
           </div>
-          <div style={field}>
-            <label style={label}>Max Temp/Pressure</label>
+          <div className="logcycle__field">
+            <label className="logcycle__label">Max Temp/Pressure</label>
             <input
               placeholder="e.g., 270°F / 27 psi"
               value={form.maxTempPressure}
               onChange={(e) => setField("maxTempPressure", e.target.value)}
-              style={inputStyle}
+              className="logcycle__input"
             />
           </div>
         </div>
 
         {/* items */}
-        <div style={field}>
-          <label style={label}>Items (what’s inside the load)</label>
+        <div className="logcycle__field">
+          <label className="logcycle__label">
+            Items (what’s inside the load)
+          </label>
           <textarea
             rows={3}
             placeholder="e.g., ×15 Pouches, ×6 OS, ×8 Restorative, ×12 XCP, ×15 basic"
             value={form.items}
             onChange={(e) => setField("items", e.target.value)}
-            style={inputStyle}
+            className="logcycle__input"
           />
         </div>
 
         {/* spore toggle */}
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <label className="logcycle__checkrow">
           <input
             type="checkbox"
             checked={form.sporeRan}
@@ -381,107 +380,108 @@ export default function LogCycle() {
 
         {/* spore fields */}
         {form.sporeRan && (
-          <div
-            style={{
-              borderTop: "1px dashed var(--color-border)",
-              paddingTop: 12,
-              display: "grid",
-              gap: 16,
-            }}
-          >
-            <div style={row2}>
-              <div style={field}>
-                <label style={label}>Placed in Well #</label>
+          <div className="logcycle__sporeSection">
+            <div className="logcycle__row2">
+              <div className="logcycle__field">
+                <label className="logcycle__label">Placed in Well #</label>
                 <input
                   placeholder="e.g., 2"
                   value={form.spore.well}
                   onChange={(e) => setSpore("well", e.target.value)}
-                  style={inputStyle}
+                  className="logcycle__input"
                 />
               </div>
-              <div style={field}>
-                <label style={label}>Spore Lot #</label>
+              <div className="logcycle__field">
+                <label className="logcycle__label">Spore Lot #</label>
                 <input
                   placeholder="e.g., 20261018"
                   value={form.spore.lot}
                   onChange={(e) => setSpore("lot", e.target.value)}
-                  style={inputStyle}
+                  className="logcycle__input"
                 />
               </div>
             </div>
 
-            <div style={row2}>
-              <div style={field}>
-                <label style={label}>Spore Expire Date</label>
+            <div className="logcycle__row2">
+              <div className="logcycle__field">
+                <label className="logcycle__label">Spore Expire Date</label>
                 <input
                   type="date"
                   value={form.spore.expireDate}
                   onChange={(e) => setSpore("expireDate", e.target.value)}
-                  style={inputStyle}
+                  className="logcycle__input"
                 />
               </div>
-              <div style={field}>
-                <label style={label}>Incubation Date & Time</label>
+              <div className="logcycle__field">
+                <label className="logcycle__label">
+                  Incubation Date & Time
+                </label>
                 <input
                   type="datetime-local"
                   value={form.spore.incubatedAt}
                   onChange={(e) => setSpore("incubatedAt", e.target.value)}
-                  style={inputStyle}
+                  className="logcycle__input"
                 />
               </div>
             </div>
 
-            <div style={row2}>
-              <div style={field}>
-                <label style={label}>Spore Result</label>
+            <div className="logcycle__row2">
+              <div className="logcycle__field">
+                <label className="logcycle__label">Spore Result</label>
                 <select
                   value={form.spore.result}
                   onChange={(e) => setSpore("result", e.target.value)}
-                  style={inputStyle}
+                  className="logcycle__input"
                 >
                   <option value="negative">Negative</option>
                   <option value="positive">Positive</option>
                 </select>
               </div>
-              <div style={field}>
-                <label style={label}>Readout Date & Time</label>
+              <div className="logcycle__field">
+                <label className="logcycle__label">Readout Date & Time</label>
                 <input
                   type="datetime-local"
                   value={form.spore.verifiedAt}
                   onChange={(e) => setSpore("verifiedAt", e.target.value)}
-                  style={inputStyle}
+                  className="logcycle__input"
                 />
               </div>
             </div>
 
-            <div style={field}>
-              <label style={label}>Readout Verify Staff’s Printed Name</label>
+            <div className="logcycle__field">
+              <label className="logcycle__label">
+                Readout Verify Staff’s Printed Name
+              </label>
               <input
                 placeholder="e.g., WM"
                 value={form.spore.verifiedBy}
                 onChange={(e) => setSpore("verifiedBy", e.target.value)}
-                style={inputStyle}
+                className="logcycle__input"
               />
             </div>
           </div>
         )}
 
         {/* notes + actions */}
-        <div style={field}>
-          <label style={label}>Notes (optional)</label>
+        <div className="logcycle__field">
+          <label className="logcycle__label">Notes (optional)</label>
           <textarea
             rows={3}
             value={form.notes}
             onChange={(e) => setField("notes", e.target.value)}
-            style={inputStyle}
+            className="logcycle__input"
           />
         </div>
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <button type="submit" style={btnPrimary}>
+        <div className="logcycle__actions">
+          <button type="submit" className="logcycle__btnPrimary">
             Save
           </button>
-          <button type="button" onClick={onReset} style={btnGhost}>
+          <button
+            type="button"
+            onClick={onReset}
+            className="logcycle__btnGhost"
+          >
             Reset
           </button>
         </div>
@@ -489,52 +489,3 @@ export default function LogCycle() {
     </div>
   );
 }
-
-/* styles aligned with Maintenance */
-const formCard = {
-  width: "100%",
-  maxWidth: 720,
-  boxSizing: "border-box",
-  padding: 24,
-  borderRadius: 16,
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-  display: "grid",
-  gap: 16,
-  overflow: "hidden",
-};
-const field = { display: "grid", gap: 8, minWidth: 0 };
-const row2 = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
-  gap: 16,
-  minWidth: 0,
-};
-const label = { fontSize: 14, opacity: 0.9 };
-const inputStyle = {
-  width: "100%",
-  minWidth: 0,
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "#0e1525",
-  color: "var(--color-text)",
-  boxSizing: "border-box",
-};
-const btnPrimary = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-brand)",
-  background: "var(--color-brand)",
-  color: "#fff",
-  cursor: "pointer",
-};
-const btnGhost = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "transparent",
-  color: "var(--color-text)",
-  cursor: "pointer",
-};

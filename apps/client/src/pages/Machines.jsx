@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import MachineCard from "../components/MachineCard/MachineCard";
 import MachineForm from "../components/MachineForm/MachineForm";
+import ModalWithForm from "../components/ModalWithForm/ModalWithForm";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast/ToastProvider";
 import { apiFetch } from "../utils/api";
-import Modal from "../components/Modal/Modal";
+import "./machines.css";
 
 export default function Machines() {
   const [q, setQ] = useState("");
@@ -97,17 +98,15 @@ export default function Machines() {
     }
   }
 
-  async function handleDelete(m) {
-    if (!confirm(`Delete machine "${m.name}"? This cannot be undone.`)) return;
+  async function handleDelete(x) {
+    if (!confirm(`Delete machine "${x.name}"? This cannot be undone.`)) return;
     try {
-      const res = await apiFetch(`/api/machines/${m._id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok && res.status !== 204) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.error || `HTTP ${res.status}`);
+      const r = await apiFetch(`/api/machines/${x._id}`, { method: "DELETE" });
+      if (!r.ok && r.status !== 204) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || `HTTP ${r.status}`);
       }
-      setRows((prev) => prev.filter((x) => x._id !== m._id));
+      setRows((prev) => prev.filter((p) => p._id !== x._id));
       show("Machine deleted ✔", { tone: "ok" });
     } catch (e) {
       show(e.message || "Failed to delete machine", {
@@ -119,35 +118,26 @@ export default function Machines() {
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <h1 style={{ margin: 0 }}>Machines</h1>
+      <div className="mach__header">
+        <h1 className="mach__title">Machines</h1>
         {user && (
-          <button onClick={openAdd} style={btnPrimary}>
+          <button onClick={openAdd} className="mach__addBtn">
             + Add Machine
           </button>
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+      <div className="mach__filters">
         <input
+          className="mach__input"
           placeholder="Search name/model/location"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          style={input}
-          aria-label="Search machines"
         />
         <select
+          className="mach__input"
           value={type}
           onChange={(e) => setType(e.target.value)}
-          style={input}
-          aria-label="Filter by type"
         >
           <option value="all">All types</option>
           <option value="washer">Washer</option>
@@ -156,21 +146,11 @@ export default function Machines() {
         </select>
       </div>
 
-      {loading && <div style={{ opacity: 0.7 }}>Loading machines…</div>}
-      {err && (
-        <div style={{ color: "var(--color-danger)" }}>
-          Failed to load: {err}
-        </div>
-      )}
+      {loading && <div className="mach__loading">Loading machines…</div>}
+      {err && <div className="mach__error">Failed to load: {err}</div>}
 
       {!loading && !err && (
-        <div
-          style={{
-            display: "grid",
-            gap: 16,
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          }}
-        >
+        <div className="mach__grid">
           {filtered.map((m) => (
             <MachineCard
               key={m._id}
@@ -180,43 +160,25 @@ export default function Machines() {
             />
           ))}
           {!filtered.length && (
-            <div style={{ opacity: 0.7 }}>No machines match your filter.</div>
+            <div className="mach__empty">No machines match your filter.</div>
           )}
         </div>
       )}
 
-      {/* Reusable Modal for Add/Edit */}
-      <Modal
-        open={showForm}
-        onClose={closeForm}
-        title={editing ? "Edit Machine" : "Add Machine"}
-        width={720}
-      >
-        <MachineForm
+      {showForm && (
+        <ModalWithForm
           title={editing ? "Edit Machine" : "Add Machine"}
-          initialValues={editing || undefined}
-          onCancel={closeForm}
-          onSubmit={handleSave}
-          submitting={submitting}
-        />
-      </Modal>
+          onClose={closeForm}
+        >
+          <MachineForm
+            title={editing ? "Edit Machine" : "Add Machine"}
+            initialValues={editing || undefined}
+            onCancel={closeForm}
+            onSubmit={handleSave}
+            submitting={submitting}
+          />
+        </ModalWithForm>
+      )}
     </>
   );
 }
-
-const input = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "#0e1525",
-  color: "var(--color-text)",
-};
-
-const btnPrimary = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-brand)",
-  background: "var(--color-brand)",
-  color: "#fff",
-  cursor: "pointer",
-};

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { formatDateTime } from "../utils/date";
 import { toCSV, downloadFile } from "../utils/csv";
 import { apiFetch } from "../utils/api";
+import "./cycles-history.css";
 
 export default function CyclesHistory() {
   const { id } = useParams();
@@ -72,67 +73,68 @@ export default function CyclesHistory() {
   }
 
   return (
-    <div>
+    <div className="cycles">
       {/* Header Bar */}
-      <div style={headerBar}>
-        <h1 style={{ margin: 0 }}>Cycles — {machine ? machine.name : "…"}</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={exportCSV} style={btnGhost}>
+      <div className="cycles__header">
+        <h1 className="cycles__title">
+          Cycles — {machine ? machine.name : "…"}
+        </h1>
+        <div className="cycles__actions">
+          <button
+            onClick={exportCSV}
+            className="cycles__btn cycles__btn--ghost"
+          >
             Export CSV
           </button>
-          <Link to={`/machines/${id}`} style={linkBtn}>
+          <Link to={`/machines/${id}`} className="cycles__linkBtn">
             Back to machine
           </Link>
-          <Link to={`/cycles?machineId=${id}`} style={linkBtn}>
+          <Link to={`/cycles?machineId=${id}`} className="cycles__linkBtn">
             Log cycle
           </Link>
         </div>
       </div>
 
-      {err && (
-        <div style={{ color: "var(--color-danger)", marginBottom: 12 }}>
-          Failed to load: {err}
-        </div>
-      )}
+      {err && <div className="cycles__error">Failed to load: {err}</div>}
 
       {/* Table */}
-      <div style={tableWrap}>
-        <table style={table}>
-          <thead style={thead}>
+      <div className="cycles__tableWrap">
+        <table className="cycles__table">
+          <thead className="cycles__thead">
             <tr>
-              <th style={th}>Load #</th>
-              <th style={th}>Started</th>
-              <th style={th}>Completed</th>
-              <th style={th}>Result</th>
-              <th style={th}>Items</th>
+              <th className="cycles__th">Load #</th>
+              <th className="cycles__th">Started</th>
+              <th className="cycles__th">Completed</th>
+              <th className="cycles__th">Result</th>
+              <th className="cycles__th">Items</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} style={{ ...td, opacity: 0.7 }}>
+                <td className="cycles__td cycles__td--muted" colSpan={5}>
                   Loading…
                 </td>
               </tr>
             ) : rows.length ? (
               rows.map((r) => (
-                <tr key={r._id} style={tr}>
-                  <td style={td}>{r.loadNumber || "—"}</td>
-                  <td style={td}>
+                <tr key={r._id} className="cycles__tr">
+                  <td className="cycles__td">{r.loadNumber || "—"}</td>
+                  <td className="cycles__td">
                     {r.startedAt ? formatDateTime(r.startedAt) : "—"}
                   </td>
-                  <td style={td}>
+                  <td className="cycles__td">
                     {r.completedAt ? formatDateTime(r.completedAt) : "—"}
                   </td>
-                  <td style={td}>{r.result || "—"}</td>
-                  <td style={{ ...td, color: "var(--color-text-muted)" }}>
+                  <td className="cycles__td">{r.result || "—"}</td>
+                  <td className="cycles__td cycles__td--muted">
                     {r.items || "—"}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} style={{ ...td, opacity: 0.7 }}>
+                <td className="cycles__td cycles__td--muted" colSpan={5}>
                   No cycles yet.
                 </td>
               </tr>
@@ -143,42 +145,3 @@ export default function CyclesHistory() {
     </div>
   );
 }
-
-/* ---- styles (matches MaintenanceHistory look) ---- */
-const headerBar = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 16,
-};
-
-const linkBtn = {
-  color: "#cbd5e1",
-  textDecoration: "none",
-  border: "1px solid var(--color-border)",
-  borderRadius: 12,
-  padding: "8px 12px",
-};
-
-const btnGhost = {
-  padding: "8px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "transparent",
-  color: "var(--color-text)",
-  cursor: "pointer",
-};
-
-const tableWrap = {
-  overflow: "auto",
-  border: "1px solid var(--color-border)",
-  borderRadius: "16px",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-};
-
-const table = { width: "100%", borderCollapse: "separate", borderSpacing: 0 };
-const thead = { background: "#0e1525", position: "sticky", top: 0 };
-const th = { textAlign: "left", padding: "12px 16px" };
-const tr = { borderTop: "1px solid var(--color-border)" };
-const td = { padding: "12px 16px" };

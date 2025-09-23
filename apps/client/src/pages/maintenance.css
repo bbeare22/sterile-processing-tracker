@@ -1,0 +1,90 @@
+/* Block: maint (Maintenance page/form) */
+
+.maint__title {
+  margin-bottom: 16px;
+}
+
+/* Card */
+.maint__card {
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* Fields */
+.maint__field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.maint__row2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.maint__label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Inputs */
+.maint__input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: #0e1525;
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.maint__input--textarea {
+  resize: vertical;
+}
+
+/* Actions */
+.maint__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Buttons (reuse across pages if you want) */
+.btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  transition: transform 0.12s var(--easing), background 0.2s var(--easing),
+    border-color 0.2s var(--easing);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn--primary {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}

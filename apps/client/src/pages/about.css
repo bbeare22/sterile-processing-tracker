@@ -1,0 +1,27 @@
+.about {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 40px;
+}
+
+.about__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  padding: 32px;
+  max-width: 720px;
+  width: 100%;
+}
+
+.about__title {
+  margin: 0 0 16px 0;
+  font-size: 1.75rem;
+}
+
+.about__text {
+  margin: 0 0 16px 0;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}

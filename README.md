@@ -7,15 +7,17 @@ Built with **React (Vite)**, **Express**, **MongoDB**, and **JWT auth**.
 
 ## ✨ Features
 
-- **Machines**: add/edit/delete washers, sterilizers, ultrasonics
+- **Machines**: add/edit/delete washers, sterilizers, ultrasonics _(auth required)_
 - **Maintenance**:
-  - Washers/Ultrasonic: **Descale** (with “days since” tracking)
-  - Sterilizers: **Daily Inspection** & **Quarterly Cleaning**
-- **Sterilizer Cycles (Loads)**: items, result, load #, staff, spore test details
-- **Dashboard**: KPIs + Today’s Sterilizer Cycles + Recent Maintenance
-- **Machine Detail**: recent maintenance & recent cycles, links to “View all…”
-- **CSV Export** for per-machine maintenance & cycles
-- **Auth**: register/login/logout, protected write routes
+  - Washers/Ultrasonic: **Descale** (with “days since” tracking) _(auth required)_
+  - Sterilizers: **Daily Inspection** & **Quarterly Cleaning** _(auth required)_
+- **Sterilizer Cycles (Loads)**: items, result, load #, staff, spore test details _(auth required)_
+- **Dashboard**: KPIs + Today’s Sterilizer Cycles + Recent Maintenance _(publicly visible)_
+- **Machine Detail**: recent maintenance & cycles _(auth required)_
+- **CSV Export** for per-machine maintenance & cycles _(auth required)_
+- **Auth**: register/login/logout, protected write routes  
+  ➝ When **not signed in**, only the **Dashboard** is visible.  
+  ➝ All other routes (Machines, Maintenance, Cycles, Detail views) require login.
 - **UI polish**: toast notifications, loading skeletons, consistent card/layout
 
 ---
@@ -156,6 +158,10 @@ Auth uses Authorization: Bearer <jwt>.
 1. Login with demo user (or register)
 
    - Use the seeded demo data or register/login with your own account.
+
+   - Note: when logged out, only the **Dashboard** is visible.
+
+   - To access Machines, Maintenance, Cycles, or Detail pages, you must sign in.
 
 2. Dashboard: see KPIs + Today’s Sterilizer Cycles + Recent Maintenance
 

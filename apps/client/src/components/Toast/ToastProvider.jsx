@@ -7,6 +7,7 @@ import {
   useEffect,
 } from "react";
 import { createPortal } from "react-dom";
+import "./toast.css";
 
 const ToastCtx = createContext(null);
 export const useToast = () => useContext(ToastCtx);
@@ -48,19 +49,18 @@ export default function ToastProvider({ children }) {
       {children}
       {root &&
         createPortal(
-          <div style={wrap}>
+          <div className="toast-stack">
             {toasts.map((t) => (
               <div
                 key={t.id}
-                style={{
-                  ...toast,
-                  borderColor:
-                    t.tone === "danger"
-                      ? "var(--color-danger)"
-                      : t.tone === "warn"
-                      ? "var(--color-warn)"
-                      : "var(--color-accent)",
-                }}
+                className={
+                  "toast" +
+                  (t.tone === "danger"
+                    ? " toast--danger"
+                    : t.tone === "warn"
+                    ? " toast--warn"
+                    : " toast--ok")
+                }
                 onClick={() => remove(t.id)}
                 role="status"
               >
@@ -73,21 +73,3 @@ export default function ToastProvider({ children }) {
     </ToastCtx.Provider>
   );
 }
-
-const wrap = {
-  position: "fixed",
-  right: 16,
-  bottom: 16,
-  display: "grid",
-  gap: 10,
-  zIndex: 9999,
-};
-const toast = {
-  background: "var(--color-surface)",
-  color: "var(--color-text)",
-  border: "1px solid",
-  borderRadius: 12,
-  padding: "10px 12px",
-  boxShadow: "var(--shadow-soft)",
-  cursor: "pointer",
-};

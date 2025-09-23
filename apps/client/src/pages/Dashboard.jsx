@@ -6,6 +6,7 @@ import Skeleton from "../components/Skeleton/Skeleton";
 import common from "../components/common.module.css";
 import { apiFetch } from "../utils/api";
 import { daysSince, formatDateTime } from "../utils/date";
+import "./dashboard.css";
 
 const DESCALE_THRESHOLD_DAYS = 7;
 
@@ -83,17 +84,10 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1 style={{ marginBottom: 16 }}>Dashboard</h1>
+      <h1 className="dashboard__title">Dashboard</h1>
 
       {/* KPIs */}
-      <div
-        style={{
-          display: "grid",
-          gap: 16,
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          marginBottom: 24,
-        }}
-      >
+      <div className="dashboard__kpis">
         <KPI label="Cycles Today" value={cyclesToday} tone="ok" />
         <KPI
           label="Failed Cycles"
@@ -108,31 +102,17 @@ export default function Dashboard() {
         <KPI label="Active Machines" value={activeMachines} tone="ok" />
       </div>
 
-      {loading && <div style={{ opacity: 0.7 }}>Loading data…</div>}
-      {err && (
-        <div style={{ color: "var(--color-danger)" }}>
-          Failed to load: {err}
-        </div>
-      )}
+      {loading && <div className="dashboard__loading">Loading data…</div>}
+      {err && <div className="dashboard__error">Failed to load: {err}</div>}
 
       {!loading && !err && (
-        <div
-          style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}
-        >
+        <div className="dashboard__grid">
           {/* Recent Cycles */}
           <Card title="Recent Cycles">
             {cycles.length ? (
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <ul className="dashboard__list">
                 {cycles.map((c) => (
-                  <li
-                    key={c._id}
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                      marginBottom: 6,
-                    }}
-                  >
+                  <li key={c._id} className="dashboard__listItem">
                     <span
                       className={`${common.dot} ${
                         c.result === "fail"
@@ -140,14 +120,15 @@ export default function Dashboard() {
                           : common["dot--ok"]
                       }`}
                     />
-                    <span style={{ opacity: 0.85 }}>
+                    <span className="dashboard__mutedWrap">
                       <strong>{c.machineId?.name || "Unknown"}</strong>
                       &nbsp;— Load {c.loadNumber || "—"} ({c.result}) &nbsp;•{" "}
                       {formatDateTime(c.startedAt)}
                     </span>
                     <Link
                       to={`/machines/${c.machineId?._id || ""}`}
-                      style={{ ...link, marginLeft: "auto" }}
+                      className="dashboard__link"
+                      style={{ marginLeft: "auto" }}
                     >
                       View
                     </Link>
@@ -155,14 +136,14 @@ export default function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div style={{ opacity: 0.7 }}>No cycles today.</div>
+              <div className="dashboard__empty">No cycles today.</div>
             )}
           </Card>
 
           {/* Overdue Descales (washers only) */}
           <Card title="Overdue Descales">
             {overdueDescales.length ? (
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <ul className="dashboard__list">
                 {overdueDescales.map((m) => {
                   const days = daysSince(m.lastDescaleAt);
                   const color =
@@ -178,22 +159,20 @@ export default function Dashboard() {
                   return (
                     <li
                       key={m._id}
-                      style={{
-                        color,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 6,
-                      }}
+                      className="dashboard__listItem"
+                      style={{ color }}
                     >
                       <span className={`${common.dot} ${dot}`} />
-                      <Link to={`/machines/${m._id}`} style={link}>
+                      <Link
+                        to={`/machines/${m._id}`}
+                        className="dashboard__link"
+                      >
                         {m.name}
                       </Link>
                       — {days} days
                       <Link
                         to={`/maintenance?machineId=${m._id}`}
-                        style={{ ...chip }}
+                        className="dashboard__chip"
                         title="Log maintenance for this machine"
                       >
                         Log
@@ -203,7 +182,7 @@ export default function Dashboard() {
                 })}
               </ul>
             ) : (
-              <div style={{ opacity: 0.7 }}>
+              <div className="dashboard__empty">
                 All good. No overdue descales 🎉
               </div>
             )}
@@ -212,19 +191,11 @@ export default function Dashboard() {
           {/* Recent Maintenance */}
           <Card title="Recent Maintenance">
             {loading ? (
-              <div style={{ display: "grid", gap: 8 }}>
+              <div className="dashboard__skeletonList">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={`rm-skel-${i}`}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "auto 1fr auto",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
+                  <div key={`rm-skel-${i}`} className="dashboard__skelRow">
                     <Skeleton w={12} h={12} style={{ borderRadius: 999 }} />
-                    <div style={{ display: "grid", gap: 6 }}>
+                    <div className="dashboard__skelText">
                       <Skeleton w="40%" h={14} />
                       <Skeleton w="60%" h={12} />
                     </div>
@@ -233,25 +204,18 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : maint.length ? (
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <ul className="dashboard__list">
                 {maint.map((r) => (
-                  <li
-                    key={r._id}
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                      marginBottom: 6,
-                    }}
-                  >
+                  <li key={r._id} className="dashboard__listItem">
                     <span className={`${common.dot} ${common["dot--ok"]}`} />
-                    <span style={{ opacity: 0.85 }}>
+                    <span className="dashboard__mutedWrap">
                       <strong>{r.machineId?.name || "Unknown"}</strong>
                       &nbsp;— {r.type} • {formatDateTime(r.performedAt)}
                     </span>
                     <Link
                       to={`/machines/${r.machineId?._id || ""}`}
-                      style={{ ...link, marginLeft: "auto" }}
+                      className="dashboard__link"
+                      style={{ marginLeft: "auto" }}
                     >
                       View
                     </Link>
@@ -259,7 +223,7 @@ export default function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div style={{ opacity: 0.7 }}>No maintenance logged yet.</div>
+              <div className="dashboard__empty">No maintenance logged yet.</div>
             )}
           </Card>
         </div>
@@ -267,22 +231,3 @@ export default function Dashboard() {
     </>
   );
 }
-
-const link = {
-  color: "#cbd5e1",
-  textDecoration: "none",
-  border: "1px solid var(--color-border)",
-  borderRadius: 12,
-  padding: "2px 8px",
-};
-
-const chip = {
-  marginLeft: "auto",
-  padding: "2px 8px",
-  borderRadius: 999,
-  border: "1px solid var(--color-brand)",
-  color: "#fff",
-  background: "var(--color-brand)",
-  textDecoration: "none",
-  fontSize: 12,
-};

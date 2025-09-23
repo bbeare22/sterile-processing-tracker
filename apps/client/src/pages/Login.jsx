@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../components/Toast/ToastProvider";
+import "./login.css";
 
 export default function Login() {
   const { login } = useAuth();
@@ -19,59 +20,50 @@ export default function Login() {
       show("Welcome back!", { tone: "ok" });
       nav("/");
     } catch (e) {
-      setErr(String(e.message || e));
-      show(e.message || "Login failed", { tone: "danger", ms: 5000 });
+      const msg = String(e.message || e) || "Login failed";
+      setErr(msg);
+      show(msg, { tone: "danger", ms: 5000 });
     }
   }
 
   return (
-    <div style={wrap}>
-      <h1>Log in</h1>
-      {err && <div style={errBox}>{err}</div>}
-      <form onSubmit={onSubmit} style={form}>
+    <div className="login__wrap">
+      <h1 className="login__title">Log in</h1>
+
+      {err && (
+        <div className="login__error" role="alert">
+          {err}
+        </div>
+      )}
+
+      <form onSubmit={onSubmit} className="login__form">
         <input
+          className="login__input"
           placeholder="Email"
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={input}
+          aria-label="Email"
+          required
         />
         <input
+          className="login__input"
           placeholder="Password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={input}
+          aria-label="Password"
+          required
         />
-        <button style={btn}>Log in</button>
+        <button className="login__btn">Log in</button>
       </form>
-      <div style={{ marginTop: 12 }}>
-        No account? <Link to="/register">Register</Link>
+
+      <div className="login__footer">
+        No account?{" "}
+        <Link to="/register" className="login__link">
+          Register
+        </Link>
       </div>
     </div>
   );
 }
-
-const wrap = { maxWidth: 420, margin: "40px auto" };
-const form = { display: "grid", gap: 12 };
-const input = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "#0e1525",
-  color: "var(--color-text)",
-};
-const btn = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-brand)",
-  background: "var(--color-brand)",
-  color: "#fff",
-  cursor: "pointer",
-};
-const errBox = {
-  border: "1px solid var(--color-danger)",
-  padding: "8px 10px",
-  borderRadius: 12,
-  marginBottom: 12,
-  color: "var(--color-danger)",
-};

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../components/Toast/ToastProvider";
+import "./register.css";
 
 export default function Register() {
   const { register: reg } = useAuth();
@@ -28,74 +29,49 @@ export default function Register() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "40px auto" }}>
+    <div className="reg__wrap">
       <h1>Create account</h1>
-      {err && (
-        <div
-          style={{
-            border: "1px solid var(--color-danger)",
-            padding: "8px 10px",
-            borderRadius: 12,
-            marginBottom: 12,
-            color: "var(--color-danger)",
-          }}
-        >
-          {err}
-        </div>
-      )}
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
+
+      {err && <div className="reg__err">{err}</div>}
+
+      <form onSubmit={onSubmit} className="reg__form">
         <input
+          className="reg__input"
           placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          style={input}
         />
         <input
+          className="reg__input"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={input}
         />
         <input
+          className="reg__input"
           placeholder="Password (min 6)"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={input}
         />
         <input
+          className="reg__input"
           placeholder="Employee ID"
           value={employeeId}
           onChange={(e) => setEmployeeId(e.target.value)}
-          style={input}
         />
         <input
+          className="reg__input"
           placeholder="Sterilization Number"
           value={sterilizationNumber}
           onChange={(e) => setSterilizationNumber(e.target.value)}
-          style={input}
         />
-        <button style={btn}>Register</button>
+        <button className="reg__btn">Register</button>
       </form>
-      <div style={{ marginTop: 12 }}>
+
+      <div className="reg__footer">
         Have an account? <Link to="/login">Log in</Link>
       </div>
     </div>
   );
 }
-
-const input = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "#0e1525",
-  color: "var(--color-text)",
-};
-const btn = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-brand)",
-  background: "var(--color-brand)",
-  color: "#fff",
-  cursor: "pointer",
-};

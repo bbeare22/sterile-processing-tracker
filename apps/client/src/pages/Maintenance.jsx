@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { useToast } from "../components/Toast/ToastProvider";
-import {
-  formatLocalInputDateTime,
-  localInputToISO,
-  isoToLocalInput,
-} from "../utils/date";
+import "./maintenance.css";
 
 export default function Maintenance() {
   const { show } = useToast();
@@ -16,8 +12,7 @@ export default function Maintenance() {
   const [form, setForm] = useState({
     machineId: "",
     type: "descale",
-
-    performedAt: localInputToISO(formatLocalInputDateTime()),
+    performedAt: new Date().toISOString(),
     volumeUsedMl: "",
     notes: "",
   });
@@ -74,7 +69,7 @@ export default function Maintenance() {
       const payload = {
         machineId: form.machineId,
         type: form.type,
-        performedAt: form.performedAt,
+        performedAt: new Date(form.performedAt).toISOString(),
         notes: form.notes?.trim() || "",
       };
       if (showVolume) {
@@ -94,8 +89,6 @@ export default function Maintenance() {
       setForm((f) => ({
         ...f,
         type: allowedTypes[0]?.value || "descale",
-
-        performedAt: localInputToISO(formatLocalInputDateTime()),
         volumeUsedMl: "",
         notes: "",
       }));
@@ -112,17 +105,18 @@ export default function Maintenance() {
 
   return (
     <>
-      <h1 style={{ marginBottom: 16 }}>Log Maintenance</h1>
-      <form onSubmit={onSubmit} style={formCard}>
+      <h1 className="maint__title">Log Maintenance</h1>
+
+      <form onSubmit={onSubmit} className="maint__card">
         {/* Machine */}
-        <div style={field}>
-          <label style={label}>Machine</label>
+        <div className="maint__field">
+          <label className="maint__label">Machine</label>
           <select
             value={form.machineId}
             onChange={(e) =>
               setForm((f) => ({ ...f, machineId: e.target.value }))
             }
-            style={inputStyle}
+            className="maint__input"
             required
           >
             <option value="" disabled>
@@ -137,12 +131,12 @@ export default function Maintenance() {
         </div>
 
         {/* Type (driven by machine) */}
-        <div style={field}>
-          <label style={label}>Type</label>
+        <div className="maint__field">
+          <label className="maint__label">Type</label>
           <select
             value={form.type}
             onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-            style={inputStyle}
+            className="maint__input"
             disabled={!selectedMachine}
             required
           >
@@ -158,8 +152,8 @@ export default function Maintenance() {
         </div>
 
         {/* Performed At */}
-        <div style={field}>
-          <label style={label}>Performed At</label>
+        <div className="maint__field">
+          <label className="maint__label">Performed At</label>
           <input
             type="datetime-local"
             value={isoToLocalInput(form.performedAt)}
@@ -169,16 +163,16 @@ export default function Maintenance() {
                 performedAt: localInputToISO(e.target.value),
               }))
             }
-            style={inputStyle}
+            className="maint__input"
             required
           />
         </div>
 
         {/* Volume (only for descale-capable machines) */}
         {showVolume && (
-          <div style={row2}>
-            <div style={field}>
-              <label style={label}>Volume (mL)</label>
+          <div className="maint__row2">
+            <div className="maint__field">
+              <label className="maint__label">Volume (mL)</label>
               <input
                 type="number"
                 min={0}
@@ -187,12 +181,12 @@ export default function Maintenance() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, volumeUsedMl: e.target.value }))
                 }
-                style={inputStyle}
+                className="maint__input"
                 required
               />
             </div>
-            <div style={field}>
-              <label style={label}>Volume (oz)</label>
+            <div className="maint__field">
+              <label className="maint__label">Volume (oz)</label>
               <input
                 value={
                   form.volumeUsedMl
@@ -200,25 +194,29 @@ export default function Maintenance() {
                     : "auto-calculated"
                 }
                 readOnly
-                style={inputStyle}
+                className="maint__input"
               />
             </div>
           </div>
         )}
 
         {/* Notes */}
-        <div style={field}>
-          <label style={label}>Notes (optional)</label>
+        <div className="maint__field">
+          <label className="maint__label">Notes (optional)</label>
           <textarea
             rows={3}
             value={form.notes}
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-            style={{ ...inputStyle, resize: "vertical" }}
+            className="maint__input maint__input--textarea"
           />
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="submit" disabled={submitting} style={btnPrimary}>
+        <div className="maint__actions">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="btn btn--primary"
+          >
             {submitting ? "Saving…" : "Save"}
           </button>
           <button
@@ -227,12 +225,11 @@ export default function Maintenance() {
               setForm((f) => ({
                 ...f,
                 type: allowedTypes[0]?.value || "descale",
-                performedAt: localInputToISO(formatLocalInputDateTime()),
                 volumeUsedMl: "",
                 notes: "",
               }))
             }
-            style={btnGhost}
+            className="btn btn--ghost"
           >
             Reset
           </button>
@@ -242,51 +239,19 @@ export default function Maintenance() {
   );
 }
 
-/* ------- styles ------- */
-const formCard = {
-  width: "100%",
-  maxWidth: 720,
-  boxSizing: "border-box",
-  padding: 24,
-  borderRadius: 16,
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-  display: "grid",
-  gap: 16,
-  overflow: "hidden",
-};
-const field = { display: "grid", gap: 8, minWidth: 0 };
-const row2 = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
-  gap: 16,
-  minWidth: 0,
-};
-const label = { fontSize: 14, opacity: 0.9 };
-const inputStyle = {
-  width: "100%",
-  minWidth: 0,
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "#0e1525",
-  color: "var(--color-text)",
-  boxSizing: "border-box",
-};
-const btnPrimary = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-brand)",
-  background: "var(--color-brand)",
-  color: "#fff",
-  cursor: "pointer",
-};
-const btnGhost = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "transparent",
-  color: "var(--color-text)",
-  cursor: "pointer",
-};
+/* ------- helpers: ISO <-> datetime-local ------- */
+function isoToLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+function localInputToISO(local) {
+  const d = new Date(local);
+  return d.toISOString();
+}

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import "./machine-form.css";
 
 function toLocalInput(iso) {
   if (!iso) return "";
@@ -58,129 +59,72 @@ export default function MachineForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(submit)} style={card}>
-      <h2 style={cardTitle}>{title}</h2>
+    <form className="mf" onSubmit={handleSubmit(submit)}>
+      <h2 className="mf__title">{title}</h2>
 
-      <div style={field}>
-        <label style={label}>Name</label>
+      <div className="mf__field">
+        <label className="mf__label">Name</label>
         <input
-          style={input}
+          className="mf__input"
           {...register("name", { required: "Name is required" })}
         />
-        {errors.name && <div style={errText}>{errors.name.message}</div>}
+        {errors.name && <div className="mf__error">{errors.name.message}</div>}
       </div>
 
-      <div style={field}>
-        <label style={label}>Model</label>
-        <input style={input} {...register("model")} />
+      <div className="mf__field">
+        <label className="mf__label">Model</label>
+        <input className="mf__input" {...register("model")} />
       </div>
 
-      <div style={row2}>
-        <div style={field}>
-          <label style={label}>Type</label>
-          <select style={input} {...register("type")}>
+      <div className="mf__row">
+        <div className="mf__field">
+          <label className="mf__label">Type</label>
+          <select className="mf__input" {...register("type")}>
             <option value="washer">Washer</option>
             <option value="sterilizer">Sterilizer</option>
             <option value="ultrasonic">Ultrasonic</option>
           </select>
         </div>
 
-        <div style={field}>
-          <label style={label}>Status</label>
-          <select style={input} {...register("status")}>
+        <div className="mf__field">
+          <label className="mf__label">Status</label>
+          <select className="mf__input" {...register("status")}>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
         </div>
       </div>
 
-      <div style={field}>
-        <label style={label}>Location</label>
-        <input style={input} {...register("location")} />
+      <div className="mf__field">
+        <label className="mf__label">Location</label>
+        <input className="mf__input" {...register("location")} />
       </div>
 
-      <div style={field}>
-        <label style={label}>Last Descale (optional)</label>
+      <div className="mf__field">
+        <label className="mf__label">Last Descale (optional)</label>
         <input
           type="datetime-local"
-          style={input}
+          className="mf__input"
           {...register("lastDescaleAt")}
         />
       </div>
 
-      <div style={actions}>
-        <button type="submit" disabled={submitting} style={btnPrimary}>
+      <div className="mf__actions">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mf__btn mf__btn--primary"
+        >
           {submitting ? "Saving…" : "Save"}
         </button>
-        <button type="button" onClick={onCancel} style={btnGhost}>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mf__btn mf__btn--ghost"
+        >
           Cancel
         </button>
       </div>
     </form>
   );
 }
-
-/* ---- Inline styles: sized safely, no overflow ---- */
-const card = {
-  width: "100%",
-  maxWidth: 720,
-  boxSizing: "border-box",
-  padding: 24,
-  borderRadius: 16,
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-  display: "grid",
-  gap: 16,
-  overflow: "hidden",
-};
-
-const cardTitle = { margin: 0, fontSize: "1.1rem" };
-
-const field = {
-  display: "grid",
-  gap: 8,
-  minWidth: 0,
-};
-
-const row2 = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: 16,
-  minWidth: 0,
-};
-
-const label = { fontSize: 14, opacity: 0.9 };
-
-const input = {
-  width: "100%",
-  minWidth: 0,
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "#0e1525",
-  color: "var(--color-text)",
-  boxSizing: "border-box",
-};
-
-const actions = { display: "flex", gap: 10, marginTop: 8 };
-
-const btnPrimary = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-brand)",
-  background: "var(--color-brand)",
-  color: "#fff",
-  cursor: "pointer",
-};
-
-const btnGhost = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "transparent",
-  color: "var(--color-text)",
-  cursor: "pointer",
-};
-
-const errText = { color: "var(--color-danger)", fontSize: 12 };

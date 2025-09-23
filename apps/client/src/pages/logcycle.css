@@ -1,0 +1,91 @@
+.logcycle__title {
+  margin-bottom: 16px;
+}
+
+.logcycle__error {
+  margin-bottom: 12px;
+  border: 1px solid var(--color-danger);
+  background: #0e1525;
+  color: var(--color-danger);
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.logcycle__card {
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.logcycle__field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.logcycle__row2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.logcycle__label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.logcycle__input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: #0e1525;
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.logcycle__checkrow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.logcycle__sporeSection {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 12px;
+  display: grid;
+  gap: 16px;
+}
+
+.logcycle__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.logcycle__btnPrimary {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+  cursor: pointer;
+}
+
+.logcycle__btnGhost {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}

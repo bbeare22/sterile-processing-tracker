@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { formatDateTime } from "../utils/date";
+import "./machinedetail.css";
 
 export default function MachineDetail() {
   const { id } = useParams();
@@ -44,15 +45,14 @@ export default function MachineDetail() {
   }, [id]);
 
   if (loading) return <div>Loading…</div>;
-  if (err)
-    return (
-      <div style={{ color: "var(--color-danger)" }}>Failed to load: {err}</div>
-    );
+
+  if (err) return <div className="md__error">Failed to load: {err}</div>;
+
   if (!m)
     return (
       <div>
         <h1>Machine not found</h1>
-        <Link to="/machines" style={link}>
+        <Link to="/machines" className="md__linkBtn">
           Back to list
         </Link>
       </div>
@@ -60,29 +60,18 @@ export default function MachineDetail() {
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h1 style={{ marginBottom: 16 }}>{m.name}</h1>
-        <div>
-          <Link to="/machines" style={link}>
+      {/* Header */}
+      <div className="md__header">
+        <h1 className="md__title">{m.name}</h1>
+        <div className="md__actions">
+          <Link to="/machines" className="md__linkBtn">
             Back to list
           </Link>
-          <Link
-            to={`/maintenance?machineId=${m._id}`}
-            style={{ ...link, marginLeft: 8 }}
-          >
+          <Link to={`/maintenance?machineId=${m._id}`} className="md__linkBtn">
             Log maintenance
           </Link>
           {m.type === "sterilizer" && (
-            <Link
-              to={`/cycles?machineId=${m._id}`}
-              style={{ ...link, marginLeft: 8 }}
-            >
+            <Link to={`/cycles?machineId=${m._id}`} className="md__linkBtn">
               Log cycle
             </Link>
           )}
@@ -90,7 +79,7 @@ export default function MachineDetail() {
       </div>
 
       {/* Machine facts */}
-      <div style={panel}>
+      <div className="md__panel">
         <div>
           <strong>ID:</strong> {m._id}
         </div>
@@ -115,32 +104,30 @@ export default function MachineDetail() {
       </div>
 
       {/* Maintenance history */}
-      <h2 style={{ margin: "20px 0 12px" }}>Recent Maintenance</h2>
-      <div style={tableWrap}>
-        <table style={table}>
-          <thead style={thead}>
+      <h2 className="md__sectionTitle">Recent Maintenance</h2>
+      <div className="md__tableWrap">
+        <table className="md__table">
+          <thead className="md__thead">
             <tr>
-              <th style={th}>Type</th>
-              <th style={th}>Performed At</th>
-              <th style={th}>Volume (mL)</th>
-              <th style={th}>Notes</th>
+              <th className="md__th">Type</th>
+              <th className="md__th">Performed At</th>
+              <th className="md__th">Volume (mL)</th>
+              <th className="md__th">Notes</th>
             </tr>
           </thead>
           <tbody>
             {maint.length ? (
               maint.map((row) => (
-                <tr key={row._id} style={tr}>
-                  <td style={td}>{row.type}</td>
-                  <td style={td}>{formatDateTime(row.performedAt)}</td>
-                  <td style={td}>{Number(row.volumeUsedMl || 0)}</td>
-                  <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {row.notes || "—"}
-                  </td>
+                <tr key={row._id} className="md__tr">
+                  <td className="md__td">{row.type}</td>
+                  <td className="md__td">{formatDateTime(row.performedAt)}</td>
+                  <td className="md__td">{Number(row.volumeUsedMl || 0)}</td>
+                  <td className="md__td md__td--muted">{row.notes || "—"}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} style={{ ...td, opacity: 0.7 }}>
+                <td colSpan={4} className="md__td md__td--empty">
                   No maintenance yet.
                 </td>
               </tr>
@@ -148,8 +135,8 @@ export default function MachineDetail() {
           </tbody>
         </table>
       </div>
-      <div style={{ marginTop: 8 }}>
-        <Link to={`/machines/${id}/maintenance`} style={link}>
+      <div className="md__underTable">
+        <Link to={`/machines/${id}/maintenance`} className="md__linkBtn">
           View all maintenance
         </Link>
       </div>
@@ -157,36 +144,34 @@ export default function MachineDetail() {
       {/* Cycle history (sterilizer only) */}
       {m.type === "sterilizer" && (
         <>
-          <h2 style={{ margin: "20px 0 12px" }}>Recent Cycles</h2>
-          <div style={tableWrap}>
-            <table style={table}>
-              <thead style={thead}>
+          <h2 className="md__sectionTitle">Recent Cycles</h2>
+          <div className="md__tableWrap">
+            <table className="md__table">
+              <thead className="md__thead">
                 <tr>
-                  <th style={th}>Load #</th>
-                  <th style={th}>Started</th>
-                  <th style={th}>Completed</th>
-                  <th style={th}>Result</th>
-                  <th style={th}>Items</th>
+                  <th className="md__th">Load #</th>
+                  <th className="md__th">Started</th>
+                  <th className="md__th">Completed</th>
+                  <th className="md__th">Result</th>
+                  <th className="md__th">Items</th>
                 </tr>
               </thead>
               <tbody>
                 {cycles.length ? (
                   cycles.map((r) => (
-                    <tr key={r._id} style={tr}>
-                      <td style={td}>{r.loadNumber || "—"}</td>
-                      <td style={td}>{formatDateTime(r.startedAt)}</td>
-                      <td style={td}>
+                    <tr key={r._id} className="md__tr">
+                      <td className="md__td">{r.loadNumber || "—"}</td>
+                      <td className="md__td">{formatDateTime(r.startedAt)}</td>
+                      <td className="md__td">
                         {r.completedAt ? formatDateTime(r.completedAt) : "—"}
                       </td>
-                      <td style={td}>{r.result}</td>
-                      <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                        {r.items || "—"}
-                      </td>
+                      <td className="md__td">{r.result}</td>
+                      <td className="md__td md__td--muted">{r.items || "—"}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} style={{ ...td, opacity: 0.7 }}>
+                    <td colSpan={5} className="md__td md__td--empty">
                       No cycles yet.
                     </td>
                   </tr>
@@ -194,8 +179,8 @@ export default function MachineDetail() {
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 8 }}>
-            <Link to={`/machines/${id}/cycles`} style={link}>
+          <div className="md__underTable">
+            <Link to={`/machines/${id}/cycles`} className="md__linkBtn">
               View all cycles
             </Link>
           </div>
@@ -204,32 +189,3 @@ export default function MachineDetail() {
     </div>
   );
 }
-
-const panel = {
-  display: "grid",
-  gap: 10,
-  padding: "24px",
-  border: "1px solid var(--color-border)",
-  borderRadius: "16px",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-};
-const link = {
-  color: "#cbd5e1",
-  textDecoration: "none",
-  border: "1px solid var(--color-border)",
-  borderRadius: 12,
-  padding: "8px 12px",
-};
-const tableWrap = {
-  overflow: "auto",
-  border: "1px solid var(--color-border)",
-  borderRadius: "16px",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-};
-const table = { width: "100%", borderCollapse: "separate", borderSpacing: 0 };
-const thead = { background: "#0e1525", position: "sticky", top: 0 };
-const th = { textAlign: "left", padding: "12px 16px" };
-const tr = { borderTop: "1px solid var(--color-border)" };
-const td = { padding: "12px 16px" };

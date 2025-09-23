@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Skeleton from "../components/Skeleton/Skeleton";
 import { apiFetch } from "../utils/api";
+import "./recalls.css";
 
 function formatDate(yyyymmdd) {
   if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd || "";
@@ -23,7 +24,6 @@ export default function Recalls() {
     return `/api/external/recalls?${params.toString()}`;
   }, [brand, limit]);
 
-  // Fetch recalls via apiFetch
   const fetchRecalls = () => {
     setLoading(true);
     setErr("");
@@ -43,28 +43,21 @@ export default function Recalls() {
 
   return (
     <>
-      <h1 style={{ marginBottom: 16 }}>Recalls</h1>
+      <h1 className="rec__title">Recalls</h1>
 
       {/* Controls */}
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
+      <div className="rec__controls">
         <input
           value={brand}
           onChange={(e) => setBrand(e.target.value)}
           placeholder="Brand keyword (e.g., STERIS, AMSCO)"
-          style={input}
+          className="rec__input"
           aria-label="Brand filter"
         />
         <select
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
-          style={input}
+          className="rec__input"
           aria-label="Limit"
         >
           {[10, 25, 50, 100].map((n) => (
@@ -73,25 +66,25 @@ export default function Recalls() {
             </option>
           ))}
         </select>
-        <button onClick={fetchRecalls} style={btn}>
+        <button onClick={fetchRecalls} className="rec__btn">
           Refresh
         </button>
-        <div style={{ marginLeft: "auto", opacity: 0.7, fontSize: 12 }}>
+        <div className="rec__meta">
           {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : ""}
         </div>
       </div>
 
       {/* Content */}
-      <div style={tableWrap}>
-        <table style={table}>
-          <thead style={thead}>
+      <div className="rec__tableWrap">
+        <table className="rec__table">
+          <thead className="rec__thead">
             <tr>
-              <th style={th}>Product</th>
-              <th style={th}>Reason</th>
-              <th style={th}>Firm</th>
-              <th style={th}>Status</th>
-              <th style={th}>Class</th>
-              <th style={th}>Report Date</th>
+              <th className="rec__th">Product</th>
+              <th className="rec__th">Reason</th>
+              <th className="rec__th">Firm</th>
+              <th className="rec__th">Status</th>
+              <th className="rec__th">Class</th>
+              <th className="rec__th">Report Date</th>
             </tr>
           </thead>
           <tbody>
@@ -100,15 +93,13 @@ export default function Recalls() {
               !err &&
               rows.length > 0 &&
               rows.map((r) => (
-                <tr key={r.recallNumber} style={tr}>
-                  <td style={td}>{r.product}</td>
-                  <td style={{ ...td, color: "var(--color-text-muted)" }}>
-                    {r.reason}
-                  </td>
-                  <td style={td}>{r.recallingFirm}</td>
-                  <td style={td}>{r.status}</td>
-                  <td style={td}>{r.classification}</td>
-                  <td style={td}>{formatDate(r.reportDate)}</td>
+                <tr key={r.recallNumber} className="rec__tr">
+                  <td className="rec__td">{r.product}</td>
+                  <td className="rec__td rec__muted">{r.reason}</td>
+                  <td className="rec__td">{r.recallingFirm}</td>
+                  <td className="rec__td">{r.status}</td>
+                  <td className="rec__td">{r.classification}</td>
+                  <td className="rec__td">{formatDate(r.reportDate)}</td>
                 </tr>
               ))}
           </tbody>
@@ -116,31 +107,21 @@ export default function Recalls() {
 
         {/* Empty state & error */}
         {!loading && !err && rows.length === 0 && (
-          <div style={empty}>
-            <div style={{ fontSize: 18, marginBottom: 8 }}>
-              No recalls found
-            </div>
-            <div style={{ opacity: 0.75, marginBottom: 12 }}>
+          <div className="rec__empty">
+            <div className="rec__emptyTitle">No recalls found</div>
+            <div className="rec__emptySub">
               Try a different brand keyword (e.g., <code>AMSCO</code>).
             </div>
-            <button onClick={fetchRecalls} style={btn}>
+            <button onClick={fetchRecalls} className="rec__btn">
               Try Again
             </button>
           </div>
         )}
 
         {!loading && err && (
-          <div style={empty}>
-            <div
-              style={{
-                color: "var(--color-danger)",
-                fontSize: 18,
-                marginBottom: 8,
-              }}
-            >
-              Failed to load: {err}
-            </div>
-            <button onClick={fetchRecalls} style={btn}>
+          <div className="rec__empty">
+            <div className="rec__error">Failed to load: {err}</div>
+            <button onClick={fetchRecalls} className="rec__btn">
               Retry
             </button>
           </div>
@@ -156,23 +137,23 @@ function SkeletonRows({ count = 6 }) {
   return (
     <>
       {rows.map((_, i) => (
-        <tr key={i} style={tr}>
-          <td style={td}>
+        <tr key={i} className="rec__tr">
+          <td className="rec__td">
             <Skeleton w="90%" />
           </td>
-          <td style={td}>
+          <td className="rec__td">
             <Skeleton w="95%" />
           </td>
-          <td style={td}>
+          <td className="rec__td">
             <Skeleton w="60%" />
           </td>
-          <td style={td}>
+          <td className="rec__td">
             <Skeleton w="50%" />
           </td>
-          <td style={td}>
+          <td className="rec__td">
             <Skeleton w="40%" />
           </td>
-          <td style={td}>
+          <td className="rec__td">
             <Skeleton w="50%" />
           </td>
         </tr>
@@ -180,38 +161,3 @@ function SkeletonRows({ count = 6 }) {
     </>
   );
 }
-
-/* ---------- styles ---------- */
-const input = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid var(--color-border)",
-  background: "#0e1525",
-  color: "var(--color-text)",
-};
-const btn = {
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--color-brand)",
-  background: "var(--color-brand)",
-  color: "#fff",
-  cursor: "pointer",
-};
-const tableWrap = {
-  overflow: "auto",
-  border: "1px solid var(--color-border)",
-  borderRadius: "16px",
-  background: "var(--color-surface)",
-  boxShadow: "var(--shadow-soft)",
-};
-const table = { width: "100%", borderCollapse: "separate", borderSpacing: 0 };
-const thead = { background: "#0e1525", position: "sticky", top: 0 };
-const th = { textAlign: "left", padding: "12px 16px" };
-const tr = { borderTop: "1px solid var(--color-border)" };
-const td = { padding: "12px 16px" };
-const empty = {
-  display: "grid",
-  placeItems: "center",
-  gap: 8,
-  padding: "24px",
-};
