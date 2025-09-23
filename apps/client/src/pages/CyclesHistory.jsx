@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { formatDateTime } from "../utils/date";
 import { toCSV, downloadFile } from "../utils/csv";
+import { apiFetch } from "../utils/api";
 
 export default function CyclesHistory() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [machine, setMachine] = useState(null);
   const [rows, setRows] = useState([]);
@@ -13,21 +13,19 @@ export default function CyclesHistory() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
-
     async function load() {
       try {
         setLoading(true);
         setErr("");
 
         // machine (title)
-        const mRes = await fetch(`${base}/api/machines/${id}`);
+        const mRes = await apiFetch(`/api/machines/${id}`);
         if (!mRes.ok) throw new Error(`Machine HTTP ${mRes.status}`);
         const mJson = await mRes.json();
         setMachine(mJson.machine || null);
 
         // cycles (all for this machine)
-        const r = await fetch(`${base}/api/cycles?machineId=${id}`);
+        const r = await apiFetch(`/api/cycles?machineId=${id}`);
         if (!r.ok) throw new Error(`Cycles HTTP ${r.status}`);
         const j = await r.json();
         setRows(j.cycles || []);
@@ -42,7 +40,8 @@ export default function CyclesHistory() {
   }, [id]);
 
   function exportCSV() {
-    const data = (rows || []).map((c) => ({
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const data = safeRows.map((c) => ({
       "Load #": c.loadNumber || "",
       Started: c.startedAt ? formatDateTime(c.startedAt) : "",
       Completed: c.completedAt ? formatDateTime(c.completedAt) : "",
@@ -119,8 +118,12 @@ export default function CyclesHistory() {
               rows.map((r) => (
                 <tr key={r._id} style={tr}>
                   <td style={td}>{r.loadNumber || "—"}</td>
-                  <td style={td}>{formatDateTime(r.startedAt)}</td>
-                  <td style={td}>{formatDateTime(r.completedAt)}</td>
+                  <td style={td}>
+                    {r.startedAt ? formatDateTime(r.startedAt) : "—"}
+                  </td>
+                  <td style={td}>
+                    {r.completedAt ? formatDateTime(r.completedAt) : "—"}
+                  </td>
                   <td style={td}>{r.result || "—"}</td>
                   <td style={{ ...td, color: "var(--color-text-muted)" }}>
                     {r.items || "—"}

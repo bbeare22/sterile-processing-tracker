@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { apiFetch } from "../utils/api";
 import { formatDateTime } from "../utils/date";
 
 export default function MachineDetail() {
@@ -11,16 +12,15 @@ export default function MachineDetail() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL;
     async function load() {
       try {
         setLoading(true);
         setErr("");
 
         const [mRes, maRes, cyRes] = await Promise.all([
-          fetch(`${base}/api/machines/${id}`),
-          fetch(`${base}/api/maintenance?machineId=${id}&limit=10`),
-          fetch(`${base}/api/cycles?machineId=${id}&limit=10`),
+          apiFetch(`/api/machines/${id}`),
+          apiFetch(`/api/maintenance?machineId=${id}&limit=10`),
+          apiFetch(`/api/cycles?machineId=${id}&limit=10`),
         ]);
 
         if (!mRes.ok) throw new Error(`Machine HTTP ${mRes.status}`);

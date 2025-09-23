@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Skeleton from "../components/Skeleton/Skeleton";
+import { apiFetch } from "../utils/api";
 
 function formatDate(yyyymmdd) {
   if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd || "";
@@ -17,18 +18,16 @@ export default function Recalls() {
   const [err, setErr] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Build URL to server proxy
-  const url = useMemo(() => {
-    const base = import.meta.env.VITE_API_URL;
+  const path = useMemo(() => {
     const params = new URLSearchParams({ brand, limit: String(limit) });
-    return `${base}/api/external/recalls?${params.toString()}`;
+    return `/api/external/recalls?${params.toString()}`;
   }, [brand, limit]);
 
-  // Fetch recalls
+  // Fetch recalls via apiFetch
   const fetchRecalls = () => {
     setLoading(true);
     setErr("");
-    fetch(url)
+    apiFetch(path)
       .then((r) =>
         r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
       )
@@ -40,7 +39,7 @@ export default function Recalls() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(fetchRecalls, [url]);
+  useEffect(fetchRecalls, [path]);
 
   return (
     <>
