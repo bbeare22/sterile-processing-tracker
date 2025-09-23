@@ -1,15 +1,17 @@
-export function daysSince(isoDate) {
-  if (!isoDate) return Infinity;
-  const then = new Date(isoDate).getTime();
-  const now = Date.now();
-  const diffMs = Math.max(0, now - then);
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+export function daysSince(iso) {
+  if (!iso) return Infinity;
+  const d = new Date(iso);
+  if (isNaN(d)) return Infinity;
+  const now = new Date();
+  const diff = now - d;
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
 export function formatDateTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleString([], {
+  if (isNaN(d)) return "";
+  return d.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -18,14 +20,23 @@ export function formatDateTime(iso) {
   });
 }
 
-export function startOfTodayLocalISO() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+export function formatLocalInputDateTime(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function endOfTodayLocalISO() {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
+export function isoToLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return formatLocalInputDateTime(d);
+}
+
+export function localInputToISO(localStr) {
+  if (!localStr) return "";
+  const d = new Date(localStr);
+  if (isNaN(d)) return "";
   return d.toISOString();
 }

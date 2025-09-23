@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { useToast } from "../components/Toast/ToastProvider";
+import {
+  formatLocalInputDateTime,
+  localInputToISO,
+  isoToLocalInput,
+} from "../utils/date";
 
 export default function Maintenance() {
   const { show } = useToast();
@@ -11,7 +16,8 @@ export default function Maintenance() {
   const [form, setForm] = useState({
     machineId: "",
     type: "descale",
-    performedAt: new Date().toISOString(),
+
+    performedAt: localInputToISO(formatLocalInputDateTime()),
     volumeUsedMl: "",
     notes: "",
   });
@@ -30,7 +36,6 @@ export default function Maintenance() {
         { value: "cleaning", label: "Quarterly cleaning" },
       ];
     }
-
     return [{ value: "descale", label: "Descale" }];
   }, [selectedMachine]);
 
@@ -69,7 +74,7 @@ export default function Maintenance() {
       const payload = {
         machineId: form.machineId,
         type: form.type,
-        performedAt: new Date(form.performedAt).toISOString(),
+        performedAt: form.performedAt,
         notes: form.notes?.trim() || "",
       };
       if (showVolume) {
@@ -89,6 +94,8 @@ export default function Maintenance() {
       setForm((f) => ({
         ...f,
         type: allowedTypes[0]?.value || "descale",
+
+        performedAt: localInputToISO(formatLocalInputDateTime()),
         volumeUsedMl: "",
         notes: "",
       }));
@@ -155,11 +162,11 @@ export default function Maintenance() {
           <label style={label}>Performed At</label>
           <input
             type="datetime-local"
-            value={toLocalInput(form.performedAt)}
+            value={isoToLocalInput(form.performedAt)}
             onChange={(e) =>
               setForm((f) => ({
                 ...f,
-                performedAt: fromLocalInput(e.target.value),
+                performedAt: localInputToISO(e.target.value),
               }))
             }
             style={inputStyle}
@@ -220,6 +227,7 @@ export default function Maintenance() {
               setForm((f) => ({
                 ...f,
                 type: allowedTypes[0]?.value || "descale",
+                performedAt: localInputToISO(formatLocalInputDateTime()),
                 volumeUsedMl: "",
                 notes: "",
               }))
@@ -234,19 +242,7 @@ export default function Maintenance() {
   );
 }
 
-/* ------- helpers & styles ------- */
-function toLocalInput(iso) {
-  const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-}
-function fromLocalInput(local) {
-  const d = new Date(local);
-  return d.toISOString();
-}
-
+/* ------- styles ------- */
 const formCard = {
   width: "100%",
   maxWidth: 720,

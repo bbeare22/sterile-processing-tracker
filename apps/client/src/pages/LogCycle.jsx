@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { useToast } from "../components/Toast/ToastProvider";
+import { formatLocalInputDateTime, localInputToISO } from "../utils/date";
 
 export default function LogCycle() {
   const { show } = useToast();
@@ -10,12 +11,9 @@ export default function LogCycle() {
   const [loadingMachines, setLoadingMachines] = useState(true);
   const [err, setErr] = useState("");
 
-  // form
   const [form, setForm] = useState({
     machineId: "",
-    startedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16),
+    startedAt: formatLocalInputDateTime(new Date()),
     completedAt: "",
     loadNumber: "",
     result: "pass",
@@ -71,11 +69,10 @@ export default function LogCycle() {
   );
 
   // helpers
-  function toISOOrUndefined(v) {
-    if (!v) return undefined;
-    const d = new Date(v);
-    if (isNaN(d.getTime())) return undefined;
-    return d.toISOString();
+  function toISOOrUndefinedFromLocal(localStr) {
+    if (!localStr) return undefined;
+    const iso = localInputToISO(localStr);
+    return iso || undefined;
   }
 
   function stripEmpty(obj) {
@@ -97,8 +94,8 @@ export default function LogCycle() {
     const base = {
       machineId: form.machineId || undefined,
       machineType: "sterilizer",
-      startedAt: toISOOrUndefined(form.startedAt),
-      completedAt: toISOOrUndefined(form.completedAt),
+      startedAt: toISOOrUndefinedFromLocal(form.startedAt),
+      completedAt: toISOOrUndefinedFromLocal(form.completedAt),
       loadNumber: form.loadNumber,
       result: form.result,
       items: form.items,
@@ -119,10 +116,12 @@ export default function LogCycle() {
         ran: true,
         well: form.spore.well,
         lot: form.spore.lot,
-        expireDate: toISOOrUndefined(form.spore.expireDate),
-        incubatedAt: toISOOrUndefined(form.spore.incubatedAt),
+        expireDate: form.spore.expireDate
+          ? new Date(form.spore.expireDate).toISOString()
+          : undefined,
+        incubatedAt: toISOOrUndefinedFromLocal(form.spore.incubatedAt),
         result: form.spore.result,
-        verifiedAt: toISOOrUndefined(form.spore.verifiedAt),
+        verifiedAt: toISOOrUndefinedFromLocal(form.spore.verifiedAt),
         verifiedBy: form.spore.verifiedBy,
       };
       base.spore = stripEmpty(spore);
@@ -161,9 +160,7 @@ export default function LogCycle() {
       // soft reset (keep selected machine)
       setForm((f) => ({
         ...f,
-        startedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .slice(0, 16),
+        startedAt: formatLocalInputDateTime(new Date()),
         completedAt: "",
         loadNumber: "",
         result: "pass",
@@ -245,6 +242,7 @@ export default function LogCycle() {
             onChange={(e) => setField("machineId", e.target.value)}
             style={inputStyle}
             disabled={loadingMachines}
+            required
           >
             <option value="">
               {loadingMachines ? "Loading…" : "Select a sterilizer"}
@@ -266,6 +264,7 @@ export default function LogCycle() {
               value={form.startedAt}
               onChange={(e) => setField("startedAt", e.target.value)}
               style={inputStyle}
+              required
             />
           </div>
           <div style={field}>
