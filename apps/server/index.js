@@ -59,6 +59,7 @@ app.get("/api/external/recalls", async (req, res) => {
 });
 
 /** Routes */
+app.get("/health", (req, res) => res.json({ ok: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/machines", machinesRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
