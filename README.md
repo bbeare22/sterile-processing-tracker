@@ -1,7 +1,25 @@
 # Sterile Processing Tracker (SPT)
 
+> **Reviewer Note**:  
+> The project is fully deployed and ready to test online.
+>
+> - Frontend: [https://spt-front.onrender.com](https://spt-front.onrender.com)
+> - Backend API: [https://spt-api-w5vi.onrender.com](https://spt-api-w5vi.onrender.com)
+>
+> When logged out, only the **Dashboard** is visible.  
+> To access **Machines, Maintenance, Cycles, and Detail views**, you must register/login.
+
+---
+
 A modern web app to track sterile processing equipment, maintenance, and sterilizer cycles (loads).  
 Built with **React (Vite)**, **Express**, **MongoDB**, and **JWT auth**.
+
+---
+
+## 🌍 Live Demo
+
+- **Frontend (React/Vite):** [https://spt-front.onrender.com](https://spt-front.onrender.com)
+- **Backend (Express/MongoDB API):** [https://spt-api-w5vi.onrender.com](https://spt-api-w5vi.onrender.com)
 
 ---
 
@@ -26,7 +44,7 @@ Built with **React (Vite)**, **Express**, **MongoDB**, and **JWT auth**.
 
 - `apps/`
   - `server/` → Express API + MongoDB
-  - `web/` → React client (Vite)
+  - `client/` → React client (Vite)
 
 ---
 
