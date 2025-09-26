@@ -60,6 +60,7 @@ export default function MaintenanceHistory() {
       PerformedAt: r.performedAt ? new Date(r.performedAt).toISOString() : "",
       VolumeMl: r.volumeUsedMl ?? "",
       Notes: r.notes || "",
+      PerformedBy: r.performedBy || "",
     }));
 
     const csv = toCSV(csvRows);
@@ -101,13 +102,14 @@ export default function MaintenanceHistory() {
               <th className="mh__th">Performed At</th>
               <th className="mh__th">Volume (mL)</th>
               <th className="mh__th">Notes</th>
+              <th className="mh__th">Performed By</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={`skel-${i}`} className="mh__tr">
-                  <td colSpan={4} className="mh__td mh__td--padTight">
+                  <td colSpan={5} className="mh__td mh__td--padTight">
                     <div className="mh__skeletonRow">
                       <div className="mh__skeletonCols">
                         <Skeleton w="18%" h={14} />
@@ -126,11 +128,12 @@ export default function MaintenanceHistory() {
                   <td className="mh__td">{formatDateTime(r.performedAt)}</td>
                   <td className="mh__td">{Number(r.volumeUsedMl || 0)}</td>
                   <td className="mh__td mh__td--muted">{r.notes || "—"}</td>
+                  <td className="mh__td">{r.performedBy || "—"}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="mh__td mh__td--empty">
+                <td colSpan={5} className="mh__td mh__td--empty">
                   No maintenance yet.
                 </td>
               </tr>

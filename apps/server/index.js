@@ -4,6 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const axios = require("axios");
+const sporesRoutes = require("./routes/spores");
 
 const { connectDB } = require("./config/db");
 
@@ -22,7 +23,7 @@ app.use(morgan("tiny"));
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -64,6 +65,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/machines", machinesRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/cycles", cyclesRoutes);
+app.use("/api/spores", sporesRoutes);
 
 const PORT = process.env.PORT || 3001;
 

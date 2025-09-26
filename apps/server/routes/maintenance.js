@@ -10,12 +10,14 @@ const router = express.Router();
 const WASHER_TYPES = ["washer", "ultrasonic"];
 const STERILIZER_TYPES = ["sterilizer"];
 
+// Incoming body validation
 const BaseBody = z.object({
   machineId: z.string().min(1),
   type: z.enum(["descale", "daily_inspection", "cleaning", "repair", "qa"]),
   performedAt: z.string().datetime(),
   volumeUsedMl: z.number().int().nonnegative().optional().nullable(),
   notes: z.string().optional(),
+  performedBy: z.string().min(1, "performedBy (initials) is required").max(40),
 });
 
 // GET /api/maintenance
@@ -41,14 +43,14 @@ router.get("/", async (req, res) => {
 // POST /api/maintenance (create) — protected
 router.post("/", requireAuth, async (req, res) => {
   try {
-    const baseParsed = BaseBody.safeParse(req.body);
-    if (!baseParsed.success) {
+    const parsed = BaseBody.safeParse(req.body);
+    if (!parsed.success) {
       return res.status(400).json({
         error: "Validation failed",
-        issues: baseParsed.error.issues,
+        issues: parsed.error.issues,
       });
     }
-    const body = baseParsed.data;
+    const body = parsed.data;
 
     if (!mongoose.isValidObjectId(body.machineId)) {
       return res.status(400).json({ error: "Invalid machineId" });
@@ -61,9 +63,9 @@ router.post("/", requireAuth, async (req, res) => {
 
     if (isWasher) {
       if (body.type !== "descale") {
-        return res.status(400).json({
-          error: "Invalid maintenance type for this machine",
-        });
+        return res
+          .status(400)
+          .json({ error: "Invalid maintenance type for this machine" });
       }
       if (body.volumeUsedMl == null) {
         return res
@@ -72,14 +74,14 @@ router.post("/", requireAuth, async (req, res) => {
       }
     } else if (isSterilizer) {
       if (!["daily_inspection", "cleaning"].includes(body.type)) {
-        return res.status(400).json({
-          error: "Invalid maintenance type for sterilizer",
-        });
+        return res
+          .status(400)
+          .json({ error: "Invalid maintenance type for sterilizer" });
       }
       body.volumeUsedMl = null;
     }
 
-    // 👇 get authenticated user id safely
+    // authenticated user id (set by requireAuth)
     const authedUserId = req.user?._id || req.userId || req.user;
     if (!authedUserId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -92,11 +94,19 @@ router.post("/", requireAuth, async (req, res) => {
       notes: body.notes || "",
       volumeUsedMl:
         isWasher && body.type === "descale" ? Number(body.volumeUsedMl) : null,
+      performedBy: body.performedBy.trim(), // store initials
       createdBy: authedUserId,
     };
 
     const doc = await Maintenance.create(payload);
-    res.status(201).json({ maintenance: doc });
+
+    // (optional) populate before returning for nicer client display
+    const populated = await Maintenance.findById(doc._id)
+      .populate("machineId", "name _id")
+      .populate("createdBy", "name email _id")
+      .lean();
+
+    res.status(201).json({ maintenance: populated });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to create maintenance" });

@@ -13,6 +13,7 @@ import MachineDetail from "./pages/MachineDetail";
 import MaintenanceHistory from "./pages/MaintenanceHistory";
 import CyclesHistory from "./pages/CyclesHistory";
 import LogCycle from "./pages/LogCycle";
+import SporeQueue from "./pages/SporeQueue";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -88,6 +89,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 element={
                   <ProtectedRoute>
                     <LogCycle />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/spores"
+                element={
+                  <ProtectedRoute>
+                    <SporeQueue />
                   </ProtectedRoute>
                 }
               />

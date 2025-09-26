@@ -45,7 +45,6 @@ export default function MachineDetail() {
   }, [id]);
 
   if (loading) return <div>Loading…</div>;
-
   if (err) return <div className="md__error">Failed to load: {err}</div>;
 
   if (!m)
@@ -113,6 +112,7 @@ export default function MachineDetail() {
               <th className="md__th">Performed At</th>
               <th className="md__th">Volume (mL)</th>
               <th className="md__th">Notes</th>
+              <th className="md__th">Logged By</th>
             </tr>
           </thead>
           <tbody>
@@ -123,11 +123,14 @@ export default function MachineDetail() {
                   <td className="md__td">{formatDateTime(row.performedAt)}</td>
                   <td className="md__td">{Number(row.volumeUsedMl || 0)}</td>
                   <td className="md__td md__td--muted">{row.notes || "—"}</td>
+                  <td className="md__td">
+                    {row.createdBy?.name || row.createdBy?.email || "—"}
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="md__td md__td--empty">
+                <td colSpan={5} className="md__td md__td--empty">
                   No maintenance yet.
                 </td>
               </tr>
@@ -154,6 +157,7 @@ export default function MachineDetail() {
                   <th className="md__th">Completed</th>
                   <th className="md__th">Result</th>
                   <th className="md__th">Items</th>
+                  <th className="md__th">Logged By</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,11 +171,14 @@ export default function MachineDetail() {
                       </td>
                       <td className="md__td">{r.result}</td>
                       <td className="md__td md__td--muted">{r.items || "—"}</td>
+                      <td className="md__td">
+                        {r.createdBy?.name || r.createdBy?.email || "—"}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="md__td md__td--empty">
+                    <td colSpan={6} className="md__td md__td--empty">
                       No cycles yet.
                     </td>
                   </tr>

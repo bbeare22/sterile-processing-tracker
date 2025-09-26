@@ -50,8 +50,8 @@ export default function CyclesHistory() {
       Items: c.items || "",
       Notes: c.notes || "",
       "Clinic/Dept": c.clinicName || "",
-      "Load Staff": c.loadStaff || "",
-      "Unload Staff": c.unloadStaff || "",
+      "Load Staff (initials)": c.loadStaff || "",
+      "Unload Staff (initials)": c.unloadStaff || "",
       "Sterile & Dry (min)": c.sterileDryMinutes ?? "",
       "Max Temp/Pressure": c.maxTempPressure || "",
       "Spore Ran": c.spore?.ran ? "yes" : "no",
@@ -64,7 +64,10 @@ export default function CyclesHistory() {
         ? formatDateTime(c.spore.incubatedAt)
         : "",
       "Spore Result": c.spore?.result || "",
-      "Spore Verified By": c.spore?.verifiedBy || "",
+      "Verified By (initials)": c.spore?.verifiedBy || "",
+      "Verified At": c.spore?.verifiedAt
+        ? formatDateTime(c.spore.verifiedAt)
+        : "",
     }));
 
     const csv = toCSV(data);
@@ -107,12 +110,15 @@ export default function CyclesHistory() {
               <th className="cycles__th">Completed</th>
               <th className="cycles__th">Result</th>
               <th className="cycles__th">Items</th>
+              <th className="cycles__th">Load Staff</th>
+              <th className="cycles__th">Unload Staff</th>
+              <th className="cycles__th">Verified By</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="cycles__td cycles__td--muted" colSpan={5}>
+                <td className="cycles__td cycles__td--muted" colSpan={8}>
                   Loading…
                 </td>
               </tr>
@@ -130,11 +136,14 @@ export default function CyclesHistory() {
                   <td className="cycles__td cycles__td--muted">
                     {r.items || "—"}
                   </td>
+                  <td className="cycles__td">{r.loadStaff || "—"}</td>
+                  <td className="cycles__td">{r.unloadStaff || "—"}</td>
+                  <td className="cycles__td">{r.spore?.verifiedBy || "—"}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td className="cycles__td cycles__td--muted" colSpan={5}>
+                <td className="cycles__td cycles__td--muted" colSpan={8}>
                   No cycles yet.
                 </td>
               </tr>

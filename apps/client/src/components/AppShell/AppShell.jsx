@@ -57,6 +57,14 @@ export default function AppShell({ children }) {
                 Log Cycle
               </NavLink>
               <NavLink
+                to="/spores"
+                className={({ isActive }) =>
+                  isActive ? styles.active : undefined
+                }
+              >
+                Spore Queue
+              </NavLink>
+              <NavLink
                 to="/about"
                 className={({ isActive }) =>
                   isActive ? styles.active : undefined

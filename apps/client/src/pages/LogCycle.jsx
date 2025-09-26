@@ -31,9 +31,7 @@ export default function LogCycle() {
       lot: "",
       expireDate: "",
       incubatedAt: "",
-      result: "negative",
-      verifiedAt: "",
-      verifiedBy: "",
+      // NOTE: result/verifiedAt/verifiedBy removed so spores start as "pending"
     },
   });
 
@@ -112,6 +110,8 @@ export default function LogCycle() {
       if (!isNaN(n)) base.sterileDryMinutes = n;
     }
 
+    // Only capture spore placement/incubation details here.
+    // Verification (result/verifiedAt/verifiedBy) happens later in the Spore Queue.
     if (form.sporeRan) {
       const spore = {
         ran: true,
@@ -121,9 +121,6 @@ export default function LogCycle() {
           ? new Date(form.spore.expireDate).toISOString()
           : undefined,
         incubatedAt: toISOOrUndefinedFromLocal(form.spore.incubatedAt),
-        result: form.spore.result,
-        verifiedAt: toISOOrUndefinedFromLocal(form.spore.verifiedAt),
-        verifiedBy: form.spore.verifiedBy,
       };
       base.spore = stripEmpty(spore);
       if (!Object.keys(base.spore).length) base.spore = { ran: true };
@@ -178,9 +175,6 @@ export default function LogCycle() {
           lot: "",
           expireDate: "",
           incubatedAt: "",
-          result: "negative",
-          verifiedAt: "",
-          verifiedBy: "",
         },
       }));
     } catch (e) {
@@ -209,9 +203,6 @@ export default function LogCycle() {
         lot: "",
         expireDate: "",
         incubatedAt: "",
-        result: "negative",
-        verifiedAt: "",
-        verifiedBy: "",
       },
     }));
   }
@@ -378,7 +369,7 @@ export default function LogCycle() {
           Spore Test Ran
         </label>
 
-        {/* spore fields */}
+        {/* spore fields (only placement/incubation) */}
         {form.sporeRan && (
           <div className="logcycle__sporeSection">
             <div className="logcycle__row2">
@@ -423,41 +414,6 @@ export default function LogCycle() {
                   className="logcycle__input"
                 />
               </div>
-            </div>
-
-            <div className="logcycle__row2">
-              <div className="logcycle__field">
-                <label className="logcycle__label">Spore Result</label>
-                <select
-                  value={form.spore.result}
-                  onChange={(e) => setSpore("result", e.target.value)}
-                  className="logcycle__input"
-                >
-                  <option value="negative">Negative</option>
-                  <option value="positive">Positive</option>
-                </select>
-              </div>
-              <div className="logcycle__field">
-                <label className="logcycle__label">Readout Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={form.spore.verifiedAt}
-                  onChange={(e) => setSpore("verifiedAt", e.target.value)}
-                  className="logcycle__input"
-                />
-              </div>
-            </div>
-
-            <div className="logcycle__field">
-              <label className="logcycle__label">
-                Readout Verify Staff’s Printed Name
-              </label>
-              <input
-                placeholder="e.g., WM"
-                value={form.spore.verifiedBy}
-                onChange={(e) => setSpore("verifiedBy", e.target.value)}
-                className="logcycle__input"
-              />
             </div>
           </div>
         )}

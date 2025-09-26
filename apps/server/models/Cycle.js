@@ -7,11 +7,22 @@ const SporeSchema = new mongoose.Schema(
     lot: { type: String, default: "" },
     expireDate: { type: Date },
     incubatedAt: { type: Date },
+
+    // readout / verification
     result: {
       type: String,
-      enum: ["negative", "positive", "invalid", ""],
+      enum: ["negative", "positive", ""],
       default: "",
     },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String, default: "" },
+
+    // optional extras you’ve been collecting
+    incubatorId: { type: String, default: "" },
+    controlNegativeOk: { type: Boolean, default: false },
+    controlPositiveOk: { type: Boolean, default: false },
+    readDeadlineAt: { type: Date },
+    readAt: { type: Date },
   },
   { _id: false }
 );
@@ -40,15 +51,14 @@ const CycleSchema = new mongoose.Schema(
     clinicName: { type: String, default: "" },
     loadStaff: { type: String, default: "" },
     unloadStaff: { type: String, default: "" },
-    sterileDryMinutes: { type: String, default: "" },
+
+    // store as Number for consistent math/reporting
+    sterileDryMinutes: { type: Number, min: 0 },
     maxTempPressure: { type: String, default: "" },
 
     spore: { type: SporeSchema, default: () => ({}) },
 
-    verifiedAt: { type: Date },
-    verifiedBy: { type: String, default: "" },
-
-    // NEW: track who logged it
+    // NEW: who logged the cycle
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

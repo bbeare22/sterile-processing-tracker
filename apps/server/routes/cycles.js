@@ -15,9 +15,7 @@ const cycleBody = z.object({
   completedAt: z.string().optional().nullable(),
 
   loadNumber: z.string().optional().default(""),
-  result: z.enum(["pass", "fail", "aborted"], {
-    required_error: "result is required",
-  }),
+  result: z.enum(["pass", "fail"], { required_error: "result is required" }),
 
   clinicName: z.string().optional().default(""),
   loadStaff: z.string().optional().default(""),
@@ -36,14 +34,19 @@ const cycleBody = z.object({
       lot: z.string().optional().default(""),
       expireDate: z.string().optional().nullable(),
       incubatedAt: z.string().optional().nullable(),
-      result: z.enum(["negative", "positive", "invalid"]).optional(),
+      result: z.enum(["negative", "positive"]).optional(),
       verifiedAt: z.string().optional().nullable(),
       verifiedBy: z.string().optional().default(""),
+      incubatorId: z.string().optional().default(""),
+      controlNegativeOk: z.boolean().optional(),
+      controlPositiveOk: z.boolean().optional(),
+      readDeadlineAt: z.string().optional().nullable(),
+      readAt: z.string().optional().nullable(),
     })
     .optional(),
 });
 
-/** GET /api/cycles */
+/** GET /api/cycles  (populates machine + createdBy) */
 router.get("/", async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit || 25), 200);
@@ -51,19 +54,27 @@ router.get("/", async (req, res) => {
     if (req.query.machineId && mongoose.isValidObjectId(req.query.machineId)) {
       filter.machineId = req.query.machineId;
     }
+    // optional date=YYYY-MM-DD filter you already use on dashboard
+    if (req.query.date) {
+      const start = new Date(`${req.query.date}T00:00:00.000Z`);
+      const end = new Date(`${req.query.date}T23:59:59.999Z`);
+      filter.startedAt = { $gte: start, $lte: end };
+    }
+
     const rows = await Cycle.find(filter)
       .sort({ startedAt: -1, createdAt: -1 })
       .limit(limit)
       .populate({ path: "machineId", select: "name type location" })
-      .populate("createdBy", "name email _id")
+      .populate({ path: "createdBy", select: "name email _id" })
       .lean();
+
     res.json({ cycles: rows });
   } catch (e) {
     res.status(500).json({ error: "Failed to list cycles" });
   }
 });
 
-/** POST /api/cycles (create) — protected */
+/** POST /api/cycles  (create) — protected, tags createdBy */
 router.post("/", requireAuth, async (req, res) => {
   try {
     const parsed = cycleBody.safeParse(req.body);
@@ -95,7 +106,7 @@ router.post("/", requireAuth, async (req, res) => {
     let sterileDryMinutes = undefined;
     if (data.sterileDryMinutes !== undefined && data.sterileDryMinutes !== "") {
       const n = Number(data.sterileDryMinutes);
-      if (Number.isFinite(n)) sterileDryMinutes = n;
+      if (Number.isFinite(n) && n >= 0) sterileDryMinutes = n;
     }
 
     let spore = undefined;
@@ -106,17 +117,19 @@ router.post("/", requireAuth, async (req, res) => {
         lot: data.spore.lot || "",
         expireDate: toDateOnlyOrNull(data.spore.expireDate),
         incubatedAt: toDateOrNull(data.spore.incubatedAt),
-        result: data.spore.result || "negative",
+        result: data.spore.result || "",
         verifiedAt: toDateOrNull(data.spore.verifiedAt),
         verifiedBy: data.spore.verifiedBy || "",
+        incubatorId: data.spore.incubatorId || "",
+        controlNegativeOk: !!data.spore.controlNegativeOk,
+        controlPositiveOk: !!data.spore.controlPositiveOk,
+        readDeadlineAt: toDateOrNull(data.spore.readDeadlineAt),
+        readAt: toDateOrNull(data.spore.readAt),
       };
     }
 
-    // 👇 safe user id
     const authedUserId = req.user?._id || req.userId || req.user;
-    if (!authedUserId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!authedUserId) return res.status(401).json({ error: "Unauthorized" });
 
     const doc = await Cycle.create({
       machineId: data.machineId,
@@ -138,7 +151,7 @@ router.post("/", requireAuth, async (req, res) => {
 
     const populated = await Cycle.findById(doc._id)
       .populate({ path: "machineId", select: "name type location" })
-      .populate("createdBy", "name email _id")
+      .populate({ path: "createdBy", select: "name email _id" })
       .lean();
 
     res.status(201).json({ cycle: populated });
@@ -154,8 +167,10 @@ function toDateOrNull(v) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Accepts "YYYY-MM-DD" or ISO
 function toDateOnlyOrNull(v) {
   if (!v) return null;
+
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(`${v}T00:00:00.000Z`);
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;

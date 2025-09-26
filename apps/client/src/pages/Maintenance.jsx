@@ -15,6 +15,7 @@ export default function Maintenance() {
     performedAt: new Date().toISOString(),
     volumeUsedMl: "",
     notes: "",
+    performedBy: "", // NEW: initials field
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,6 +72,7 @@ export default function Maintenance() {
         type: form.type,
         performedAt: new Date(form.performedAt).toISOString(),
         notes: form.notes?.trim() || "",
+        performedBy: form.performedBy?.trim() || "", // send initials
       };
       if (showVolume) {
         payload.volumeUsedMl = Number(form.volumeUsedMl || 0);
@@ -91,6 +93,7 @@ export default function Maintenance() {
         type: allowedTypes[0]?.value || "descale",
         volumeUsedMl: "",
         notes: "",
+        performedBy: "", // reset initials
       }));
       show("Maintenance saved ✔", { tone: "ok" });
     } catch (e2) {
@@ -130,7 +133,7 @@ export default function Maintenance() {
           </select>
         </div>
 
-        {/* Type (driven by machine) */}
+        {/* Type */}
         <div className="maint__field">
           <label className="maint__label">Type</label>
           <select
@@ -168,7 +171,7 @@ export default function Maintenance() {
           />
         </div>
 
-        {/* Volume (only for descale-capable machines) */}
+        {/* Volume */}
         {showVolume && (
           <div className="maint__row2">
             <div className="maint__field">
@@ -211,6 +214,20 @@ export default function Maintenance() {
           />
         </div>
 
+        {/* Performed By */}
+        <div className="maint__field">
+          <label className="maint__label">Performed By (Initials)</label>
+          <input
+            placeholder="e.g., BB"
+            value={form.performedBy}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, performedBy: e.target.value }))
+            }
+            className="maint__input"
+            required
+          />
+        </div>
+
         <div className="maint__actions">
           <button
             type="submit"
@@ -227,6 +244,7 @@ export default function Maintenance() {
                 type: allowedTypes[0]?.value || "descale",
                 volumeUsedMl: "",
                 notes: "",
+                performedBy: "",
               }))
             }
             className="btn btn--ghost"
@@ -239,7 +257,7 @@ export default function Maintenance() {
   );
 }
 
-/* ------- helpers: ISO <-> datetime-local ------- */
+/* ------- helpers ------- */
 function isoToLocalInput(iso) {
   if (!iso) return "";
   const d = new Date(iso);
