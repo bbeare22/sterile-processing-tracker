@@ -20,6 +20,7 @@ export default function Machines() {
 
   const { user } = useAuth();
   const { show } = useToast();
+  const canManage = user?.role === "supervisor";
 
   // Load machines
   useEffect(() => {
@@ -120,7 +121,7 @@ export default function Machines() {
     <>
       <div className="mach__header">
         <h1 className="mach__title">Machines</h1>
-        {user && (
+        {canManage && (
           <button onClick={openAdd} className="mach__addBtn">
             + Add Machine
           </button>
@@ -155,8 +156,9 @@ export default function Machines() {
             <MachineCard
               key={m._id}
               m={m}
-              onEdit={openEdit}
-              onDelete={handleDelete}
+              canManage={canManage}
+              onEdit={canManage ? openEdit : undefined}
+              onDelete={canManage ? handleDelete : undefined}
             />
           ))}
           {!filtered.length && (
@@ -165,7 +167,7 @@ export default function Machines() {
         </div>
       )}
 
-      {showForm && (
+      {showForm && canManage && (
         <ModalWithForm
           title={editing ? "Edit Machine" : "Add Machine"}
           onClose={closeForm}

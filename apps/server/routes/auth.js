@@ -3,82 +3,54 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+function signToken(user) {
+  return jwt.sign(
+    { userId: user._id.toString(), role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+  );
+}
 
-// Register
+// POST /api/auth/register
 router.post("/register", async (req, res) => {
   try {
     const { email, password, name, employeeId, sterilizationNumber } = req.body;
 
-    if (!email || !password || !name || !employeeId || !sterilizationNumber) {
-      return res.status(400).json({ error: "All fields are required." });
-    }
+    const exists = await User.findOne({ email }).lean();
+    if (exists) return res.status(400).json({ error: "Email already in use" });
 
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ error: "Email already registered." });
-    }
-
-    const user = new User({
+    const user = await User.create({
       email,
       password,
       name,
       employeeId,
       sterilizationNumber,
+      // role defaults to "tech" from the model; or allow passing a role if you want
     });
-    await user.save();
 
-    const token = jwt.sign(
-      { sub: user._id, email: user.email, name: user.name },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        name: user.name,
-        employeeId: user.employeeId,
-        sterilizationNumber: user.sterilizationNumber,
-      },
-    });
-  } catch (err) {
-    console.error("Register error", err);
-    res.status(500).json({ error: "Server error" });
+    const token = signToken(user);
+    return res.status(201).json({ token, user: user.toPublicJSON() });
+  } catch (e) {
+    return res.status(500).json({ error: "Registration failed" });
   }
 });
 
-// Login
+// POST /api/auth/login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+
+    // password has select:false in the model
+    const user = await User.findOne({ email }).select("+password");
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
-    const token = jwt.sign(
-      { sub: user._id, email: user.email, name: user.name },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        name: user.name,
-        employeeId: user.employeeId,
-        sterilizationNumber: user.sterilizationNumber,
-      },
-    });
-  } catch (err) {
-    console.error("Login error", err);
-    res.status(500).json({ error: "Server error" });
+    const token = signToken(user);
+    return res.json({ token, user: user.toPublicJSON() });
+  } catch (e) {
+    return res.status(500).json({ error: "Login failed" });
   }
 });
 

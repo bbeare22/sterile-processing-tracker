@@ -3,8 +3,7 @@ require("dotenv").config({
 });
 const mongoose = require("mongoose");
 
-// ---- imported models ----
-
+// ---- models ----
 const Machine = require("../models/Machine");
 const Maintenance = require("../models/Maintenance");
 const Cycle = require("../models/Cycle");
@@ -16,25 +15,40 @@ async function main() {
     console.error("MONGO_URI missing in env");
     process.exit(1);
   }
+
   await mongoose.connect(uri);
   console.log("✓ Connected");
 
-  // Clean (optional)
+  // Clean demo data (non-destructive for other users/machines if you later add them)
   await Promise.all([
     Machine.deleteMany({}),
     Maintenance.deleteMany({}),
     Cycle.deleteMany({}),
     User.deleteOne({ email: "demo@spt.app" }),
+    User.deleteOne({ email: "supervisor@spt.app" }),
   ]);
 
+  // Users
   const demoUser = await User.create({
     email: "demo@spt.app",
     name: "Demo User",
     employeeId: "EMP-0001",
     sterilizationNumber: "STER-001",
     password: "demo123",
+    role: "tech", // valid role
   });
+
+  const superUser = await User.create({
+    email: "supervisor@spt.app",
+    name: "Supervisor User",
+    employeeId: "EMP-0000",
+    sterilizationNumber: "STER-000",
+    password: "super123",
+    role: "supervisor", // elevated role
+  });
+
   console.log("✓ Demo user:", demoUser.email, "(password: demo123)");
+  console.log("✓ Supervisor:", superUser.email, "(password: super123)");
 
   // Helpers
   const now = new Date();

@@ -3,7 +3,12 @@ import common from "../common.module.css";
 import { Link } from "react-router-dom";
 import { daysSince } from "../../utils/date";
 
-export default function MachineCard({ m, onEdit, onDelete }) {
+export default function MachineCard({
+  m,
+  canManage = false,
+  onEdit,
+  onDelete,
+}) {
   const isActive = m.status === "active";
   const badge = isActive ? styles["badge--ok"] : styles["badge--down"];
   const dot = isActive ? common["dot--ok"] : common["dot--down"];
@@ -46,7 +51,7 @@ export default function MachineCard({ m, onEdit, onDelete }) {
           View
         </Link>
 
-        {onEdit && (
+        {canManage && onEdit && (
           <button
             type="button"
             onClick={() => onEdit(m)}
@@ -56,7 +61,7 @@ export default function MachineCard({ m, onEdit, onDelete }) {
           </button>
         )}
 
-        {onDelete && (
+        {canManage && onDelete && (
           <button
             type="button"
             onClick={() => onDelete(m)}

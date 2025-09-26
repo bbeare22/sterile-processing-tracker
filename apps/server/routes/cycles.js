@@ -3,7 +3,7 @@ const { z } = require("zod");
 const mongoose = require("mongoose");
 const Cycle = require("../models/Cycle");
 const Machine = require("../models/Machine");
-const { auth } = require("../middleware/auth");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -15,7 +15,9 @@ const cycleBody = z.object({
   completedAt: z.string().optional().nullable(),
 
   loadNumber: z.string().optional().default(""),
-  result: z.enum(["pass", "fail"], { required_error: "result is required" }),
+  result: z.enum(["pass", "fail", "aborted"], {
+    required_error: "result is required",
+  }),
 
   clinicName: z.string().optional().default(""),
   loadStaff: z.string().optional().default(""),
@@ -34,14 +36,14 @@ const cycleBody = z.object({
       lot: z.string().optional().default(""),
       expireDate: z.string().optional().nullable(),
       incubatedAt: z.string().optional().nullable(),
-      result: z.enum(["negative", "positive"]).optional(),
+      result: z.enum(["negative", "positive", "invalid"]).optional(),
       verifiedAt: z.string().optional().nullable(),
       verifiedBy: z.string().optional().default(""),
     })
     .optional(),
 });
 
-/** GET /api/cycles  (populates machine name) */
+/** GET /api/cycles */
 router.get("/", async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit || 25), 200);
@@ -53,6 +55,7 @@ router.get("/", async (req, res) => {
       .sort({ startedAt: -1, createdAt: -1 })
       .limit(limit)
       .populate({ path: "machineId", select: "name type location" })
+      .populate("createdBy", "name email _id")
       .lean();
     res.json({ cycles: rows });
   } catch (e) {
@@ -60,8 +63,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** POST /api/cycles  (create) */
-router.post("/", auth, async (req, res) => {
+/** POST /api/cycles (create) — protected */
+router.post("/", requireAuth, async (req, res) => {
   try {
     const parsed = cycleBody.safeParse(req.body);
     if (!parsed.success) {
@@ -109,6 +112,12 @@ router.post("/", auth, async (req, res) => {
       };
     }
 
+    // 👇 safe user id
+    const authedUserId = req.user?._id || req.userId || req.user;
+    if (!authedUserId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     const doc = await Cycle.create({
       machineId: data.machineId,
       machineType,
@@ -124,10 +133,12 @@ router.post("/", auth, async (req, res) => {
       items: data.items || "",
       notes: data.notes || "",
       spore,
+      createdBy: authedUserId,
     });
 
     const populated = await Cycle.findById(doc._id)
       .populate({ path: "machineId", select: "name type location" })
+      .populate("createdBy", "name email _id")
       .lean();
 
     res.status(201).json({ cycle: populated });
@@ -143,10 +154,8 @@ function toDateOrNull(v) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-// Accepts "YYYY-MM-DD" or ISO
 function toDateOnlyOrNull(v) {
   if (!v) return null;
-
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(`${v}T00:00:00.000Z`);
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;

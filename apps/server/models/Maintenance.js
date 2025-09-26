@@ -12,10 +12,16 @@ const MaintenanceSchema = new mongoose.Schema(
       enum: ["descale", "cleaning", "daily_inspection", "repair", "qa"],
       required: true,
     },
-    // for descale (washers/ultrasonic)
     volumeUsedMl: { type: Number, default: 0 },
     performedAt: { type: Date, required: true },
     notes: { type: String, default: "" },
+
+    // NEW: track who logged it
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

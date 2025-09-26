@@ -3,7 +3,7 @@ const { z } = require("zod");
 const mongoose = require("mongoose");
 const Maintenance = require("../models/Maintenance");
 const Machine = require("../models/Machine");
-const { auth } = require("../middleware/auth");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ const STERILIZER_TYPES = ["sterilizer"];
 
 const BaseBody = z.object({
   machineId: z.string().min(1),
-  type: z.enum(["descale", "daily_inspection", "cleaning"]),
+  type: z.enum(["descale", "daily_inspection", "cleaning", "repair", "qa"]),
   performedAt: z.string().datetime(),
   volumeUsedMl: z.number().int().nonnegative().optional().nullable(),
   notes: z.string().optional(),
@@ -29,6 +29,7 @@ router.get("/", async (req, res) => {
       .sort({ performedAt: -1, createdAt: -1 })
       .limit(Number(limit))
       .populate("machineId", "name _id")
+      .populate("createdBy", "name email _id")
       .lean();
 
     res.json({ maintenance: rows });
@@ -37,8 +38,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST /api/maintenance
-router.post("/", auth, async (req, res) => {
+// POST /api/maintenance (create) — protected
+router.post("/", requireAuth, async (req, res) => {
   try {
     const baseParsed = BaseBody.safeParse(req.body);
     if (!baseParsed.success) {
@@ -76,8 +77,12 @@ router.post("/", auth, async (req, res) => {
         });
       }
       body.volumeUsedMl = null;
-    } else {
-      return res.status(400).json({ error: "Unsupported machine type" });
+    }
+
+    // 👇 get authenticated user id safely
+    const authedUserId = req.user?._id || req.userId || req.user;
+    if (!authedUserId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const payload = {
@@ -87,6 +92,7 @@ router.post("/", auth, async (req, res) => {
       notes: body.notes || "",
       volumeUsedMl:
         isWasher && body.type === "descale" ? Number(body.volumeUsedMl) : null,
+      createdBy: authedUserId,
     };
 
     const doc = await Maintenance.create(payload);

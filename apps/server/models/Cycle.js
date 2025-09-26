@@ -47,6 +47,13 @@ const CycleSchema = new mongoose.Schema(
 
     verifiedAt: { type: Date },
     verifiedBy: { type: String, default: "" },
+
+    // NEW: track who logged it
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

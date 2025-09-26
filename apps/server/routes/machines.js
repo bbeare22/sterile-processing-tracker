@@ -2,7 +2,7 @@ const express = require("express");
 const { z } = require("zod");
 const mongoose = require("mongoose");
 const Machine = require("../models/Machine");
-const { auth } = require("../middleware/auth");
+const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -47,8 +47,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** POST /api/machines (create) */
-router.post("/", auth, async (req, res) => {
+/** POST /api/machines (create) — protected, supervisor only */
+router.post("/", requireAuth, requireRole("supervisor"), async (req, res) => {
   try {
     const parsed = machineSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -78,8 +78,8 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/** PUT /api/machines/:id (update) */
-router.put("/:id", auth, async (req, res) => {
+/** PUT /api/machines/:id (update) — protected, supervisor only */
+router.put("/:id", requireAuth, requireRole("supervisor"), async (req, res) => {
   try {
     const parsed = machineSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -99,16 +99,21 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-/** DELETE /api/machines/:id */
-router.delete("/:id", auth, async (req, res) => {
-  try {
-    const gone = await Machine.findByIdAndDelete(req.params.id);
-    if (!gone) return res.status(404).json({ error: "Not found" });
-    res.status(204).end();
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Server error" });
+/** DELETE /api/machines/:id — protected, supervisor only */
+router.delete(
+  "/:id",
+  requireAuth,
+  requireRole("supervisor"),
+  async (req, res) => {
+    try {
+      const gone = await Machine.findByIdAndDelete(req.params.id);
+      if (!gone) return res.status(404).json({ error: "Not found" });
+      res.status(204).end();
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Server error" });
+    }
   }
-});
+);
 
 module.exports = router;
