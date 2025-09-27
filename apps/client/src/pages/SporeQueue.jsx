@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import ModalWithForm from "../components/ModalWithForm/ModalWithForm";
 import { useToast } from "../components/Toast/ToastProvider";
 import { apiFetch } from "../utils/api";
@@ -10,12 +10,17 @@ const PAGE_SIZE = 25;
 
 export default function SporeQueue() {
   const { show } = useToast();
-  const navigate = useNavigate();
 
   // filters
   const [status, setStatus] = useState("pending"); // pending | verified | all
   const [incubatorId, setIncubatorId] = useState("");
   const [q, setQ] = useState("");
+
+  // month export controls (top-right)
+  const now = new Date();
+  const [exportYear, setExportYear] = useState(now.getUTCFullYear());
+  const [exportMonth, setExportMonth] = useState(now.getUTCMonth() + 1); // 1..12
+  const [basis, setBasis] = useState("incubated"); // or "verified"
 
   // data
   const [rows, setRows] = useState([]);
@@ -125,36 +130,116 @@ export default function SporeQueue() {
     }
   }
 
+  async function exportCSVMonth() {
+    try {
+      // Build API URL to server (port-swap 5173 -> 3001 in dev)
+      const serverOrigin = window.location.origin.replace(":5173", ":3001");
+      const u = new URL(
+        `/api/reports/csv?kind=spores&year=${exportYear}&month=${exportMonth}&basis=${basis}`,
+        serverOrigin
+      );
+
+      const res = await fetch(u.toString(), {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const fname = `spores-${exportYear}-${String(exportMonth).padStart(
+        2,
+        "0"
+      )}-${basis}.csv`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      show(e.message || "Failed to export CSV", { tone: "danger", ms: 8000 });
+    }
+  }
+
   return (
     <div>
+      {/* Header row with title (left) and Export controls (right) */}
       <div className="sq__header">
         <h1 className="sq__title">Spore Queue</h1>
-        <div className="sq__filters">
+
+        {/* Compact month export controls on the far right */}
+        <div className="sq__filters" style={{ marginLeft: "auto" }}>
+          <input
+            className="sq__input"
+            type="number"
+            min={2000}
+            max={2100}
+            value={exportYear}
+            onChange={(e) =>
+              setExportYear(Number(e.target.value || now.getUTCFullYear()))
+            }
+            title="Year"
+            style={{ width: 100 }}
+          />
           <select
             className="sq__input"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            title="Status"
+            value={exportMonth}
+            onChange={(e) => setExportMonth(Number(e.target.value))}
+            title="Month"
           >
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="all">All</option>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {String(m).padStart(2, "0")}
+              </option>
+            ))}
           </select>
-
-          <input
+          <select
             className="sq__input"
-            placeholder="Incubator ID"
-            value={incubatorId}
-            onChange={(e) => setIncubatorId(e.target.value)}
-          />
-
-          <input
-            className="sq__input"
-            placeholder="Search (machine, load #, lot, well, verifier)"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+            value={basis}
+            onChange={(e) => setBasis(e.target.value)}
+            title="Basis"
+          >
+            <option value="incubated">By Incubated date</option>
+            <option value="verified">By Verified date</option>
+          </select>
+          <button className="sq__btnGhost" onClick={exportCSVMonth}>
+            Export CSV
+          </button>
         </div>
+      </div>
+
+      {/* Filters row under the header (unchanged) */}
+      <div className="sq__filters">
+        <select
+          className="sq__input"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          title="Status"
+        >
+          <option value="pending">Pending</option>
+          <option value="verified">Verified</option>
+          <option value="all">All</option>
+        </select>
+
+        <input
+          className="sq__input"
+          placeholder="Incubator ID"
+          value={incubatorId}
+          onChange={(e) => setIncubatorId(e.target.value)}
+        />
+
+        <input
+          className="sq__input"
+          placeholder="Search (machine, load #, lot, well, verifier)"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
       </div>
 
       {err && <div className="sq__error">Failed to load: {err}</div>}

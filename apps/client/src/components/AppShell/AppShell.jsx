@@ -65,6 +65,15 @@ export default function AppShell({ children }) {
                 Spore Queue
               </NavLink>
               <NavLink
+                to="/pm"
+                className={({ isActive }) =>
+                  isActive ? styles.active : undefined
+                }
+              >
+                PM Tasks
+              </NavLink>
+
+              <NavLink
                 to="/about"
                 className={({ isActive }) =>
                   isActive ? styles.active : undefined

@@ -4,7 +4,6 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const axios = require("axios");
-const sporesRoutes = require("./routes/spores");
 
 const { connectDB } = require("./config/db");
 
@@ -12,6 +11,9 @@ const machinesRoutes = require("./routes/machines");
 const maintenanceRoutes = require("./routes/maintenance");
 const authRoutes = require("./routes/auth");
 const cyclesRoutes = require("./routes/cycles");
+const sporesRoutes = require("./routes/spores");
+const pmRoutes = require("./routes/pm");
+const reportsRoutes = require("./routes/reports");
 
 const app = express();
 
@@ -66,6 +68,8 @@ app.use("/api/machines", machinesRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/cycles", cyclesRoutes);
 app.use("/api/spores", sporesRoutes);
+app.use("/api/pm", pmRoutes);
+app.use("/api/reports", reportsRoutes);
 
 const PORT = process.env.PORT || 3001;
 

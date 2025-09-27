@@ -14,6 +14,7 @@ import MaintenanceHistory from "./pages/MaintenanceHistory";
 import CyclesHistory from "./pages/CyclesHistory";
 import LogCycle from "./pages/LogCycle";
 import SporeQueue from "./pages/SporeQueue";
+import PMQueue from "./pages/PMQueue";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -97,6 +98,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 element={
                   <ProtectedRoute>
                     <SporeQueue />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pm"
+                element={
+                  <ProtectedRoute>
+                    <PMQueue />
                   </ProtectedRoute>
                 }
               />
