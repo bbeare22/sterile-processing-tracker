@@ -3,6 +3,7 @@ const { z } = require("zod");
 const mongoose = require("mongoose");
 const Cycle = require("../models/Cycle");
 const Maintenance = require("../models/Maintenance");
+const DeconLog = require("../models/DeconLog");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -175,6 +176,134 @@ router.get("/csv", requireAuth, async (req, res) => {
         machineId ? `-${machineId}` : ""
       }.csv`;
       return sendCSV(res, fname, out);
+    }
+
+    if (kind === "decon") {
+      const clinic = (req.query.clinic || "").trim();
+
+      const filter = {
+        receivedAt: { $gte: start, $lt: end },
+      };
+      if (clinic) filter.clinic = clinic;
+
+      const rows = await DeconLog.find(filter).sort({ receivedAt: 1 }).lean();
+
+      const headers = [
+        "Clinic",
+        "ReceivedAt",
+        "SentAt",
+        "VerifiedInBy",
+        "VerifiedOutBy",
+        "Notes",
+        // sets
+        "Basic IN",
+        "Basic OUT",
+        "OralSurgery IN",
+        "OralSurgery OUT",
+        "SRP IN",
+        "SRP OUT",
+        "Ultrasonic IN",
+        "Ultrasonic OUT",
+        "Restorative IN",
+        "Restorative OUT",
+        "Endo IN",
+        "Endo OUT",
+        "Denture IN",
+        "Denture OUT",
+        "RubberDam IN",
+        "RubberDam OUT",
+        "XCP IN",
+        "XCP OUT",
+        // womens
+        "Culpo IN",
+        "Culpo OUT",
+        "Scissors IN",
+        "Scissors OUT",
+        "Speculum IN",
+        "Speculum OUT",
+        "Tenaculum IN",
+        "Tenaculum OUT",
+        "SpongeForceps IN",
+        "SpongeForceps OUT",
+        "Dilator IN",
+        "Dilator OUT",
+        "Bozeman IN",
+        "Bozeman OUT",
+        "Pessary IN",
+        "Pessary OUT",
+        "IUD IN",
+        "IUD OUT",
+        "Misc IN",
+        "Misc OUT",
+      ];
+
+      function g(obj, k) {
+        return (obj && obj[k]) || { in: 0, out: 0 };
+      }
+
+      const lines = rows.map((r) => {
+        const s = r.sets || {};
+        const w = r.womens || {};
+        const d = (dt) => (dt ? new Date(dt).toISOString() : "");
+        const row = [
+          r.clinic,
+          d(r.receivedAt),
+          d(r.sentAt),
+          r.verifiedInBy || "",
+          r.verifiedOutBy || "",
+          r.notes || "",
+          g(s, "basic").in,
+          g(s, "basic").out,
+          g(s, "oralSurgery").in,
+          g(s, "oralSurgery").out,
+          g(s, "srp").in,
+          g(s, "srp").out,
+          g(s, "ultrasonic").in,
+          g(s, "ultrasonic").out,
+          g(s, "restorative").in,
+          g(s, "restorative").out,
+          g(s, "endo").in,
+          g(s, "endo").out,
+          g(s, "denture").in,
+          g(s, "denture").out,
+          g(s, "rubberDam").in,
+          g(s, "rubberDam").out,
+          g(s, "xcp").in,
+          g(s, "xcp").out,
+          g(w, "culpo").in,
+          g(w, "culpo").out,
+          g(w, "scissors").in,
+          g(w, "scissors").out,
+          g(w, "speculum").in,
+          g(w, "speculum").out,
+          g(w, "tenaculum").in,
+          g(w, "tenaculum").out,
+          g(w, "spongeForceps").in,
+          g(w, "spongeForceps").out,
+          g(w, "dilator").in,
+          g(w, "dilator").out,
+          g(w, "bozeman").in,
+          g(w, "bozeman").out,
+          g(w, "pessary").in,
+          g(w, "pessary").out,
+          g(w, "iud").in,
+          g(w, "iud").out,
+          g(w, "misc").in,
+          g(w, "misc").out,
+        ];
+        return row.map((v) => String(v).replace(/"/g, '""')).join(",");
+      });
+
+      const csv = [headers.join(","), ...lines].join("\n");
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="decon-${year}-${String(month).padStart(
+          2,
+          "0"
+        )}.csv"`
+      );
+      return res.send(csv);
     }
 
     return res.status(400).json({ error: "Unsupported kind" });

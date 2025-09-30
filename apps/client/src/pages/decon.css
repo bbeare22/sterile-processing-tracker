@@ -1,0 +1,112 @@
+.decon__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.decon__title {
+  margin: 0;
+}
+.decon__controls {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.decon__input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: #0e1525;
+  color: var(--color-text);
+}
+.decon__btnGhost,
+.decon__btnPrimary {
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+.decon__btnPrimary {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+}
+
+.decon__card {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.decon__row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+.decon__field {
+  display: grid;
+  gap: 6px;
+}
+.decon__label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.decon__grids {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.decon__tableWrap {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+.decon__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.decon__thead {
+  background: #0e1525;
+  position: sticky;
+  top: 0;
+}
+.decon__th {
+  text-align: left;
+  padding: 10px 14px;
+}
+.decon__thNum {
+  width: 90px;
+  text-align: right;
+}
+.decon__tr {
+  border-top: 1px solid var(--color-border);
+}
+.decon__td {
+  padding: 10px 14px;
+  vertical-align: top;
+}
+.decon__tdNum {
+  text-align: right;
+}
+.decon__inputNum {
+  width: 80px;
+  text-align: right;
+}
+.decon__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.decon__tdMuted {
+  color: var(--color-text-muted);
+}
