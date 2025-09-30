@@ -6,9 +6,7 @@ const mongoose = require("mongoose");
 
 const Maintenance = require("../models/Maintenance");
 const Cycle = require("../models/Cycle");
-// If you ever want to also wipe machines/users, you can import:
-// const Machine = require("../models/Machine");
-// const User = require("../models/User");
+const DeconLog = require("../models/DeconLog"); // ⬅ add this
 
 (async function main() {
   try {
@@ -26,22 +24,26 @@ const Cycle = require("../models/Cycle");
     const wipeUsers = process.argv.includes("--users");
 
     // Show before counts
-    const [maintBefore, cyclesBefore] = await Promise.all([
+    const [maintBefore, cyclesBefore, deconBefore] = await Promise.all([
       Maintenance.countDocuments({}),
       Cycle.countDocuments({}),
-    ]);
-    console.log(`Before: maintenance=${maintBefore}, cycles=${cyclesBefore}`);
-
-    // Delete core activity data
-    const [maintDel, cyclesDel] = await Promise.all([
-      Maintenance.deleteMany({}),
-      Cycle.deleteMany({}),
+      DeconLog.countDocuments({}),
     ]);
     console.log(
-      `Deleted: maintenance=${maintDel.deletedCount}, cycles=${cyclesDel.deletedCount}`
+      `Before: maintenance=${maintBefore}, cycles=${cyclesBefore}, decon=${deconBefore}`
     );
 
-    // Optional extras (disabled by default)
+    // Delete core activity data
+    const [maintDel, cyclesDel, deconDel] = await Promise.all([
+      Maintenance.deleteMany({}),
+      Cycle.deleteMany({}),
+      DeconLog.deleteMany({}), // ⬅ clear decon logs
+    ]);
+    console.log(
+      `Deleted: maintenance=${maintDel.deletedCount}, cycles=${cyclesDel.deletedCount}, decon=${deconDel.deletedCount}`
+    );
+
+    // Optional extras
     if (wipeMachines) {
       const Machine = require("../models/Machine");
       const mDel = await Machine.deleteMany({});
@@ -54,11 +56,14 @@ const Cycle = require("../models/Cycle");
     }
 
     // Show after counts
-    const [maintAfter, cyclesAfter] = await Promise.all([
+    const [maintAfter, cyclesAfter, deconAfter] = await Promise.all([
       Maintenance.countDocuments({}),
       Cycle.countDocuments({}),
+      DeconLog.countDocuments({}),
     ]);
-    console.log(`After: maintenance=${maintAfter}, cycles=${cyclesAfter}`);
+    console.log(
+      `After: maintenance=${maintAfter}, cycles=${cyclesAfter}, decon=${deconAfter}`
+    );
 
     await mongoose.disconnect();
     console.log("✓ Done");

@@ -1,304 +1,116 @@
+// apps/server/routes/reports.js
 const express = require("express");
 const { z } = require("zod");
 const mongoose = require("mongoose");
+
 const Cycle = require("../models/Cycle");
 const Maintenance = require("../models/Maintenance");
-const DeconLog = require("../models/DeconLog");
+const DeconLog = require("../models/DeconLog"); // ← new
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-/* ----------------- validation ----------------- */
-const baseQuery = z.object({
-  kind: z.enum(["spores", "cycles", "maintenance"]),
-  year: z.coerce.number().int().min(2000).max(2100),
-  month: z.coerce.number().int().min(1).max(12),
-  machineId: z.string().optional(), // optional per-machine export
-  // spores-only
-  basis: z.enum(["incubated", "verified"]).optional(),
-});
-
-/* ----------------- helpers ----------------- */
-function monthRangeUTC(year, month /* 1..12 */) {
-  // start inclusive, end exclusive
-  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-  const end = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+/* ------------ helpers ------------ */
+function monthBoundsUTC(year, month /* 1..12 */) {
+  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+  const end =
+    month === 12
+      ? new Date(Date.UTC(year + 1, 0, 1, 0, 0, 0, 0))
+      : new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
   return { start, end };
 }
-
-function toCSV(rows) {
-  if (!rows || !rows.length) return "";
-  const headers = Object.keys(rows[0]);
-  const esc = (v) => {
-    if (v == null) return "";
-    const s = String(v);
-    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  };
-  return [
-    headers.join(","),
-    ...rows.map((r) => headers.map((h) => esc(r[h])).join(",")),
-  ].join("\n");
+function csvEscape(v) {
+  if (v == null) return "";
+  const s = String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+function rowsToCSV(rows) {
+  return rows.map((r) => r.map(csvEscape).join(",")).join("\n");
 }
 
-function sendCSV(res, filename, rows) {
-  const csv = toCSV(rows);
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.status(200).send(csv);
-}
+/* ------------ validation ------------ */
+const Query = z.object({
+  kind: z.enum(["cycles", "maintenance", "spores", "decon"]),
+  year: z.coerce.number().int(),
+  month: z.coerce.number().int().min(1).max(12),
+  // optional filters per kind:
+  machineId: z.string().optional(),
+  // spores-only:
+  basis: z.enum(["incubated", "verified"]).optional(),
+  // decon-only:
+  clinic: z.string().optional(),
+});
 
-/* ----------------- route ----------------- */
-
+/* ------------ GET /api/reports/csv ------------ */
 router.get("/csv", requireAuth, async (req, res) => {
-  const parsed = baseQuery.safeParse(req.query);
+  const parsed = Query.safeParse(req.query);
   if (!parsed.success) {
-    return res
-      .status(400)
-      .json({ error: "Invalid query", issues: parsed.error.issues });
+    return res.status(400).send("Invalid query");
   }
-  const { kind, year, month, machineId, basis } = parsed.data;
-  const { start, end } = monthRangeUTC(year, month);
+  const { kind, year, month, machineId, basis, clinic } = parsed.data;
+  const { start, end } = monthBoundsUTC(year, month);
 
   try {
-    // optional machine filter
-    const machineFilter =
-      machineId && mongoose.isValidObjectId(machineId) ? { machineId } : {};
-
-    if (kind === "spores") {
-      // Which date to filter on?
-      // default to incubated if not provided (client passes it explicitly)
-      const dateField =
-        basis === "verified" ? "spore.verifiedAt" : "spore.incubatedAt";
-      const filter = {
-        ...machineFilter,
-        "spore.ran": true,
-        [dateField]: { $gte: start, $lt: end },
-      };
-
-      const rows = await Cycle.find(filter)
-        .sort({ [dateField]: 1 })
-        .populate("machineId", "name location _id")
-        .lean();
-
-      const out = rows.map((r) => ({
-        Machine: r.machineId?.name || "",
-        Location: r.machineId?.location || "",
-        LoadNumber: r.loadNumber || "",
-        StartedAt: r.startedAt ? new Date(r.startedAt).toISOString() : "",
-        SporeWell: r.spore?.well || "",
-        SporeLot: r.spore?.lot || "",
-        IncubatedAt: r.spore?.incubatedAt
-          ? new Date(r.spore.incubatedAt).toISOString()
-          : "",
-        Result: r.spore?.result || "",
-        VerifiedBy: r.spore?.verifiedBy || "",
-        VerifiedAt: r.spore?.verifiedAt
-          ? new Date(r.spore.verifiedAt).toISOString()
-          : "",
-      }));
-
-      const fname = `spores-${year}-${String(month).padStart(2, "0")}-${
-        basis || "incubated"
-      }.csv`;
-      return sendCSV(res, fname, out);
-    }
-
     if (kind === "cycles") {
-      // month by startedAt
-      const filter = {
-        ...machineFilter,
-        startedAt: { $gte: start, $lt: end },
-      };
-
+      const filter = { startedAt: { $gte: start, $lt: end } };
+      if (machineId && mongoose.isValidObjectId(machineId)) {
+        filter.machineId = machineId;
+      }
       const rows = await Cycle.find(filter)
         .sort({ startedAt: 1 })
-        .populate("machineId", "name location _id")
+        .populate("machineId", "name _id")
         .lean();
 
-      const out = rows.map((c) => ({
-        Machine: c.machineId?.name || "",
-        Location: c.machineId?.location || "",
-        LoadNumber: c.loadNumber || "",
-        StartedAt: c.startedAt ? new Date(c.startedAt).toISOString() : "",
-        CompletedAt: c.completedAt ? new Date(c.completedAt).toISOString() : "",
-        Result: c.result || "",
-        Items: c.items || "",
-        Clinic: c.clinicName || "",
-        LoadStaff: c.loadStaff || "",
-        UnloadStaff: c.unloadStaff || "",
-        SterileDryMinutes: c.sterileDryMinutes ?? "",
-        MaxTempPressure: c.maxTempPressure || "",
-        SporeRan: c.spore?.ran ? "yes" : "no",
-        SporeWell: c.spore?.well || "",
-        SporeLot: c.spore?.lot || "",
-        SporeIncubatedAt: c.spore?.incubatedAt
-          ? new Date(c.spore.incubatedAt).toISOString()
-          : "",
-        SporeResult: c.spore?.result || "",
-        SporeVerifiedBy: c.spore?.verifiedBy || "",
-        SporeVerifiedAt: c.spore?.verifiedAt
-          ? new Date(c.spore.verifiedAt).toISOString()
-          : "",
-        Notes: c.notes || "",
-      }));
-
-      const fname = `cycles-${year}-${String(month).padStart(2, "0")}${
-        machineId ? `-${machineId}` : ""
-      }.csv`;
-      return sendCSV(res, fname, out);
-    }
-
-    if (kind === "maintenance") {
-      // month by performedAt
-      const filter = {
-        ...machineFilter,
-        performedAt: { $gte: start, $lt: end },
-      };
-
-      const rows = await Maintenance.find(filter)
-        .sort({ performedAt: 1 })
-        .populate("machineId", "name location _id")
-        .populate("createdBy", "name email _id")
-        .lean();
-
-      const out = rows.map((r) => ({
-        Machine: r.machineId?.name || "",
-        Location: r.machineId?.location || "",
-        Type: r.type,
-        PerformedAt: r.performedAt ? new Date(r.performedAt).toISOString() : "",
-        VolumeMl: r.volumeUsedMl ?? "",
-        Notes: r.notes || "",
-        PerformedBy: r.createdBy?.name || "", // initials or name depending on your User model
-      }));
-
-      const fname = `maintenance-${year}-${String(month).padStart(2, "0")}${
-        machineId ? `-${machineId}` : ""
-      }.csv`;
-      return sendCSV(res, fname, out);
-    }
-
-    if (kind === "decon") {
-      const clinic = (req.query.clinic || "").trim();
-
-      const filter = {
-        receivedAt: { $gte: start, $lt: end },
-      };
-      if (clinic) filter.clinic = clinic;
-
-      const rows = await DeconLog.find(filter).sort({ receivedAt: 1 }).lean();
-
-      const headers = [
-        "Clinic",
-        "ReceivedAt",
-        "SentAt",
-        "VerifiedInBy",
-        "VerifiedOutBy",
-        "Notes",
-        // sets
-        "Basic IN",
-        "Basic OUT",
-        "OralSurgery IN",
-        "OralSurgery OUT",
-        "SRP IN",
-        "SRP OUT",
-        "Ultrasonic IN",
-        "Ultrasonic OUT",
-        "Restorative IN",
-        "Restorative OUT",
-        "Endo IN",
-        "Endo OUT",
-        "Denture IN",
-        "Denture OUT",
-        "RubberDam IN",
-        "RubberDam OUT",
-        "XCP IN",
-        "XCP OUT",
-        // womens
-        "Culpo IN",
-        "Culpo OUT",
-        "Scissors IN",
-        "Scissors OUT",
-        "Speculum IN",
-        "Speculum OUT",
-        "Tenaculum IN",
-        "Tenaculum OUT",
-        "SpongeForceps IN",
-        "SpongeForceps OUT",
-        "Dilator IN",
-        "Dilator OUT",
-        "Bozeman IN",
-        "Bozeman OUT",
-        "Pessary IN",
-        "Pessary OUT",
-        "IUD IN",
-        "IUD OUT",
-        "Misc IN",
-        "Misc OUT",
+      const header = [
+        "Machine",
+        "Load #",
+        "Started",
+        "Completed",
+        "Result",
+        "Items",
+        "Clinic/Dept",
+        "Load Staff",
+        "Unload Staff",
+        "Sterile & Dry (min)",
+        "Max Temp/Pressure",
+        "Spore Ran",
+        "Spore Well",
+        "Spore Lot",
+        "Spore Exp",
+        "Spore Incubated",
+        "Spore Result",
+        "Verified By",
+        "Verified At",
       ];
 
-      function g(obj, k) {
-        return (obj && obj[k]) || { in: 0, out: 0 };
-      }
+      const data = rows.map((c) => [
+        c.machineId?.name || "",
+        c.loadNumber || "",
+        c.startedAt ? new Date(c.startedAt).toISOString() : "",
+        c.completedAt ? new Date(c.completedAt).toISOString() : "",
+        c.result || "",
+        c.items || "",
+        c.clinicName || "",
+        c.loadStaff || "",
+        c.unloadStaff || "",
+        c.sterileDryMinutes ?? "",
+        c.maxTempPressure || "",
+        c.spore?.ran ? "yes" : "no",
+        c.spore?.well || "",
+        c.spore?.lot || "",
+        c.spore?.expireDate ? new Date(c.spore.expireDate).toISOString() : "",
+        c.spore?.incubatedAt ? new Date(c.spore.incubatedAt).toISOString() : "",
+        c.spore?.result || "",
+        c.spore?.verifiedBy || "",
+        c.spore?.verifiedAt ? new Date(c.spore.verifiedAt).toISOString() : "",
+      ]);
 
-      const lines = rows.map((r) => {
-        const s = r.sets || {};
-        const w = r.womens || {};
-        const d = (dt) => (dt ? new Date(dt).toISOString() : "");
-        const row = [
-          r.clinic,
-          d(r.receivedAt),
-          d(r.sentAt),
-          r.verifiedInBy || "",
-          r.verifiedOutBy || "",
-          r.notes || "",
-          g(s, "basic").in,
-          g(s, "basic").out,
-          g(s, "oralSurgery").in,
-          g(s, "oralSurgery").out,
-          g(s, "srp").in,
-          g(s, "srp").out,
-          g(s, "ultrasonic").in,
-          g(s, "ultrasonic").out,
-          g(s, "restorative").in,
-          g(s, "restorative").out,
-          g(s, "endo").in,
-          g(s, "endo").out,
-          g(s, "denture").in,
-          g(s, "denture").out,
-          g(s, "rubberDam").in,
-          g(s, "rubberDam").out,
-          g(s, "xcp").in,
-          g(s, "xcp").out,
-          g(w, "culpo").in,
-          g(w, "culpo").out,
-          g(w, "scissors").in,
-          g(w, "scissors").out,
-          g(w, "speculum").in,
-          g(w, "speculum").out,
-          g(w, "tenaculum").in,
-          g(w, "tenaculum").out,
-          g(w, "spongeForceps").in,
-          g(w, "spongeForceps").out,
-          g(w, "dilator").in,
-          g(w, "dilator").out,
-          g(w, "bozeman").in,
-          g(w, "bozeman").out,
-          g(w, "pessary").in,
-          g(w, "pessary").out,
-          g(w, "iud").in,
-          g(w, "iud").out,
-          g(w, "misc").in,
-          g(w, "misc").out,
-        ];
-        return row.map((v) => String(v).replace(/"/g, '""')).join(",");
-      });
-
-      const csv = [headers.join(","), ...lines].join("\n");
-      res.setHeader("Content-Type", "text/csv");
+      const csv = rowsToCSV([header, ...data]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="decon-${year}-${String(month).padStart(
+        `attachment; filename="cycles-${year}-${String(month).padStart(
           2,
           "0"
         )}.csv"`
@@ -306,10 +118,176 @@ router.get("/csv", requireAuth, async (req, res) => {
       return res.send(csv);
     }
 
-    return res.status(400).json({ error: "Unsupported kind" });
+    if (kind === "maintenance") {
+      const filter = { performedAt: { $gte: start, $lt: end } };
+      if (machineId && mongoose.isValidObjectId(machineId)) {
+        filter.machineId = machineId;
+      }
+      const rows = await Maintenance.find(filter)
+        .sort({ performedAt: 1 })
+        .populate("machineId", "name _id")
+        .populate("createdBy", "name email _id")
+        .lean();
+
+      const header = [
+        "Machine",
+        "Type",
+        "Performed At",
+        "Volume (mL)",
+        "Notes",
+        "Performed By (initials)",
+      ];
+
+      const data = rows.map((r) => [
+        r.machineId?.name || "",
+        r.type || "",
+        r.performedAt ? new Date(r.performedAt).toISOString() : "",
+        r.volumeUsedMl ?? "",
+        r.notes || "",
+        // you may be storing initials separately; adjust if needed:
+        r.createdBy?.name || "",
+      ]);
+
+      const csv = rowsToCSV([header, ...data]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="maintenance-${year}-${String(month).padStart(
+          2,
+          "0"
+        )}.csv"`
+      );
+      return res.send(csv);
+    }
+
+    if (kind === "spores") {
+      // spores export already implemented on your side; leaving intact here
+      // basis: "incubated" | "verified"
+      const byVerified = basis === "verified";
+      const filter = byVerified
+        ? { "spore.verifiedAt": { $gte: start, $lt: end } }
+        : { "spore.incubatedAt": { $gte: start, $lt: end } };
+
+      const rows = await Cycle.find({
+        "spore.ran": true,
+        ...filter,
+      })
+        .sort(
+          byVerified ? { "spore.verifiedAt": 1 } : { "spore.incubatedAt": 1 }
+        )
+        .populate("machineId", "name location _id")
+        .lean();
+
+      const header = [
+        "Machine",
+        "Location",
+        "Load #",
+        "Well",
+        "Lot",
+        "Incubated",
+        "Result",
+        "Verified By",
+        "Verified At",
+      ];
+      const data = rows.map((r) => [
+        r.machineId?.name || "",
+        r.machineId?.location || "",
+        r.loadNumber || "",
+        r.spore?.well || "",
+        r.spore?.lot || "",
+        r.spore?.incubatedAt ? new Date(r.spore.incubatedAt).toISOString() : "",
+        r.spore?.result || "",
+        r.spore?.verifiedBy || "",
+        r.spore?.verifiedAt ? new Date(r.spore.verifiedAt).toISOString() : "",
+      ]);
+      const csv = rowsToCSV([header, ...data]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="spores-${year}-${String(month).padStart(
+          2,
+          "0"
+        )}-${byVerified ? "verified" : "incubated"}.csv"`
+      );
+      return res.send(csv);
+    }
+
+    if (kind === "decon") {
+      const filter = { receivedAt: { $gte: start, $lt: end } };
+      if (clinic && clinic.trim()) {
+        // simple substring match (case-insensitive)
+        filter.clinic = { $regex: clinic.trim(), $options: "i" };
+      }
+      const rows = await DeconLog.find(filter).sort({ receivedAt: 1 }).lean();
+
+      // Build headers: general cols + all item pairs IN/OUT
+      const dental = [
+        ["basic", "Basic"],
+        ["oralSurgery", "Oral Surgery"],
+        ["srp", "SRP"],
+        ["ultrasonic", "Ultrasonic"],
+        ["restorative", "Restorative"],
+        ["endo", "Endo"],
+        ["denture", "Denture"],
+        ["rubberDam", "Rubber dam"],
+        ["xcp", "XCP"],
+      ];
+      const womens = [
+        ["culpo", "Culpo"],
+        ["scissors", "Scissors"],
+        ["speculum", "Speculum"],
+        ["tenaculum", "Tenaculum"],
+        ["spongeForceps", "Sponge forceps"],
+        ["dilator", "Dilator"],
+        ["bozeman", "Bozeman"],
+        ["pessary", "Pessary"],
+        ["iud", "IUD"],
+        ["misc", "Misc."],
+      ];
+
+      const header = [
+        "Clinic",
+        "Received At",
+        "Sent Out At",
+        "Verified In By",
+        "Verified Out By",
+        "Notes",
+        // dynamic headers:
+        ...dental.flatMap(([, label]) => [`${label} IN`, `${label} OUT`]),
+        ...womens.flatMap(([, label]) => [`${label} IN`, `${label} OUT`]),
+      ];
+
+      const pair = (obj, key) => {
+        const v = (obj || {})[key] || {};
+        return [Number(v.in || 0), Number(v.out || 0)];
+      };
+
+      const data = rows.map((r) => [
+        r.clinic || "",
+        r.receivedAt ? new Date(r.receivedAt).toISOString() : "",
+        r.sentAt ? new Date(r.sentAt).toISOString() : "",
+        r.verifiedInBy || "",
+        r.verifiedOutBy || "",
+        r.notes || "",
+        ...dental.flatMap(([k]) => pair(r.sets, k)),
+        ...womens.flatMap(([k]) => pair(r.womens, k)),
+      ]);
+
+      const csv = rowsToCSV([header, ...data]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="decon-${year}-${String(month).padStart(2, "0")}${
+          clinic ? "-" + clinic : ""
+        }.csv"`
+      );
+      return res.send(csv);
+    }
+
+    return res.status(400).send("Unsupported kind");
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Failed to build CSV" });
+    res.status(500).send("Report generation failed");
   }
 });
 

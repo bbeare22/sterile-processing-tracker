@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { formatDateTime } from "../utils/date";
 import { useToast } from "../components/Toast/ToastProvider";
+import ModalWithForm from "../components/ModalWithForm/ModalWithForm";
 import "./decon.css";
 
 const emptyCounts = () => ({ in: 0, out: 0 });
@@ -19,6 +20,9 @@ export default function Decon() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
+  // details modal
+  const [detailRow, setDetailRow] = useState(null);
 
   // form state
   const [form, setForm] = useState({
@@ -53,6 +57,37 @@ export default function Decon() {
     },
   });
 
+  // label defs (used both in form + summary + details)
+  const dentalSetDefs = useMemo(
+    () => [
+      ["basic", "Basic"],
+      ["oralSurgery", "Oral Surgery"],
+      ["srp", "SRP"],
+      ["ultrasonic", "Ultrasonic"],
+      ["restorative", "Restorative"],
+      ["endo", "Endo"],
+      ["denture", "Denture"],
+      ["rubberDam", "Rubber dam"],
+      ["xcp", "XCP"],
+    ],
+    []
+  );
+  const womensDefs = useMemo(
+    () => [
+      ["culpo", "Culpo"],
+      ["scissors", "Scissors"],
+      ["speculum", "Speculum"],
+      ["tenaculum", "Tenaculum"],
+      ["spongeForceps", "Sponge forceps"],
+      ["dilator", "Dilator"],
+      ["bozeman", "Bozeman"],
+      ["pessary", "Pessary"],
+      ["iud", "IUD"],
+      ["misc", "Misc."],
+    ],
+    []
+  );
+
   function isoToLocal(iso) {
     if (!iso) return "";
     const d = new Date(iso);
@@ -86,7 +121,8 @@ export default function Decon() {
   }
 
   useEffect(() => {
-    load(); /* eslint-disable-next-line */
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month, clinicFilter]);
 
   function setCount(section, key, field, value) {
@@ -136,6 +172,7 @@ export default function Decon() {
         verifiedInBy: "",
         verifiedOutBy: "",
         notes: "",
+        // keep counts as-is so multiple rows can be logged quickly
       }));
     } catch (e) {
       show(e.message || "Failed to save", { tone: "danger", ms: 7000 });
@@ -172,30 +209,36 @@ export default function Decon() {
     }
   }
 
-  // ✅ renamed to avoid clashing with useState setter
-  const dentalSetDefs = [
-    ["basic", "Basic"],
-    ["oralSurgery", "Oral Surgery"],
-    ["srp", "SRP"],
-    ["ultrasonic", "Ultrasonic"],
-    ["restorative", "Restorative"],
-    ["endo", "Endo"],
-    ["denture", "Denture"],
-    ["rubberDam", "Rubber dam"],
-    ["xcp", "XCP"],
-  ];
-  const womensRows = [
-    ["culpo", "Culpo"],
-    ["scissors", "Scissors"],
-    ["speculum", "Speculum"],
-    ["tenaculum", "Tenaculum"],
-    ["spongeForceps", "Sponge forceps"],
-    ["dilator", "Dilator"],
-    ["bozeman", "Bozeman"],
-    ["pessary", "Pessary"],
-    ["iud", "IUD"],
-    ["misc", "Misc."],
-  ];
+  // Build a compact summary like: "Basic 3/0 • Restorative 0/2 • Culpo 1/1"
+  function summaryFor(row) {
+    const bits = [];
+
+    const pushIfAny = (obj, defs) => {
+      defs.forEach(([key, label]) => {
+        const v = obj?.[key] || {};
+        const i = Number(v.in || 0);
+        const o = Number(v.out || 0);
+        if (i > 0 || o > 0) bits.push(`${label} ${i}/${o}`);
+      });
+    };
+
+    pushIfAny(row.sets, dentalSetDefs);
+    pushIfAny(row.womens, womensDefs);
+
+    return bits.length ? bits.join(" • ") : "—";
+  }
+
+  // Helpers to render modal tables with only non-zero rows
+  function nonZeroRows(obj, defs) {
+    return defs
+      .map(([key, label]) => {
+        const v = (obj || {})[key] || {};
+        const i = Number(v.in || 0);
+        const o = Number(v.out || 0);
+        return i > 0 || o > 0 ? { key, label, in: i, out: o } : null;
+      })
+      .filter(Boolean);
+  }
 
   return (
     <div className="decon">
@@ -372,7 +415,7 @@ export default function Decon() {
                 </tr>
               </thead>
               <tbody>
-                {womensRows.map(([key, label]) => (
+                {womensDefs.map(([key, label]) => (
                   <tr key={key} className="decon__tr">
                     <td className="decon__td">
                       <strong>{label}</strong>
@@ -418,13 +461,15 @@ export default function Decon() {
               <th className="decon__th">Received</th>
               <th className="decon__th">Sent</th>
               <th className="decon__th">Verified</th>
+              <th className="decon__th">Logged Sets</th>
               <th className="decon__th">Notes</th>
+              <th className="decon__th">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="decon__td" colSpan={5} style={{ opacity: 0.7 }}>
+                <td className="decon__td" colSpan={7} style={{ opacity: 0.7 }}>
                   Loading…
                 </td>
               </tr>
@@ -432,7 +477,7 @@ export default function Decon() {
               <tr>
                 <td
                   className="decon__td"
-                  colSpan={5}
+                  colSpan={7}
                   style={{ color: "var(--color-danger)" }}
                 >
                   {err}
@@ -452,12 +497,22 @@ export default function Decon() {
                     {r.verifiedInBy ? <strong>{r.verifiedInBy}</strong> : "—"}
                     {r.verifiedOutBy ? ` / ${r.verifiedOutBy}` : ""}
                   </td>
+                  <td className="decon__td decon__tdMuted">{summaryFor(r)}</td>
                   <td className="decon__td decon__tdMuted">{r.notes || "—"}</td>
+                  <td className="decon__td">
+                    <button
+                      className="decon__btn"
+                      onClick={() => setDetailRow(r)}
+                      title="View full itemized counts"
+                    >
+                      Details
+                    </button>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td className="decon__td" colSpan={5} style={{ opacity: 0.7 }}>
+                <td className="decon__td" colSpan={7} style={{ opacity: 0.7 }}>
                   No rows yet.
                 </td>
               </tr>
@@ -465,6 +520,89 @@ export default function Decon() {
           </tbody>
         </table>
       </div>
+
+      {/* Details modal */}
+      {detailRow && (
+        <ModalWithForm
+          title={`${detailRow.clinic} — Itemized`}
+          onClose={() => setDetailRow(null)}
+        >
+          <div className="decon__detail">
+            {/* Dental */}
+            <div className="decon__tableWrap" style={{ marginBottom: 12 }}>
+              <table className="decon__table">
+                <thead className="decon__thead">
+                  <tr>
+                    <th className="decon__th">Dental Sets</th>
+                    <th className="decon__th decon__thNum">IN</th>
+                    <th className="decon__th decon__thNum">OUT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nonZeroRows(detailRow.sets, dentalSetDefs).length ? (
+                    nonZeroRows(detailRow.sets, dentalSetDefs).map((x) => (
+                      <tr key={`d-${x.key}`} className="decon__tr">
+                        <td className="decon__td">
+                          <strong>{x.label}</strong>
+                        </td>
+                        <td className="decon__td decon__tdNum">{x.in}</td>
+                        <td className="decon__td decon__tdNum">{x.out}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="decon__td decon__tdMuted" colSpan={3}>
+                        —
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Womens */}
+            <div className="decon__tableWrap">
+              <table className="decon__table">
+                <thead className="decon__thead">
+                  <tr>
+                    <th className="decon__th">Women’s Clinic</th>
+                    <th className="decon__th decon__thNum">IN</th>
+                    <th className="decon__th decon__thNum">OUT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nonZeroRows(detailRow.womens, womensDefs).length ? (
+                    nonZeroRows(detailRow.womens, womensDefs).map((x) => (
+                      <tr key={`w-${x.key}`} className="decon__tr">
+                        <td className="decon__td">
+                          <strong>{x.label}</strong>
+                        </td>
+                        <td className="decon__td decon__tdNum">{x.in}</td>
+                        <td className="decon__td decon__tdNum">{x.out}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="decon__td decon__tdMuted" colSpan={3}>
+                        —
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="decon__actions" style={{ marginTop: 12 }}>
+              <button
+                className="decon__btnGhost"
+                onClick={() => setDetailRow(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </ModalWithForm>
+      )}
     </div>
   );
 }
