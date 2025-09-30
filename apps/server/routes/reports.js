@@ -1,141 +1,186 @@
 const express = require("express");
+const { z } = require("zod");
 const mongoose = require("mongoose");
-const { requireAuth } = require("../middleware/auth");
 const Cycle = require("../models/Cycle");
+const Maintenance = require("../models/Maintenance");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-/** utils */
-function csvEscape(v) {
-  if (v === null || v === undefined) return "";
-  const s = String(v);
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-function toCSV(rows, header) {
-  const lines = [];
-  lines.push(header.map(csvEscape).join(","));
-  for (const r of rows) {
-    lines.push(header.map((h) => csvEscape(r[h])).join(","));
-  }
-  return lines.join("\n");
-}
-function monthRangeUTC(year, month) {
-  // month: 1..12
+/* ----------------- validation ----------------- */
+const baseQuery = z.object({
+  kind: z.enum(["spores", "cycles", "maintenance"]),
+  year: z.coerce.number().int().min(2000).max(2100),
+  month: z.coerce.number().int().min(1).max(12),
+  machineId: z.string().optional(), // optional per-machine export
+  // spores-only
+  basis: z.enum(["incubated", "verified"]).optional(),
+});
+
+/* ----------------- helpers ----------------- */
+function monthRangeUTC(year, month /* 1..12 */) {
+  // start inclusive, end exclusive
   const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-  const end = new Date(Date.UTC(year, month, 1, 0, 0, 0)); // exclusive
+  const end = new Date(Date.UTC(year, month, 1, 0, 0, 0));
   return { start, end };
 }
 
-/**
- * GET /api/reports/csv
- * Query:
- *   kind=spores            (only implemented kind for now)
- *   year=YYYY              (required)
- *   month=1..12            (required)
- *   basis=incubated|verified  (optional, default=incubated)
- *
- * Auth: requireAuth
- */
+function toCSV(rows) {
+  if (!rows || !rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const esc = (v) => {
+    if (v == null) return "";
+    const s = String(v);
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  return [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => esc(r[h])).join(",")),
+  ].join("\n");
+}
+
+function sendCSV(res, filename, rows) {
+  const csv = toCSV(rows);
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.status(200).send(csv);
+}
+
+/* ----------------- route ----------------- */
+
 router.get("/csv", requireAuth, async (req, res) => {
+  const parsed = baseQuery.safeParse(req.query);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: "Invalid query", issues: parsed.error.issues });
+  }
+  const { kind, year, month, machineId, basis } = parsed.data;
+  const { start, end } = monthRangeUTC(year, month);
+
   try {
-    const kind = (req.query.kind || "").toLowerCase();
-    if (kind !== "spores") {
-      return res
-        .status(400)
-        .json({ error: "Unsupported kind (use kind=spores)" });
+    // optional machine filter
+    const machineFilter =
+      machineId && mongoose.isValidObjectId(machineId) ? { machineId } : {};
+
+    if (kind === "spores") {
+      // Which date to filter on?
+      // default to incubated if not provided (client passes it explicitly)
+      const dateField =
+        basis === "verified" ? "spore.verifiedAt" : "spore.incubatedAt";
+      const filter = {
+        ...machineFilter,
+        "spore.ran": true,
+        [dateField]: { $gte: start, $lt: end },
+      };
+
+      const rows = await Cycle.find(filter)
+        .sort({ [dateField]: 1 })
+        .populate("machineId", "name location _id")
+        .lean();
+
+      const out = rows.map((r) => ({
+        Machine: r.machineId?.name || "",
+        Location: r.machineId?.location || "",
+        LoadNumber: r.loadNumber || "",
+        StartedAt: r.startedAt ? new Date(r.startedAt).toISOString() : "",
+        SporeWell: r.spore?.well || "",
+        SporeLot: r.spore?.lot || "",
+        IncubatedAt: r.spore?.incubatedAt
+          ? new Date(r.spore.incubatedAt).toISOString()
+          : "",
+        Result: r.spore?.result || "",
+        VerifiedBy: r.spore?.verifiedBy || "",
+        VerifiedAt: r.spore?.verifiedAt
+          ? new Date(r.spore.verifiedAt).toISOString()
+          : "",
+      }));
+
+      const fname = `spores-${year}-${String(month).padStart(2, "0")}-${
+        basis || "incubated"
+      }.csv`;
+      return sendCSV(res, fname, out);
     }
 
-    const year = Number(req.query.year);
-    const month = Number(req.query.month);
-    const basis = (req.query.basis || "incubated").toLowerCase(); // incubated | verified
+    if (kind === "cycles") {
+      // month by startedAt
+      const filter = {
+        ...machineFilter,
+        startedAt: { $gte: start, $lt: end },
+      };
 
-    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-      return res.status(400).json({ error: "Invalid year" });
-    }
-    if (!Number.isInteger(month) || month < 1 || month > 12) {
-      return res.status(400).json({ error: "Invalid month" });
-    }
-    if (!["incubated", "verified"].includes(basis)) {
-      return res.status(400).json({ error: "Invalid basis" });
-    }
+      const rows = await Cycle.find(filter)
+        .sort({ startedAt: 1 })
+        .populate("machineId", "name location _id")
+        .lean();
 
-    const { start, end } = monthRangeUTC(year, month);
-
-    // Build date filter by chosen basis
-    const dateField =
-      basis === "verified" ? "spore.verifiedAt" : "spore.incubatedAt";
-
-    // Fetch cycles that have spores and a relevant date inside the month window
-    const filter = {
-      "spore.ran": true,
-      [dateField]: { $gte: start, $lt: end },
-    };
-
-    const rows = await Cycle.find(filter)
-      .sort({ [dateField]: 1 })
-      .populate({ path: "machineId", select: "name location _id" })
-      .lean();
-
-    const header = [
-      "Machine",
-      "MachineLocation",
-      "MachineId",
-      "LoadNumber",
-      "StartedAt",
-      "CompletedAt",
-      "Result",
-      "SporeRan",
-      "SporeWell",
-      "SporeLot",
-      "SporeExpireDate",
-      "SporeIncubatorId",
-      "SporeIncubatedAt",
-      "SporeResult",
-      "SporeVerifiedBy",
-      "SporeVerifiedAt",
-    ];
-
-    const csvRows = rows.map((c) => {
-      const sp = c.spore || {};
-      return {
+      const out = rows.map((c) => ({
         Machine: c.machineId?.name || "",
-        MachineLocation: c.machineId?.location || "",
-        MachineId: c.machineId?._id || "",
+        Location: c.machineId?.location || "",
         LoadNumber: c.loadNumber || "",
         StartedAt: c.startedAt ? new Date(c.startedAt).toISOString() : "",
         CompletedAt: c.completedAt ? new Date(c.completedAt).toISOString() : "",
         Result: c.result || "",
-        SporeRan: sp.ran ? "yes" : "no",
-        SporeWell: sp.well || "",
-        SporeLot: sp.lot || "",
-        SporeExpireDate: sp.expireDate
-          ? new Date(sp.expireDate).toISOString()
+        Items: c.items || "",
+        Clinic: c.clinicName || "",
+        LoadStaff: c.loadStaff || "",
+        UnloadStaff: c.unloadStaff || "",
+        SterileDryMinutes: c.sterileDryMinutes ?? "",
+        MaxTempPressure: c.maxTempPressure || "",
+        SporeRan: c.spore?.ran ? "yes" : "no",
+        SporeWell: c.spore?.well || "",
+        SporeLot: c.spore?.lot || "",
+        SporeIncubatedAt: c.spore?.incubatedAt
+          ? new Date(c.spore.incubatedAt).toISOString()
           : "",
-        SporeIncubatorId: sp.incubatorId || "",
-        SporeIncubatedAt: sp.incubatedAt
-          ? new Date(sp.incubatedAt).toISOString()
+        SporeResult: c.spore?.result || "",
+        SporeVerifiedBy: c.spore?.verifiedBy || "",
+        SporeVerifiedAt: c.spore?.verifiedAt
+          ? new Date(c.spore.verifiedAt).toISOString()
           : "",
-        SporeResult: sp.result || "",
-        SporeVerifiedBy: sp.verifiedBy || "",
-        SporeVerifiedAt: sp.verifiedAt
-          ? new Date(sp.verifiedAt).toISOString()
-          : "",
+        Notes: c.notes || "",
+      }));
+
+      const fname = `cycles-${year}-${String(month).padStart(2, "0")}${
+        machineId ? `-${machineId}` : ""
+      }.csv`;
+      return sendCSV(res, fname, out);
+    }
+
+    if (kind === "maintenance") {
+      // month by performedAt
+      const filter = {
+        ...machineFilter,
+        performedAt: { $gte: start, $lt: end },
       };
-    });
 
-    const csv = toCSV(csvRows, header);
+      const rows = await Maintenance.find(filter)
+        .sort({ performedAt: 1 })
+        .populate("machineId", "name location _id")
+        .populate("createdBy", "name email _id")
+        .lean();
 
-    const fname = `spores-${year}-${String(month).padStart(
-      2,
-      "0"
-    )}-${basis}.csv`;
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="${fname}"`);
-    return res.send(csv);
+      const out = rows.map((r) => ({
+        Machine: r.machineId?.name || "",
+        Location: r.machineId?.location || "",
+        Type: r.type,
+        PerformedAt: r.performedAt ? new Date(r.performedAt).toISOString() : "",
+        VolumeMl: r.volumeUsedMl ?? "",
+        Notes: r.notes || "",
+        PerformedBy: r.createdBy?.name || "", // initials or name depending on your User model
+      }));
+
+      const fname = `maintenance-${year}-${String(month).padStart(2, "0")}${
+        machineId ? `-${machineId}` : ""
+      }.csv`;
+      return sendCSV(res, fname, out);
+    }
+
+    return res.status(400).json({ error: "Unsupported kind" });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: "Failed to build CSV" });
+    res.status(500).json({ error: "Failed to build CSV" });
   }
 });
 

@@ -23,13 +23,21 @@ const BaseBody = z.object({
 // GET /api/maintenance
 router.get("/", async (req, res) => {
   try {
-    const { machineId, limit = 20 } = req.query;
+    const { machineId, limit = 20, start, end } = req.query;
+
     const filter = {};
     if (machineId) filter.machineId = machineId;
 
+    // Optional date window (UTC) on performedAt
+    if (start || end) {
+      filter.performedAt = {};
+      if (start) filter.performedAt.$gte = new Date(start);
+      if (end) filter.performedAt.$lt = new Date(end);
+    }
+
     const rows = await Maintenance.find(filter)
       .sort({ performedAt: -1, createdAt: -1 })
-      .limit(Number(limit))
+      .limit(Math.min(Number(limit), 200))
       .populate("machineId", "name _id")
       .populate("createdBy", "name email _id")
       .lean();

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Skeleton from "../components/Skeleton/Skeleton";
 import { formatDateTime } from "../utils/date";
-import { toCSV, downloadFile } from "../utils/csv";
 import { apiFetch } from "../utils/api";
 import "./maintenance-history.css";
 
@@ -13,6 +12,11 @@ export default function MaintenanceHistory() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [limit, setLimit] = useState(20);
+
+  // Month export controls (match Spore Queue)
+  const now = new Date();
+  const [exportYear, setExportYear] = useState(now.getUTCFullYear());
+  const [exportMonth, setExportMonth] = useState(now.getUTCMonth() + 1); // 1..12
 
   useEffect(() => {
     async function load() {
@@ -43,32 +47,40 @@ export default function MaintenanceHistory() {
     load();
   }, [id, limit]);
 
-  function exportCSV() {
-    if (!Array.isArray(rows) || rows.length === 0) {
-      const csv = toCSV([]);
-      downloadFile(
-        csv,
-        `${machine?.name || "machine"}-maintenance.csv`,
-        "text/csv"
-      );
-      return;
+  async function exportCSVMonth() {
+    try {
+      const serverOrigin = window.location.origin.replace(":5173", ":3001");
+      const params = new URLSearchParams({
+        kind: "maintenance",
+        year: String(exportYear),
+        month: String(exportMonth),
+        machineId: id, // per-machine export
+      });
+      const url = `${serverOrigin}/api/reports/csv?${params.toString()}`;
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const fname = `maintenance-${machine?.name || id}-${exportYear}-${String(
+        exportMonth
+      ).padStart(2, "0")}.csv`;
+
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      alert(e.message || "Failed to export CSV");
     }
-
-    const csvRows = rows.map((r) => ({
-      Machine: machine?.name || "",
-      Type: r.type,
-      PerformedAt: r.performedAt ? new Date(r.performedAt).toISOString() : "",
-      VolumeMl: r.volumeUsedMl ?? "",
-      Notes: r.notes || "",
-      PerformedBy: r.performedBy || "",
-    }));
-
-    const csv = toCSV(csvRows);
-    downloadFile(
-      csv,
-      `${machine?.name || "machine"}-maintenance.csv`,
-      "text/csv"
-    );
   }
 
   return (
@@ -78,10 +90,38 @@ export default function MaintenanceHistory() {
         <h1 className="mh__title">
           {machine ? `Maintenance — ${machine.name}` : "Maintenance History"}
         </h1>
-        <div className="mh__actions">
-          <button onClick={exportCSV} className="mh__btn">
+
+        {/* Top-right export controls (reuse Spore Queue styles for match) */}
+        <div className="mh__actions" style={{ marginLeft: "auto", gap: 10 }}>
+          <input
+            className="sq__input"
+            type="number"
+            min={2000}
+            max={2100}
+            value={exportYear}
+            onChange={(e) =>
+              setExportYear(Number(e.target.value || now.getUTCFullYear()))
+            }
+            title="Year"
+            style={{ width: 100 }}
+          />
+          <select
+            className="sq__input"
+            value={exportMonth}
+            onChange={(e) => setExportMonth(Number(e.target.value))}
+            title="Month"
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {String(m).padStart(2, "0")}
+              </option>
+            ))}
+          </select>
+          <button className="sq__btnGhost" onClick={exportCSVMonth}>
             Export CSV
           </button>
+
+          {/* Keep original nav actions */}
           <Link to={`/machines/${id}`} className="mh__linkBtn">
             Back to machine
           </Link>

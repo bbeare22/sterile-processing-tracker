@@ -46,26 +46,26 @@ const cycleBody = z.object({
     .optional(),
 });
 
-/** GET /api/cycles  (populates machine + createdBy) */
-router.get("/", async (req, res) => {
+// routes/cycles.js (GET only)
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit || 25), 200);
+    const { machineId, start, end, limit = 50 } = req.query;
     const filter = {};
-    if (req.query.machineId && mongoose.isValidObjectId(req.query.machineId)) {
-      filter.machineId = req.query.machineId;
+
+    if (machineId && mongoose.isValidObjectId(machineId)) {
+      filter.machineId = machineId;
     }
-    // optional date=YYYY-MM-DD filter you already use on dashboard
-    if (req.query.date) {
-      const start = new Date(`${req.query.date}T00:00:00.000Z`);
-      const end = new Date(`${req.query.date}T23:59:59.999Z`);
-      filter.startedAt = { $gte: start, $lte: end };
+
+    if (start || end) {
+      filter.startedAt = {};
+      if (start) filter.startedAt.$gte = new Date(start); // inclusive
+      if (end) filter.startedAt.$lt = new Date(end); // exclusive
     }
 
     const rows = await Cycle.find(filter)
       .sort({ startedAt: -1, createdAt: -1 })
-      .limit(limit)
+      .limit(Math.min(Number(limit), 200))
       .populate({ path: "machineId", select: "name type location" })
-      .populate({ path: "createdBy", select: "name email _id" })
       .lean();
 
     res.json({ cycles: rows });

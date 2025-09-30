@@ -6,34 +6,62 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-/**
- * Status mapping (server-side):
- * - pending: spore.ran=true AND !spore.readAt
- * - ready:   spore.ran=true AND !spore.readAt AND spore.readDeadlineAt <= now (optional stricter)
- * - verified: spore.ran=true AND spore.readAt != null
- */
+// GET /api/spores
+// Supports status=pending|verified|all, incubatorId, limit,
+// and optional start/end window on date "basis":
+//   basis=incubated (default)  -> spore.incubatedAt
+//   basis=verified             -> spore.verifiedAt
+//   basis=started              -> startedAt (cycle start)
 router.get("/", async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit || 50), 200);
-    const status = String(req.query.status || "pending");
+    const {
+      status = "pending",
+      incubatorId = "",
+      limit = 50,
+      basis = "incubated",
+      start,
+      end,
+      machineId,
+    } = req.query;
 
-    const base = { "spore.ran": true };
-    const now = new Date();
+    const filter = {};
+    if (machineId) filter.machineId = machineId;
 
-    if (status === "verified") {
-      base["spore.readAt"] = { $ne: null };
-    } else if (status === "ready") {
-      base["spore.readAt"] = null;
-      base["spore.readDeadlineAt"] = { $lte: now };
-    } else {
-      // pending (default): not yet read
-      base["spore.readAt"] = null;
+    // status filter
+    if (status !== "all") {
+      if (status === "pending") {
+        // pending = spore.ran true AND (no result yet)
+        filter["spore.ran"] = true;
+        filter.$or = [
+          { "spore.result": { $exists: false } },
+          { "spore.result": "" },
+          { "spore.result": null },
+        ];
+      } else if (status === "verified") {
+        filter["spore.result"] = { $in: ["negative", "positive"] };
+      }
     }
 
-    const rows = await Cycle.find(base)
-      .sort({ "spore.incubatedAt": -1, startedAt: -1 })
-      .limit(limit)
-      .populate({ path: "machineId", select: "name type location" })
+    // incubator filter
+    if (incubatorId.trim()) {
+      filter["spore.incubatorId"] = incubatorId.trim();
+    }
+
+    // date-basis window
+    let datePath = "spore.incubatedAt";
+    if (basis === "verified") datePath = "spore.verifiedAt";
+    if (basis === "started") datePath = "startedAt";
+
+    if (start || end) {
+      filter[datePath] = {};
+      if (start) filter[datePath].$gte = new Date(start);
+      if (end) filter[datePath].$lt = new Date(end);
+    }
+
+    const rows = await Cycle.find(filter) // spores live on cycles
+      .sort({ [datePath]: -1, startedAt: -1, createdAt: -1 })
+      .limit(Math.min(Number(limit), 200))
+      .populate("machineId", "name location _id")
       .lean();
 
     res.json({ spores: rows });
@@ -41,14 +69,6 @@ router.get("/", async (req, res) => {
     console.error(e);
     res.status(500).json({ error: "Failed to list spores" });
   }
-});
-
-const verifyBody = z.object({
-  result: z.enum(["negative", "positive", "invalid"]),
-  readAt: z.string().optional().nullable(), // default now if missing
-  verifiedBy: z.string().optional().default(""), // can set from user.name
-  controlPositiveOk: z.boolean().optional(),
-  controlNegativeOk: z.boolean().optional(),
 });
 
 // PATCH /api/spores/:cycleId/verify

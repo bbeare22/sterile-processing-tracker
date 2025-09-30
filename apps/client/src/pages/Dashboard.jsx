@@ -10,13 +10,14 @@ import "./dashboard.css";
 const DESCALE_THRESHOLD_DAYS = 7;
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   const [machines, setMachines] = useState([]);
   const [maint, setMaint] = useState([]);
   const [cycles, setCycles] = useState([]);
   const [pendingSpores, setPendingSpores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
     async function load() {
@@ -24,17 +25,45 @@ export default function Dashboard() {
         setLoading(true);
         setErr("");
 
-        // today in YYYY-MM-DD for cycles filter
-        const d = new Date();
-        const pad = (n) => String(n).padStart(2, "0");
-        const today = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
-          d.getDate()
-        )}`;
+        // ---- Build a UTC "today" window for start/end ----
+        const now = new Date();
+        const start = new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            0,
+            0,
+            0
+          )
+        );
+        const end = new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate() + 1,
+            0,
+            0,
+            0
+          )
+        );
+        const iso = (d) => d.toISOString();
 
         const [mRes, maRes, cRes, spRes] = await Promise.all([
           apiFetch("/api/machines"),
-          apiFetch("/api/maintenance?limit=5"),
-          apiFetch(`/api/cycles?date=${today}&limit=5`),
+          // Recent maintenance TODAY (start/end window)
+          apiFetch(
+            `/api/maintenance?start=${encodeURIComponent(
+              iso(start)
+            )}&end=${encodeURIComponent(iso(end))}&limit=5`
+          ),
+          // Recent cycles TODAY (start/end window; works with your updated cycles route)
+          apiFetch(
+            `/api/cycles?start=${encodeURIComponent(
+              iso(start)
+            )}&end=${encodeURIComponent(iso(end))}&limit=5`
+          ),
+          // Pending spores list for the dashboard card (keep it small)
           apiFetch("/api/spores?status=pending&limit=5"),
         ]);
 
@@ -61,37 +90,41 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const { activeMachines, overdueDescales, cyclesToday, failedCyclesToday } =
-    useMemo(() => {
-      const activeMachines = machines.filter(
-        (m) => m.status === "active"
-      ).length;
+  const {
+    activeMachines,
+    overdueDescales,
+    cyclesToday,
+    failedCyclesToday,
+    pendingSporesCount,
+  } = useMemo(() => {
+    const activeMachines = machines.filter((m) => m.status === "active").length;
 
-      // Only washers should appear in overdue descales
-      const overdueDescales = machines.filter(
-        (m) =>
-          m.type === "washer" &&
-          daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
-      );
+    // Only washers should appear in overdue descales
+    const overdueDescales = machines.filter(
+      (m) =>
+        m.type === "washer" &&
+        daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
+    );
 
-      const cyclesToday = cycles.length;
-      const failedCyclesToday = cycles.filter(
-        (c) => c.result === "fail"
-      ).length;
+    const cyclesToday = cycles.length;
+    const failedCyclesToday = cycles.filter((c) => c.result === "fail").length;
 
-      return {
-        activeMachines,
-        overdueDescales,
-        cyclesToday,
-        failedCyclesToday,
-      };
-    }, [machines, cycles]);
+    const pendingSporesCount = pendingSpores.length; // simple count (dashboard KPI)
+
+    return {
+      activeMachines,
+      overdueDescales,
+      cyclesToday,
+      failedCyclesToday,
+      pendingSporesCount,
+    };
+  }, [machines, cycles, pendingSpores]);
 
   return (
     <>
       <h1 className="dashboard__title">Dashboard</h1>
 
-      {/* KPI row */}
+      {/* KPI row (includes Pending Spore Readouts count) */}
       <div className="dashboard__kpis">
         <KPI label="Cycles Today" value={cyclesToday} tone="ok" />
         <KPI
@@ -104,20 +137,23 @@ export default function Dashboard() {
           value={overdueDescales.length}
           tone={overdueDescales.length ? "danger" : "ok"}
         />
-        <KPI label="Active Machines" value={activeMachines} tone="ok" />
         <KPI
-          label="Pending Spores"
-          value={pendingSpores.length}
-          tone={pendingSpores.length ? "warn" : "ok"}
+          label="Pending Spore Readouts"
+          value={pendingSporesCount}
+          tone={pendingSporesCount ? "warn" : "ok"}
         />
+        <KPI label="Active Machines" value={activeMachines} tone="ok" />
       </div>
 
       {loading && <div className="dashboard__loading">Loading data…</div>}
       {err && <div className="dashboard__error">Failed to load: {err}</div>}
 
       {!loading && !err && (
+        // Layout order:
+        // Top row: Recent Cycles (left) • Pending Spore Readouts (right)
+        // Bottom row: Recent Maintenance (left) • Overdue Descales (right)
         <div className="dashboard__grid">
-          {/* Recent Cycles */}
+          {/* 1) Recent Cycles */}
           <Card title="Recent Cycles">
             {cycles.length ? (
               <ul className="dashboard__list">
@@ -132,7 +168,7 @@ export default function Dashboard() {
                     />
                     <span className="dashboard__mutedWrap">
                       <strong>{c.machineId?.name || "Unknown"}</strong>
-                      &nbsp;— Load {c.loadNumber || "—"} ({c.result}) •{" "}
+                      &nbsp;— Load {c.loadNumber || "—"} ({c.result}) &nbsp;•{" "}
                       {formatDateTime(c.startedAt)}
                     </span>
                     <Link
@@ -150,7 +186,7 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* Pending Spore Readouts */}
+          {/* 2) Pending Spore Readouts */}
           <Card title="Pending Spore Readouts">
             {pendingSpores.length ? (
               <ul className="dashboard__list">
@@ -163,17 +199,14 @@ export default function Dashboard() {
                       />
                       <span className="dashboard__mutedWrap">
                         <strong>{c.machineId?.name || "Unknown"}</strong>
-                        &nbsp;— Lot {sp.lot || "—"} • Well {sp.well || "—"} •{" "}
-                        Incubated{" "}
+                        &nbsp;— Load {c.loadNumber || "—"} • Lot {sp.lot || "—"}{" "}
+                        • Well {sp.well || "—"} • Incubated{" "}
                         {sp.incubatedAt ? formatDateTime(sp.incubatedAt) : "—"}
                       </span>
                       <button
                         className="dashboard__chip"
-                        style={{
-                          background: "var(--color-brand)",
-                          color: "#fff",
-                        }}
                         onClick={() => navigate("/spores")}
+                        title="Go to Spore Queue"
                       >
                         Verify
                       </button>
@@ -186,7 +219,7 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* Recent Maintenance */}
+          {/* 3) Recent Maintenance (TODAY via start/end) */}
           <Card title="Recent Maintenance">
             {maint.length ? (
               <ul className="dashboard__list">
@@ -208,11 +241,11 @@ export default function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div className="dashboard__empty">No maintenance logged yet.</div>
+              <div className="dashboard__empty">No maintenance today.</div>
             )}
           </Card>
 
-          {/* Overdue Descales */}
+          {/* 4) Overdue Descales (washers only) */}
           <Card title="Overdue Descales">
             {overdueDescales.length ? (
               <ul className="dashboard__list">
