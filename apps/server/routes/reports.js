@@ -125,7 +125,7 @@ router.get("/csv", requireAuth, async (req, res) => {
       }
       const rows = await Maintenance.find(filter)
         .sort({ performedAt: 1 })
-        .populate("machineId", "name _id")
+        .populate("machineId", "name _id type")
         .populate("createdBy", "name email _id")
         .lean();
 
@@ -136,18 +136,61 @@ router.get("/csv", requireAuth, async (req, res) => {
         "Volume (mL)",
         "Notes",
         "Performed By (initials)",
+        // flattened helpers
+        "Washer Daily: R1(1-5)",
+        "Washer Daily: R2(1-5)",
+        "Washer Daily: Debris Screen",
+        "Washer Daily: Initials",
+        "Washer Weekly: Spray Arms",
+        "Washer Weekly: Tubing/Float",
+        "Washer Weekly: Door Seal",
+        "Washer Weekly: Decon/Descale",
+        "Washer Weekly: Initials",
       ];
 
-      const csvRows = rows.map((r) => [
-        r.machineId?.name || "",
-        r.type || "",
-        r.performedAt ? new Date(r.performedAt).toISOString() : "",
-        r.volumeUsedMl ?? "",
-        r.notes || "",
-        r.createdBy?.name || "",
-      ]);
+      const getInitials = (name) =>
+        (name || "")
+          .split(/\s+/)
+          .map((s) => s[0])
+          .join("")
+          .toUpperCase();
 
-      const csv = rowsToCSV([header, ...csvRows]);
+      const data = rows.map((r) => {
+        const d = r.details || {};
+        // daily
+        const r1 = (d.rack1 || []).map(String).join("|");
+        const r2 = (d.rack2 || []).map(String).join("|");
+        const debris = d.debrisScreenCleaned ? "yes" : "";
+        const dailyInit = d.initials || "";
+
+        // weekly
+        const w = d.weekly || {};
+        const wSpray = w.sprayArms ? "yes" : "";
+        const wTube = w.tubingFloat ? "yes" : "";
+        const wSeal = w.doorSeal ? "yes" : "";
+        const wDecon = w.deconDescale ? "yes" : "";
+        const weeklyInit = w.initials || "";
+
+        return [
+          r.machineId?.name || "",
+          r.type || "",
+          r.performedAt ? new Date(r.performedAt).toISOString() : "",
+          r.volumeUsedMl ?? "",
+          r.notes || "",
+          getInitials(r.createdBy?.name || ""),
+          r.type === "washer_daily_verify" ? r1 : "",
+          r.type === "washer_daily_verify" ? r2 : "",
+          r.type === "washer_daily_verify" ? debris : "",
+          r.type === "washer_daily_verify" ? dailyInit : "",
+          r.type === "washer_weekly_tasks" ? wSpray : "",
+          r.type === "washer_weekly_tasks" ? wTube : "",
+          r.type === "washer_weekly_tasks" ? wSeal : "",
+          r.type === "washer_weekly_tasks" ? wDecon : "",
+          r.type === "washer_weekly_tasks" ? weeklyInit : "",
+        ];
+      });
+
+      const csv = rowsToCSV([header, ...data]);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
