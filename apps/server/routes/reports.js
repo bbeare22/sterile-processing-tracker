@@ -1,11 +1,11 @@
-// apps/server/routes/reports.js
 const express = require("express");
 const { z } = require("zod");
 const mongoose = require("mongoose");
 
 const Cycle = require("../models/Cycle");
 const Maintenance = require("../models/Maintenance");
-const DeconLog = require("../models/DeconLog"); // ← new
+const DeconLog = require("../models/DeconLog");
+const ControlBI = require("../models/ControlBI");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -31,7 +31,7 @@ function rowsToCSV(rows) {
 
 /* ------------ validation ------------ */
 const Query = z.object({
-  kind: z.enum(["cycles", "maintenance", "spores", "decon"]),
+  kind: z.enum(["cycles", "maintenance", "spores", "decon", "control"]),
   year: z.coerce.number().int(),
   month: z.coerce.number().int().min(1).max(12),
   // optional filters per kind:
@@ -138,17 +138,16 @@ router.get("/csv", requireAuth, async (req, res) => {
         "Performed By (initials)",
       ];
 
-      const data = rows.map((r) => [
+      const csvRows = rows.map((r) => [
         r.machineId?.name || "",
         r.type || "",
         r.performedAt ? new Date(r.performedAt).toISOString() : "",
         r.volumeUsedMl ?? "",
         r.notes || "",
-        // you may be storing initials separately; adjust if needed:
         r.createdBy?.name || "",
       ]);
 
-      const csv = rowsToCSV([header, ...data]);
+      const csv = rowsToCSV([header, ...csvRows]);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
@@ -161,8 +160,6 @@ router.get("/csv", requireAuth, async (req, res) => {
     }
 
     if (kind === "spores") {
-      // spores export already implemented on your side; leaving intact here
-      // basis: "incubated" | "verified"
       const byVerified = basis === "verified";
       const filter = byVerified
         ? { "spore.verifiedAt": { $gte: start, $lt: end } }
@@ -215,12 +212,10 @@ router.get("/csv", requireAuth, async (req, res) => {
     if (kind === "decon") {
       const filter = { receivedAt: { $gte: start, $lt: end } };
       if (clinic && clinic.trim()) {
-        // simple substring match (case-insensitive)
         filter.clinic = { $regex: clinic.trim(), $options: "i" };
       }
       const rows = await DeconLog.find(filter).sort({ receivedAt: 1 }).lean();
 
-      // Build headers: general cols + all item pairs IN/OUT
       const dental = [
         ["basic", "Basic"],
         ["oralSurgery", "Oral Surgery"],
@@ -252,7 +247,6 @@ router.get("/csv", requireAuth, async (req, res) => {
         "Verified In By",
         "Verified Out By",
         "Notes",
-        // dynamic headers:
         ...dental.flatMap(([, label]) => [`${label} IN`, `${label} OUT`]),
         ...womens.flatMap(([, label]) => [`${label} IN`, `${label} OUT`]),
       ];
@@ -280,6 +274,48 @@ router.get("/csv", requireAuth, async (req, res) => {
         `attachment; filename="decon-${year}-${String(month).padStart(2, "0")}${
           clinic ? "-" + clinic : ""
         }.csv"`
+      );
+      return res.send(csv);
+    }
+
+    // ← NEW: Control BI export (incubated within month)
+    if (kind === "control") {
+      const rows = await ControlBI.find({
+        incubatedAt: { $gte: start, $lt: end },
+      })
+        .sort({ incubatedAt: 1 })
+        .lean();
+
+      const header = [
+        "Incubator ID",
+        "Well",
+        "Lot",
+        "Incubated At",
+        "Result",
+        "Verified By",
+        "Verified At",
+        "Notes",
+      ];
+
+      const data = rows.map((r) => [
+        r.incubatorId || "",
+        r.well || "",
+        r.lot || "",
+        r.incubatedAt ? new Date(r.incubatedAt).toISOString() : "",
+        r.result || "",
+        r.verifiedBy || "",
+        r.verifiedAt ? new Date(r.verifiedAt).toISOString() : "",
+        r.notes || "",
+      ]);
+
+      const csv = rowsToCSV([header, ...data]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="control-${year}-${String(month).padStart(
+          2,
+          "0"
+        )}.csv"`
       );
       return res.send(csv);
     }

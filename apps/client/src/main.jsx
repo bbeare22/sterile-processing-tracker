@@ -16,6 +16,7 @@ import LogCycle from "./pages/LogCycle";
 import SporeQueue from "./pages/SporeQueue";
 import PMQueue from "./pages/PMQueue";
 import Decon from "./pages/Decon";
+import ControlQueue from "./pages/ControlQueue";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -107,6 +108,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 element={
                   <ProtectedRoute>
                     <Decon />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/controls"
+                element={
+                  <ProtectedRoute>
+                    <ControlQueue />
                   </ProtectedRoute>
                 }
               />

@@ -64,8 +64,9 @@ router.get("/", requireAuth, async (req, res) => {
 
     const rows = await Cycle.find(filter)
       .sort({ startedAt: -1, createdAt: -1 })
-      .limit(Math.min(Number(limit), 200))
-      .populate({ path: "machineId", select: "name type location" })
+      .limit(Math.min(Number(limit || 50), 200))
+      .populate("machineId", "name _id")
+      .populate("createdBy", "name email _id")
       .lean();
 
     res.json({ cycles: rows });

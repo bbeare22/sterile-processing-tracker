@@ -15,6 +15,7 @@ const sporesRoutes = require("./routes/spores");
 const pmRoutes = require("./routes/pm");
 const reportsRoutes = require("./routes/reports");
 const deconRoutes = require("./routes/decon");
+const controlsRoutes = require("./routes/controls");
 
 const app = express();
 
@@ -72,6 +73,7 @@ app.use("/api/spores", sporesRoutes);
 app.use("/api/pm", pmRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/decon", deconRoutes);
+app.use("/api/controls", controlsRoutes);
 
 const PORT = process.env.PORT || 3001;
 
