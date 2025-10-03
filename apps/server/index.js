@@ -16,6 +16,7 @@ const pmRoutes = require("./routes/pm");
 const reportsRoutes = require("./routes/reports");
 const deconRoutes = require("./routes/decon");
 const controlsRoutes = require("./routes/controls");
+const transportsRoutes = require("./routes/transports");
 
 const app = express();
 
@@ -74,6 +75,7 @@ app.use("/api/pm", pmRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/decon", deconRoutes);
 app.use("/api/controls", controlsRoutes);
+app.use("/api/transports", transportsRoutes);
 
 const PORT = process.env.PORT || 3001;
 

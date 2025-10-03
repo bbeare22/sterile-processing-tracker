@@ -31,7 +31,15 @@ function rowsToCSV(rows) {
 
 /* ------------ validation ------------ */
 const Query = z.object({
-  kind: z.enum(["cycles", "maintenance", "spores", "decon", "control"]),
+  kind: z.enum([
+    "cycles",
+    "maintenance",
+    "spores",
+    "decon",
+    "control",
+    "transport",
+    "fuel",
+  ]),
   year: z.coerce.number().int(),
   month: z.coerce.number().int().min(1).max(12),
   // optional filters per kind:
@@ -356,6 +364,110 @@ router.get("/csv", requireAuth, async (req, res) => {
       res.setHeader(
         "Content-Disposition",
         `attachment; filename="control-${year}-${String(month).padStart(
+          2,
+          "0"
+        )}.csv"`
+      );
+      return res.send(csv);
+    }
+
+    /* -------- transport (trips) -------- */
+    if (kind === "transport") {
+      const TransportTrip = require("../models/TransportTrip");
+      const { start, end } = monthBoundsUTC(year, month);
+      const rows = await TransportTrip.find({ date: { $gte: start, $lt: end } })
+        .sort({ date: 1 })
+        .lean();
+
+      const header = [
+        "Date",
+        "Driver",
+        "Destination",
+        "Start Mileage",
+        "Depart Time",
+        "Return Time",
+        "Return Mileage",
+        "Wash/Gas",
+        "Receipt Filed",
+        "Reviewed Schedule",
+        "Count Morning",
+        "Count Return",
+        "Count End of Day",
+        "Copy Sheets Needed",
+        "Gas Receipt Submitted",
+        "Tech Signature",
+        "Supervisor Signature",
+        "Notes",
+      ];
+
+      const data = rows.map((r) => [
+        r.date ? new Date(r.date).toISOString() : "",
+        r.driver || "",
+        r.destination || "",
+        r.startMileage ?? "",
+        r.departAt ? new Date(r.departAt).toISOString() : "",
+        r.returnAt ? new Date(r.returnAt).toISOString() : "",
+        r.returnMileage ?? "",
+        r.washOrGas ? "yes" : "no",
+        r.receiptFiled ? "yes" : "no",
+        r.reviewedSchedule ? "yes" : "no",
+        r.countTransportsMorning ? "yes" : "no",
+        r.countTransportsReturn ? "yes" : "no",
+        r.countTransportsEndOfDay ? "yes" : "no",
+        r.copySheetsNeeded || "",
+        r.gasReceiptSubmitted || "",
+        r.techSignature || "",
+        r.supervisorSignature || "",
+        r.notes || "",
+      ]);
+
+      const csv = rowsToCSV([header, ...data]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="transport-${year}-${String(month).padStart(
+          2,
+          "0"
+        )}.csv"`
+      );
+      return res.send(csv);
+    }
+
+    /* -------- fuel purchases -------- */
+    if (kind === "fuel") {
+      const FuelPurchase = require("../models/FuelPurchase");
+      const { start, end } = monthBoundsUTC(year, month);
+      const rows = await FuelPurchase.find({ date: { $gte: start, $lt: end } })
+        .sort({ date: 1 })
+        .lean();
+
+      const header = [
+        "Date",
+        "Mileage",
+        "Price/Gallon",
+        "Gallons",
+        "Amount",
+        "Vendor",
+        "Signature",
+        "Notes",
+      ];
+
+      const data = rows.map((r) => [
+        r.date ? new Date(r.date).toISOString() : "",
+        r.mileage ?? "",
+        r.pricePerGallon ?? "",
+        r.gallons ?? "",
+        r.amount ?? "",
+        r.vendor || "",
+        r.signature || "",
+        r.notes || "",
+      ]);
+
+      const csv = rowsToCSV([header, ...data]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="fuel-${year}-${String(month).padStart(
           2,
           "0"
         )}.csv"`

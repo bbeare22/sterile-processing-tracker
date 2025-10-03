@@ -81,6 +81,14 @@ export default function AppShell({ children }) {
                 Decontamination
               </NavLink>
               <NavLink
+                to="/transport"
+                className={({ isActive }) =>
+                  isActive ? styles.active : undefined
+                }
+              >
+                Transportation
+              </NavLink>
+              <NavLink
                 to="/pm"
                 className={({ isActive }) =>
                   isActive ? styles.active : undefined

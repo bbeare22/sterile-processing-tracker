@@ -17,6 +17,7 @@ import SporeQueue from "./pages/SporeQueue";
 import PMQueue from "./pages/PMQueue";
 import Decon from "./pages/Decon";
 import ControlQueue from "./pages/ControlQueue";
+import Transport from "./pages/Transport";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -108,6 +109,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 element={
                   <ProtectedRoute>
                     <Decon />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/transport"
+                element={
+                  <ProtectedRoute>
+                    <Transport />
                   </ProtectedRoute>
                 }
               />
