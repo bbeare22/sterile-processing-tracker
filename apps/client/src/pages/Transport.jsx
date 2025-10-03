@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../components/Toast/ToastProvider";
 import { apiFetch } from "../utils/api";
 import { formatDateTime } from "../utils/date";
-import "./spore-queue.css"; // reuse the same compact UI
+import "./spore-queue.css"; // reuse same compact UI
 
 export default function Transport() {
   const { show } = useToast();
@@ -10,12 +10,12 @@ export default function Transport() {
   // tab: "trips" | "fuel"
   const [tab, setTab] = useState("trips");
 
-  // export controls (top-right)
+  // export / month selection (top-right)
   const now = new Date();
   const [exportYear, setExportYear] = useState(now.getUTCFullYear());
   const [exportMonth, setExportMonth] = useState(now.getUTCMonth() + 1);
 
-  // list
+  // list data
   const [trips, setTrips] = useState([]);
   const [fuels, setFuels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,23 +83,102 @@ export default function Transport() {
     };
   }, [path]);
 
+  /* ---------- filter & KPI helpers ---------- */
+  const monthStart = useMemo(
+    () => new Date(Date.UTC(exportYear, exportMonth - 1, 1, 0, 0, 0, 0)),
+    [exportYear, exportMonth]
+  );
+  const monthEnd = useMemo(
+    () =>
+      exportMonth === 12
+        ? new Date(Date.UTC(exportYear + 1, 0, 1, 0, 0, 0, 0))
+        : new Date(Date.UTC(exportYear, exportMonth, 1, 0, 0, 0, 0)),
+    [exportYear, exportMonth]
+  );
+
+  const tripsInMonth = useMemo(
+    () =>
+      trips.filter((t) => {
+        const d = t?.date ? new Date(t.date) : null;
+        return d && d >= monthStart && d < monthEnd;
+      }),
+    [trips, monthStart, monthEnd]
+  );
+
+  const fuelsInMonth = useMemo(
+    () =>
+      fuels.filter((f) => {
+        const d = f?.date ? new Date(f.date) : null;
+        return d && d >= monthStart && d < monthEnd;
+      }),
+    [fuels, monthStart, monthEnd]
+  );
+
+  // Text search (applied to visible table)
   const filteredTrips = useMemo(
     () =>
-      filterByText(trips, q, [
+      filterByText(tripsInMonth, q, [
         "driver",
         "destination",
         "notes",
         "techSignature",
         "supervisorSignature",
       ]),
-    [trips, q]
+    [tripsInMonth, q]
   );
 
   const filteredFuels = useMemo(
-    () => filterByText(fuels, q, ["vendor", "signature", "notes"]),
-    [fuels, q]
+    () => filterByText(fuelsInMonth, q, ["vendor", "signature", "notes"]),
+    [fuelsInMonth, q]
   );
 
+  // KPIs (computed over month selection)
+  const kpis = useMemo(() => {
+    // trips
+    let miles = 0;
+    let hours = 0;
+    for (const t of tripsInMonth) {
+      const sm = Number(t.startMileage || 0);
+      const rm = Number(t.returnMileage || 0);
+      const delta = rm - sm;
+      miles += delta > 0 ? delta : 0;
+
+      const dep = t.departAt ? new Date(t.departAt).getTime() : 0;
+      const ret = t.returnAt ? new Date(t.returnAt).getTime() : 0;
+      const dur = ret - dep;
+      if (dur > 0) hours += dur / 3_600_000; // ms → hours
+    }
+
+    // fuel
+    let gallons = 0;
+    let spend = 0;
+    let sumPrice = 0;
+    let priceCount = 0;
+
+    for (const f of fuelsInMonth) {
+      gallons += Number(f.gallons || 0);
+      spend += Number(f.amount || 0);
+      if (f.pricePerGallon != null) {
+        sumPrice += Number(f.pricePerGallon);
+        priceCount += 1;
+      }
+    }
+
+    const avgPrice = priceCount ? sumPrice / priceCount : 0;
+    const costPerMile = miles > 0 && spend > 0 ? spend / miles : 0;
+
+    return {
+      trips: tripsInMonth.length,
+      miles,
+      hours,
+      gallons,
+      spend,
+      avgPrice,
+      costPerMile,
+    };
+  }, [tripsInMonth, fuelsInMonth]);
+
+  /* ---------- actions ---------- */
   async function exportCSV(kind) {
     try {
       const serverOrigin = window.location.origin.replace(":5173", ":3001");
@@ -209,7 +288,7 @@ export default function Transport() {
 
   return (
     <div>
-      {/* Header: title + export controls right */}
+      {/* Header: title + export controls */}
       <div className="sq__header">
         <h1 className="sq__title">Transport</h1>
         <div className="sq__filters" style={{ marginLeft: "auto" }}>
@@ -248,6 +327,33 @@ export default function Transport() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* KPI strip (based on selected month) */}
+      <div
+        className="sq__filters"
+        style={{
+          gap: 12,
+          flexWrap: "wrap",
+          marginTop: 6,
+          paddingTop: 8,
+          paddingBottom: 8,
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <KPI label="Trips" value={kpis.trips} />
+        <KPI label="Miles" value={fmtNum(kpis.miles, 0)} />
+        <KPI label="Drive time (h)" value={fmtNum(kpis.hours, 1)} />
+        <KPI label="Fuel (gal)" value={fmtNum(kpis.gallons, 2)} />
+        <KPI label="Fuel spend" value={`$${fmtNum(kpis.spend, 2)}`} />
+        <KPI
+          label="Avg $/gal"
+          value={kpis.avgPrice ? `$${fmtNum(kpis.avgPrice, 3)}` : "—"}
+        />
+        <KPI
+          label="Cost / mile"
+          value={kpis.costPerMile ? `$${fmtNum(kpis.costPerMile, 2)}` : "—"}
+        />
       </div>
 
       {/* Filters / actions row */}
@@ -743,5 +849,33 @@ function filterByText(list, q, keys) {
       .map((k) => String(x?.[k] ?? "").toLowerCase())
       .join(" • ")
       .includes(needle)
+  );
+}
+
+function fmtNum(n, digits = 0) {
+  const v = Number(n || 0);
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function KPI({ label, value }) {
+  return (
+    <div
+      className="sq__input"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        minWidth: 120,
+      }}
+      title={label}
+    >
+      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 2 }}>
+        {label}
+      </div>
+      <div style={{ fontWeight: 700 }}>{value}</div>
+    </div>
   );
 }
