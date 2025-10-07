@@ -5,6 +5,7 @@ const PMPlan = require("../models/PMPlan");
 const PMTask = require("../models/PMTask");
 const Machine = require("../models/Machine");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -65,6 +66,14 @@ router.post(
         nextDueAt: new Date(nextDueAt),
         notes: notes || "",
         isActive: true,
+      });
+
+      // AUDIT
+      await recordAudit(req, {
+        action: "pm.plan.create",
+        targetType: "PMPlan",
+        targetId: plan._id,
+        meta: { machineId: plan.machineId, name: plan.name, intervalDays },
       });
 
       res.status(201).json({ plan });
@@ -209,6 +218,14 @@ router.patch("/tasks/:id/complete", requireAuth, async (req, res) => {
       .populate("completedBy", "name email _id")
       .lean();
 
+    // AUDIT
+    await recordAudit(req, {
+      action: status === "completed" ? "pm.completed" : "pm.skipped",
+      targetType: "PMTask",
+      targetId: task._id,
+      meta: { notes: task.completionNotes },
+    });
+
     res.json({ task: populated });
   } catch (e) {
     console.error(e);
@@ -216,7 +233,7 @@ router.patch("/tasks/:id/complete", requireAuth, async (req, res) => {
   }
 });
 
-// 🔹 Alias route to support front-ends calling /skip
+// Alias /skip — already sets status=skipped
 router.patch("/tasks/:id/skip", requireAuth, async (req, res) => {
   try {
     const task = await PMTask.findById(req.params.id);
@@ -232,6 +249,14 @@ router.patch("/tasks/:id/skip", requireAuth, async (req, res) => {
       .populate("machineId", "name location _id")
       .populate("completedBy", "name email _id")
       .lean();
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "pm.skipped",
+      targetType: "PMTask",
+      targetId: task._id,
+      meta: { notes: task.completionNotes },
+    });
 
     res.json({ task: populated });
   } catch (e) {

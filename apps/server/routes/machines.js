@@ -3,6 +3,7 @@ const { z } = require("zod");
 const mongoose = require("mongoose");
 const Machine = require("../models/Machine");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** POST /api/machines (create) — protected, supervisor only */
+// POST /api/machines
 router.post("/", requireAuth, requireRole("supervisor"), async (req, res) => {
   try {
     const parsed = machineSchema.safeParse(req.body);
@@ -57,6 +58,15 @@ router.post("/", requireAuth, requireRole("supervisor"), async (req, res) => {
     }
     const payload = normalizePayload(parsed.data);
     const doc = await Machine.create(payload);
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "machine.create",
+      targetType: "Machine",
+      targetId: doc._id,
+      meta: { name: doc.name, type: doc.type },
+    });
+
     res.status(201).json({ machine: doc });
   } catch (e) {
     res.status(500).json({ error: "Failed to create machine" });
@@ -78,7 +88,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/** PUT /api/machines/:id (update) — protected, supervisor only */
+// PUT /api/machines/:id
 router.put("/:id", requireAuth, requireRole("supervisor"), async (req, res) => {
   try {
     const parsed = machineSchema.safeParse(req.body);
@@ -92,6 +102,15 @@ router.put("/:id", requireAuth, requireRole("supervisor"), async (req, res) => {
       new: true,
     });
     if (!machine) return res.status(404).json({ error: "Not found" });
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "machine.update",
+      targetType: "Machine",
+      targetId: machine._id,
+      meta: update,
+    });
+
     res.json({ machine });
   } catch (e) {
     console.error(e);
@@ -99,7 +118,7 @@ router.put("/:id", requireAuth, requireRole("supervisor"), async (req, res) => {
   }
 });
 
-/** DELETE /api/machines/:id — protected, supervisor only */
+// DELETE /api/machines/:id
 router.delete(
   "/:id",
   requireAuth,
@@ -108,6 +127,15 @@ router.delete(
     try {
       const gone = await Machine.findByIdAndDelete(req.params.id);
       if (!gone) return res.status(404).json({ error: "Not found" });
+
+      // AUDIT
+      await recordAudit(req, {
+        action: "machine.delete",
+        targetType: "Machine",
+        targetId: gone._id,
+        meta: { name: gone.name, type: gone.type },
+      });
+
       res.status(204).end();
     } catch (e) {
       console.error(e);

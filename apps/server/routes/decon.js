@@ -2,6 +2,7 @@ const express = require("express");
 const { z } = require("zod");
 const DeconLog = require("../models/DeconLog");
 const { requireAuth } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -95,6 +96,14 @@ router.post("/", requireAuth, async (req, res) => {
       sets: b.sets || {},
       womens: b.womens || {},
       createdBy: req.user?._id || req.userId || req.user,
+    });
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "decon.create",
+      targetType: "DeconLog",
+      targetId: doc._id,
+      meta: { clinic: doc.clinic },
     });
 
     res.status(201).json({ row: doc });

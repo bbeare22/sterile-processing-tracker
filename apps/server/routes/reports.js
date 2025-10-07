@@ -7,6 +7,7 @@ const Maintenance = require("../models/Maintenance");
 const DeconLog = require("../models/DeconLog");
 const ControlBI = require("../models/ControlBI");
 const { requireAuth } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 

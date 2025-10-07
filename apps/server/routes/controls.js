@@ -2,6 +2,7 @@ const express = require("express");
 const { z } = require("zod");
 const ControlBI = require("../models/ControlBI");
 const { requireAuth } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -57,10 +58,7 @@ router.get("/", requireAuth, async (req, res) => {
       filter.result = "positive";
     }
     const mr = monthRangeUTC(year, month);
-    if (mr) {
-      // Filter by incubatedAt within month for list
-      filter.incubatedAt = { $gte: mr.start, $lt: mr.end };
-    }
+    if (mr) filter.incubatedAt = { $gte: mr.start, $lt: mr.end };
 
     const rows = await ControlBI.find(filter)
       .sort({ incubatedAt: -1, createdAt: -1 })
@@ -93,6 +91,14 @@ router.post("/", requireAuth, async (req, res) => {
       createdBy: req.user?._id || req.userId || req.user,
     });
 
+    // AUDIT
+    await recordAudit(req, {
+      action: "control.create",
+      targetType: "Control",
+      targetId: doc._id,
+      meta: { incubatorId: doc.incubatorId, well: doc.well, lot: doc.lot },
+    });
+
     res.status(201).json({ control: doc });
   } catch (e) {
     res.status(500).json({ error: "Failed to create control BI" });
@@ -110,7 +116,6 @@ router.patch("/:id/verify", requireAuth, async (req, res) => {
     }
     const { result, verifiedBy, verifiedAt } = parsed.data;
 
-    // guard: control BIs must verify POSITIVE
     if (result !== "positive") {
       return res.status(400).json({ error: "Control BI must verify positive" });
     }
@@ -122,6 +127,14 @@ router.patch("/:id/verify", requireAuth, async (req, res) => {
     c.verifiedBy = verifiedBy;
     c.verifiedAt = verifiedAt ? new Date(verifiedAt) : new Date();
     await c.save();
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "control.verify",
+      targetType: "Control",
+      targetId: c._id,
+      meta: { verifiedBy: c.verifiedBy },
+    });
 
     res.json({ control: c.toObject() });
   } catch (e) {

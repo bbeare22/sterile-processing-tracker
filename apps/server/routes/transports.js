@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const TransportTrip = require("../models/TransportTrip");
 const FuelPurchase = require("../models/FuelPurchase");
 const { requireAuth } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -113,6 +114,15 @@ router.post("/trip", requireAuth, async (req, res) => {
       returnAt: new Date(b.returnAt),
       createdBy: req.user?._id || req.userId || req.user,
     });
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "transport.trip.create",
+      targetType: "TransportTrip",
+      targetId: doc._id,
+      meta: { driver: doc.driver, destination: doc.destination },
+    });
+
     res.status(201).json({ trip: doc });
   } catch (e) {
     console.error(e);
@@ -134,6 +144,19 @@ router.post("/fuel", requireAuth, async (req, res) => {
       date: new Date(b.date),
       createdBy: req.user?._id || req.userId || req.user,
     });
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "transport.fuel.create",
+      targetType: "FuelPurchase",
+      targetId: doc._id,
+      meta: {
+        amount: doc.amount,
+        pricePerGallon: doc.pricePerGallon,
+        vendor: doc.vendor,
+      },
+    });
+
     res.status(201).json({ fuel: doc });
   } catch (e) {
     console.error(e);

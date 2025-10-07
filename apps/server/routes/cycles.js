@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Cycle = require("../models/Cycle");
 const Machine = require("../models/Machine");
 const { requireAuth } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -148,6 +149,18 @@ router.post("/", requireAuth, async (req, res) => {
       notes: data.notes || "",
       spore,
       createdBy: authedUserId,
+    });
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "cycle.create",
+      targetType: "Cycle",
+      targetId: doc._id,
+      meta: {
+        machineId: doc.machineId,
+        loadNumber: doc.loadNumber,
+        result: doc.result,
+      },
     });
 
     const populated = await Cycle.findById(doc._id)

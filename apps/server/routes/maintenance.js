@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Maintenance = require("../models/Maintenance");
 const Machine = require("../models/Machine");
 const { requireAuth } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -78,10 +79,9 @@ router.post("/", requireAuth, async (req, res) => {
     const machine = await Machine.findById(body.machineId).lean();
     if (!machine) return res.status(404).json({ error: "Machine not found" });
 
-    const isWasher = WASHER_TYPES.includes(machine.type);
-    const isSterilizer = STERILIZER_TYPES.includes(machine.type);
+    const isWasher = ["washer", "ultrasonic"].includes(machine.type);
+    const isSterilizer = ["sterilizer"].includes(machine.type);
 
-    // Per-machine gating
     if (isWasher) {
       if (
         !["descale", "washer_daily_verify", "washer_weekly_tasks"].includes(
@@ -101,13 +101,11 @@ router.post("/", requireAuth, async (req, res) => {
           .json({ error: "Invalid maintenance type for sterilizer" });
       }
     } else {
-      // fallback: allow generic types only
       if (!["repair", "qa", "cleaning"].includes(body.type)) {
         return res.status(400).json({ error: "Invalid maintenance type" });
       }
     }
 
-    // volume logic
     let volumeUsedMl = null;
     if (body.type === "descale" && isWasher) {
       if (body.volumeUsedMl == null) {
@@ -129,6 +127,14 @@ router.post("/", requireAuth, async (req, res) => {
       volumeUsedMl,
       details: body.details || {},
       createdBy: authedUserId,
+    });
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "maintenance.create",
+      targetType: "Maintenance",
+      targetId: doc._id,
+      meta: { machineId: doc.machineId, type: doc.type },
     });
 
     res.status(201).json({ maintenance: doc });

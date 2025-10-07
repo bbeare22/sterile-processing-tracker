@@ -3,6 +3,7 @@ const { z } = require("zod");
 const mongoose = require("mongoose");
 const Cycle = require("../models/Cycle");
 const { requireAuth } = require("../middleware/auth");
+const { recordAudit } = require("../utils/audit"); // ← NEW
 
 const router = express.Router();
 
@@ -74,13 +75,19 @@ router.get("/", requireAuth, async (req, res) => {
    Body: { result: 'negative'|'positive', verifiedBy: string, verifiedAt?: ISO }
    Marks a spore readout as verified on the underlying Cycle document.
 --------------------------------------------------- */
+// PATCH /api/spores/:id/verify
 router.patch("/:id/verify", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    if (!isObjectId(id)) {
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
 
+    const VerifyBody = z.object({
+      result: z.enum(["negative", "positive"]),
+      verifiedBy: z.string().min(1),
+      verifiedAt: z.string().datetime().optional(),
+    });
     const parsed = VerifyBody.safeParse(req.body);
     if (!parsed.success) {
       return res
@@ -91,8 +98,6 @@ router.patch("/:id/verify", requireAuth, async (req, res) => {
 
     const cycle = await Cycle.findById(id);
     if (!cycle) return res.status(404).json({ error: "Cycle not found" });
-
-    // must have spore test flagged as ran
     if (!cycle.spore || !cycle.spore.ran) {
       return res
         .status(400)
@@ -104,8 +109,15 @@ router.patch("/:id/verify", requireAuth, async (req, res) => {
     cycle.spore.verifiedAt = body.verifiedAt
       ? new Date(body.verifiedAt)
       : new Date();
-
     await cycle.save();
+
+    // AUDIT
+    await recordAudit(req, {
+      action: "spore.verify",
+      targetType: "Cycle",
+      targetId: cycle._id,
+      meta: { result: body.result, verifiedBy: body.verifiedBy },
+    });
 
     const populated = await Cycle.findById(cycle._id)
       .populate("machineId", "name location _id")
