@@ -91,3 +91,5 @@ connectDB(process.env.MONGO_URI)
     console.error("DB connection failed, exiting:", err.message);
     process.exit(1);
   });
+
+require("./jobs/reminder").start();
