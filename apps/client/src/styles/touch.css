@@ -1,0 +1,153 @@
+/* apps/client/src/styles/touch.css
+   Phase 2 – Tablet-friendly defaults
+   - Larger tap targets (≥44px)
+   - 16px base font to avoid iOS zoom
+   - Airy spacing for buttons/inputs
+   - Responsive table wrappers
+*/
+
+/* ---------- Base / Resets ---------- */
+:root {
+  --touch-font: 16px;
+  --touch-gap: 10px;
+  --touch-gap-lg: 14px;
+  --touch-pad-y: 10px;
+  --touch-pad-x: 14px;
+  --touch-radius: 10px;
+}
+
+html,
+body {
+  font-size: var(--touch-font); /* iOS: prevents auto-zoom on inputs */
+}
+
+/* Make clickable things nicely tappable */
+button,
+[type="button"],
+[type="submit"],
+a.btn,
+[class$="__btn"],
+[class$="__btnPrimary"],
+[class$="__btnGhost"],
+[class$="__linkBtn"],
+.sq__btn,
+.sq__btnPrimary,
+.sq__btnGhost,
+.cycles__btn,
+.mh__btn {
+  min-height: 44px;
+  padding: var(--touch-pad-y) var(--touch-pad-x);
+  border-radius: var(--touch-radius);
+  line-height: 1.15;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Inputs and selects */
+input[type="text"],
+input[type="number"],
+input[type="datetime-local"],
+input[type="date"],
+select,
+textarea,
+.sq__input,
+.maint__input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--touch-radius);
+  font-size: 16px; /* iOS-friendly */
+}
+
+/* Textareas keep comfy height but allow resize when needed */
+textarea,
+.maint__input--textarea {
+  min-height: 88px;
+}
+
+/* ---------- Header bars & action rows ---------- */
+.sq__header,
+.cycles__header,
+.mh__header,
+.decon__header,
+.transport__header {
+  gap: var(--touch-gap);
+}
+
+.sq__filters,
+.cycles__actions,
+.mh__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--touch-gap);
+  flex-wrap: wrap;
+}
+
+/* Sticky action bar helper (optional) */
+.sticky-actions {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ---------- Tables ---------- */
+.sq__tableWrap,
+.cycles__tableWrap,
+.mh__tableWrap,
+.decon__tableWrap,
+.transport__tableWrap {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+/* Table cells: increased tap-friendly row height */
+.sq__td,
+.cycles__td,
+.mh__td {
+  padding: 10px 12px;
+}
+
+/* ---------- Compact screens ---------- */
+@media (max-width: 1024px) {
+  .sq__header,
+  .cycles__header,
+  .mh__header,
+  .decon__header,
+  .transport__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Put export controls and filters on their own lines */
+  .sq__filters,
+  .cycles__actions,
+  .mh__actions {
+    width: 100%;
+  }
+
+  /* Keep year/month/basis controls from getting squished */
+  .sq__filters input[type="number"],
+  .sq__filters select {
+    min-width: 110px;
+  }
+}
+
+/* ---------- Larger tap targets for tiny screens ---------- */
+@media (max-width: 640px) {
+  button,
+  [class$="__btn"],
+  [class$="__btnPrimary"],
+  [class$="__btnGhost"] {
+    width: auto;
+  }
+
+  /* Space rows a bit more for finger accuracy */
+  .sq__tr,
+  .cycles__tr,
+  .mh__tr {
+    height: 52px;
+  }
+}

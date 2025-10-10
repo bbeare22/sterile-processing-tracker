@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./styles/tokens.css";
+import "./styles/touch.css";
 
 import AppShell from "./components/AppShell/AppShell";
 import Dashboard from "./pages/Dashboard";
