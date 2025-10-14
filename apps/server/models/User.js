@@ -10,35 +10,31 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    password: { type: String, required: true, minlength: 6, select: false },
+    // increased from 6 → 8
+    password: { type: String, required: true, minlength: 8, select: false },
     name: { type: String, required: true, trim: true },
     employeeId: { type: String, trim: true },
     sterilizationNumber: { type: String, trim: true },
-
-    // NEW: role (defaults to "tech")
     role: {
       type: String,
-      enum: ["tech", "supervisor"],
+      enum: ["tech", "lead", "admin"],
       default: "tech",
-      required: true,
     },
   },
   { timestamps: true }
 );
 
-// Hash password if modified
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-// Compare password
-userSchema.methods.comparePassword = async function (candidate) {
+userSchema.methods.comparePassword = function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
-// Public shape returned to client
 userSchema.methods.toPublicJSON = function () {
   return {
     _id: this._id,
