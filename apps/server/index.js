@@ -24,7 +24,7 @@ const auditRoutes = require("./routes/audit");
 
 const app = express();
 
-/* ---------------- middleware ---------------- */
+/* ---------------- security & core middleware ---------------- */
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -45,28 +45,41 @@ app.use(
 /* ---------------- auth rate limit ---------------- */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
-  max: 100, // tune per needs
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
 app.use("/api/auth", authLimiter);
 
-/* ---------------- health + external proxy ---------------- */
+/* ---------------- health ---------------- */
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-// External proxy: OpenFDA Device Enforcement (recalls)
+/* ---------------- recalls proxy (OpenFDA) with caching ---------------- */
+/**
+ * Dataset docs: https://api.fda.gov/device/enforcement.json
+ * Client expects: { rows: [...] }
+ */
+const recallCache = new Map(); // key -> { at: <ts>, data: { rows } }
+const RECALL_TTL_MS = 60_000; // 1 minute cache TTL (tune as needed)
+
 app.get("/api/external/recalls", async (req, res) => {
   try {
     const brand = (req.query.brand || "STERIS").trim();
     const limit = Math.max(1, Math.min(Number(req.query.limit || 25), 100));
+    const key = `${brand}:${limit}`;
 
-    // Docs: https://api.fda.gov/device/enforcement.json
-    const search = `product_description:${brand}`;
+    // serve from cache if fresh
+    const cached = recallCache.get(key);
+    if (cached && Date.now() - cached.at < RECALL_TTL_MS) {
+      return res.json(cached.data);
+    }
+
     const url = "https://api.fda.gov/device/enforcement.json";
+    const search = `product_description:${brand}`;
 
     const r = await axios.get(url, {
       params: { search, limit },
-      timeout: 10000,
+      timeout: 10_000,
     });
 
     const rows = (r.data?.results || []).map((it) => ({
@@ -78,23 +91,29 @@ app.get("/api/external/recalls", async (req, res) => {
       codeInfo: it.code_info || "",
       firm: it.recalling_firm,
       states: it.distribution_pattern || "",
-      // enforcement dataset uses YYYYMMDD strings:
-      reportDate: it.report_date || "",
-      recallInitiationDate: it.recall_initiation_date || "",
-      // helpful extras
+      reportDate: it.report_date || "", // YYYYMMDD
+      recallInitiationDate: it.recall_initiation_date || "", // YYYYMMDD
       centerClassificationDate: it.center_classification_date || "",
       productQuantity: it.product_quantity || "",
       kNumbers: it.k_numbers || [],
     }));
 
-    return res.json({ rows });
+    const payload = { rows };
+    recallCache.set(key, { at: Date.now(), data: payload });
+    return res.json(payload);
   } catch (e) {
-    // don’t leak upstream details
+    const status = e?.response?.status;
+    if (status === 429) {
+      // FDA rate limit
+      return res
+        .status(502)
+        .json({ error: "FDA rate limit hit — please try again in a minute." });
+    }
     return res.status(502).json({ error: "Upstream recall service failed" });
   }
 });
 
-/* ---------------- routes ---------------- */
+/* ---------------- application routes ---------------- */
 app.use("/api/auth", authRoutes);
 app.use("/api/machines", machinesRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
@@ -136,5 +155,5 @@ connectDB(process.env.MONGO_URI)
     process.exit(1);
   });
 
-// start daily reminder scheduler (no-op if not configured)
+// start daily reminder scheduler (no-op if module doesn't export start)
 require("./jobs/reminder").start?.();
