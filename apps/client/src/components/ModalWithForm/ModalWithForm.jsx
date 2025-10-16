@@ -1,5 +1,5 @@
-import React from "react";
-import "./ModalWithForm.css";
+import React from 'react';
+import './ModalWithForm.css';
 
 export default function ModalWithForm({ title, children, onClose }) {
   return (
@@ -8,12 +8,7 @@ export default function ModalWithForm({ title, children, onClose }) {
       <div className="modal-form__panel" role="dialog" aria-modal="true">
         <div className="modal-form__header">
           <h2 className="modal-form__title">{title}</h2>
-          <button
-            type="button"
-            className="modal-form__close"
-            aria-label="Close"
-            onClick={onClose}
-          >
+          <button type="button" className="modal-form__close" aria-label="Close" onClick={onClose}>
             ×
           </button>
         </div>

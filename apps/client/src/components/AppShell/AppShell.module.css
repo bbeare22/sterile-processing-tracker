@@ -50,7 +50,9 @@
   text-decoration: none;
   padding: 10px 12px;
   border-radius: 12px;
-  transition: background 0.2s var(--easing), color 0.2s var(--easing),
+  transition:
+    background 0.2s var(--easing),
+    color 0.2s var(--easing),
     transform 0.12s var(--easing);
 }
 .nav a:hover {
@@ -108,7 +110,9 @@
   color: var(--color-text);
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
 .authBtn:hover {

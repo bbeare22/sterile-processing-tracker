@@ -69,7 +69,9 @@
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text);
-  transition: transform 0.12s var(--easing), background 0.2s var(--easing),
+  transition:
+    transform 0.12s var(--easing),
+    background 0.2s var(--easing),
     border-color 0.2s var(--easing);
 }
 

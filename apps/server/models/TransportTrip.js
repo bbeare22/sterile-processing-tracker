@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 /**
  * A single transport trip (pickup/return run)
@@ -25,22 +25,22 @@ const TransportTripSchema = new mongoose.Schema(
     countTransportsMorning: { type: Boolean, default: false },
     countTransportsReturn: { type: Boolean, default: false },
     countTransportsEndOfDay: { type: Boolean, default: false },
-    copySheetsNeeded: { type: String, enum: ["yes", "no", ""], default: "" }, // Yes/No
-    gasReceiptSubmitted: { type: String, enum: ["yes", "na", ""], default: "" },
+    copySheetsNeeded: { type: String, enum: ['yes', 'no', ''], default: '' }, // Yes/No
+    gasReceiptSubmitted: { type: String, enum: ['yes', 'na', ''], default: '' },
 
     // Signatures
-    techSignature: { type: String, default: "" },
-    supervisorSignature: { type: String, default: "" },
+    techSignature: { type: String, default: '' },
+    supervisorSignature: { type: String, default: '' },
 
     // Notes (optional)
-    notes: { type: String, default: "" },
+    notes: { type: String, default: '' },
 
     // Who logged it
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );
 
 TransportTripSchema.index({ date: 1 });
 
-module.exports = mongoose.model("TransportTrip", TransportTripSchema);
+module.exports = mongoose.model('TransportTrip', TransportTripSchema);

@@ -4,7 +4,9 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
   padding: var(--space-6);
-  transition: transform 0.18s var(--easing), box-shadow 0.18s var(--easing);
+  transition:
+    transform 0.18s var(--easing),
+    box-shadow 0.18s var(--easing);
 }
 .card:hover {
   transform: translateY(-1px);

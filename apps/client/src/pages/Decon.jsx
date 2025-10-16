@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../utils/api";
-import { formatDateTime } from "../utils/date";
-import { useToast } from "../components/Toast/ToastProvider";
-import ModalWithForm from "../components/ModalWithForm/ModalWithForm";
-import "./decon.css";
+import { useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '../utils/api';
+import { formatDateTime } from '../utils/date';
+import { useToast } from '../components/Toast/ToastProvider';
+import ModalWithForm from '../components/ModalWithForm/ModalWithForm';
+import './decon.css';
 
 const emptyCounts = () => ({ in: 0, out: 0 });
 
@@ -14,24 +14,24 @@ export default function Decon() {
   const now = new Date();
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth() + 1);
-  const [clinicFilter, setClinicFilter] = useState("");
+  const [clinicFilter, setClinicFilter] = useState('');
 
   // list rows
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
 
   // details modal
   const [detailRow, setDetailRow] = useState(null);
 
   // form state
   const [form, setForm] = useState({
-    clinic: "",
+    clinic: '',
     receivedAt: new Date().toISOString(),
-    sentAt: "",
-    verifiedInBy: "",
-    verifiedOutBy: "",
-    notes: "",
+    sentAt: '',
+    verifiedInBy: '',
+    verifiedOutBy: '',
+    notes: '',
     sets: {
       basic: emptyCounts(),
       oralSurgery: emptyCounts(),
@@ -60,61 +60,61 @@ export default function Decon() {
   // label defs (used both in form + summary + details)
   const dentalSetDefs = useMemo(
     () => [
-      ["basic", "Basic"],
-      ["oralSurgery", "Oral Surgery"],
-      ["srp", "SRP"],
-      ["ultrasonic", "Ultrasonic"],
-      ["restorative", "Restorative"],
-      ["endo", "Endo"],
-      ["denture", "Denture"],
-      ["rubberDam", "Rubber dam"],
-      ["xcp", "XCP"],
+      ['basic', 'Basic'],
+      ['oralSurgery', 'Oral Surgery'],
+      ['srp', 'SRP'],
+      ['ultrasonic', 'Ultrasonic'],
+      ['restorative', 'Restorative'],
+      ['endo', 'Endo'],
+      ['denture', 'Denture'],
+      ['rubberDam', 'Rubber dam'],
+      ['xcp', 'XCP'],
     ],
     []
   );
   const womensDefs = useMemo(
     () => [
-      ["culpo", "Culpo"],
-      ["scissors", "Scissors"],
-      ["speculum", "Speculum"],
-      ["tenaculum", "Tenaculum"],
-      ["spongeForceps", "Sponge forceps"],
-      ["dilator", "Dilator"],
-      ["bozeman", "Bozeman"],
-      ["pessary", "Pessary"],
-      ["iud", "IUD"],
-      ["misc", "Misc."],
+      ['culpo', 'Culpo'],
+      ['scissors', 'Scissors'],
+      ['speculum', 'Speculum'],
+      ['tenaculum', 'Tenaculum'],
+      ['spongeForceps', 'Sponge forceps'],
+      ['dilator', 'Dilator'],
+      ['bozeman', 'Bozeman'],
+      ['pessary', 'Pessary'],
+      ['iud', 'IUD'],
+      ['misc', 'Misc.'],
     ],
     []
   );
 
   function isoToLocal(iso) {
-    if (!iso) return "";
+    if (!iso) return '';
     const d = new Date(iso);
-    const pad = (n) => String(n).padStart(2, "0");
+    const pad = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
       d.getDate()
     )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
   function localToISO(local) {
-    if (!local) return "";
+    if (!local) return '';
     return new Date(local).toISOString();
   }
 
   async function load() {
     try {
       setLoading(true);
-      setErr("");
+      setErr('');
       const p = new URLSearchParams();
-      p.set("year", String(year));
-      p.set("month", String(month));
-      if (clinicFilter.trim()) p.set("clinic", clinicFilter.trim());
+      p.set('year', String(year));
+      p.set('month', String(month));
+      if (clinicFilter.trim()) p.set('clinic', clinicFilter.trim());
       const r = await apiFetch(`/api/decon?${p.toString()}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       setRows(j.rows || []);
     } catch (e) {
-      setErr(e.message || "Failed to load decon rows");
+      setErr(e.message || 'Failed to load decon rows');
     } finally {
       setLoading(false);
     }
@@ -149,63 +149,62 @@ export default function Decon() {
         sets: form.sets,
         womens: form.womens,
       };
-      if (!payload.clinic) throw new Error("Clinic is required.");
-      if (!payload.receivedAt)
-        throw new Error("Received date/time is required.");
+      if (!payload.clinic) throw new Error('Clinic is required.');
+      if (!payload.receivedAt) throw new Error('Received date/time is required.');
 
-      const r = await apiFetch("/api/decon", {
-        method: "POST",
+      const r = await apiFetch('/api/decon', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         throw new Error(j.error || `HTTP ${r.status}`);
       }
-      show("Decon row saved ✔", { tone: "ok" });
+      show('Decon row saved ✔', { tone: 'ok' });
       // reload list
       load();
       // light reset (keep clinic)
       setForm((f) => ({
         ...f,
         receivedAt: new Date().toISOString(),
-        sentAt: "",
-        verifiedInBy: "",
-        verifiedOutBy: "",
-        notes: "",
+        sentAt: '',
+        verifiedInBy: '',
+        verifiedOutBy: '',
+        notes: '',
         // keep counts as-is so multiple rows can be logged quickly
       }));
     } catch (e) {
-      show(e.message || "Failed to save", { tone: "danger", ms: 7000 });
+      show(e.message || 'Failed to save', { tone: 'danger', ms: 7000 });
     }
   }
 
   async function exportCSV() {
     try {
-      const origin = window.location.origin.replace(":5173", ":3001");
+      const origin = window.location.origin.replace(':5173', ':3001');
       const p = new URLSearchParams();
-      p.set("kind", "decon");
-      p.set("year", String(year));
-      p.set("month", String(month));
-      if (clinicFilter.trim()) p.set("clinic", clinicFilter.trim());
+      p.set('kind', 'decon');
+      p.set('year', String(year));
+      p.set('month', String(month));
+      if (clinicFilter.trim()) p.set('clinic', clinicFilter.trim());
       const url = `${origin}/api/reports/csv?${p.toString()}`;
       const res = await fetch(url, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
-      const fname = `decon-${year}-${String(month).padStart(2, "0")}${
-        clinicFilter ? "-" + clinicFilter : ""
+      const fname = `decon-${year}-${String(month).padStart(2, '0')}${
+        clinicFilter ? '-' + clinicFilter : ''
       }.csv`;
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = fname;
       document.body.appendChild(a);
       a.click();
       a.remove();
     } catch (e) {
-      show(e.message || "Export failed", { tone: "danger" });
+      show(e.message || 'Export failed', { tone: 'danger' });
     }
   }
 
@@ -225,7 +224,7 @@ export default function Decon() {
     pushIfAny(row.sets, dentalSetDefs);
     pushIfAny(row.womens, womensDefs);
 
-    return bits.length ? bits.join(" • ") : "—";
+    return bits.length ? bits.join(' • ') : '—';
   }
 
   // Helpers to render modal tables with only non-zero rows
@@ -260,9 +259,7 @@ export default function Decon() {
             min={2000}
             max={2100}
             value={year}
-            onChange={(e) =>
-              setYear(Number(e.target.value || now.getUTCFullYear()))
-            }
+            onChange={(e) => setYear(Number(e.target.value || now.getUTCFullYear()))}
             title="Year"
             style={{ width: 100 }}
           />
@@ -274,7 +271,7 @@ export default function Decon() {
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
-                {String(m).padStart(2, "0")}
+                {String(m).padStart(2, '0')}
               </option>
             ))}
           </select>
@@ -293,9 +290,7 @@ export default function Decon() {
               className="decon__input"
               placeholder="e.g., IC / Women's / Jet Wing"
               value={form.clinic}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, clinic: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, clinic: e.target.value }))}
               required
             />
           </div>
@@ -320,9 +315,7 @@ export default function Decon() {
               type="datetime-local"
               className="decon__input"
               value={isoToLocal(form.sentAt)}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, sentAt: localToISO(e.target.value) }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, sentAt: localToISO(e.target.value) }))}
             />
           </div>
         </div>
@@ -333,9 +326,7 @@ export default function Decon() {
             <input
               className="decon__input"
               value={form.verifiedInBy}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, verifiedInBy: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, verifiedInBy: e.target.value }))}
               placeholder="e.g., DS"
             />
           </div>
@@ -344,9 +335,7 @@ export default function Decon() {
             <input
               className="decon__input"
               value={form.verifiedOutBy}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, verifiedOutBy: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, verifiedOutBy: e.target.value }))}
               placeholder="e.g., DS"
             />
           </div>
@@ -355,9 +344,7 @@ export default function Decon() {
             <input
               className="decon__input"
               value={form.notes}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, notes: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
             />
           </div>
         </div>
@@ -384,9 +371,7 @@ export default function Decon() {
                         className="decon__input decon__inputNum"
                         inputMode="numeric"
                         value={form.sets[key]?.in ?? 0}
-                        onChange={(e) =>
-                          setCount("sets", key, "in", e.target.value)
-                        }
+                        onChange={(e) => setCount('sets', key, 'in', e.target.value)}
                       />
                     </td>
                     <td className="decon__td decon__tdNum">
@@ -394,9 +379,7 @@ export default function Decon() {
                         className="decon__input decon__inputNum"
                         inputMode="numeric"
                         value={form.sets[key]?.out ?? 0}
-                        onChange={(e) =>
-                          setCount("sets", key, "out", e.target.value)
-                        }
+                        onChange={(e) => setCount('sets', key, 'out', e.target.value)}
                       />
                     </td>
                   </tr>
@@ -425,9 +408,7 @@ export default function Decon() {
                         className="decon__input decon__inputNum"
                         inputMode="numeric"
                         value={form.womens[key]?.in ?? 0}
-                        onChange={(e) =>
-                          setCount("womens", key, "in", e.target.value)
-                        }
+                        onChange={(e) => setCount('womens', key, 'in', e.target.value)}
                       />
                     </td>
                     <td className="decon__td decon__tdNum">
@@ -435,9 +416,7 @@ export default function Decon() {
                         className="decon__input decon__inputNum"
                         inputMode="numeric"
                         value={form.womens[key]?.out ?? 0}
-                        onChange={(e) =>
-                          setCount("womens", key, "out", e.target.value)
-                        }
+                        onChange={(e) => setCount('womens', key, 'out', e.target.value)}
                       />
                     </td>
                   </tr>
@@ -475,11 +454,7 @@ export default function Decon() {
               </tr>
             ) : err ? (
               <tr>
-                <td
-                  className="decon__td"
-                  colSpan={7}
-                  style={{ color: "var(--color-danger)" }}
-                >
+                <td className="decon__td" colSpan={7} style={{ color: 'var(--color-danger)' }}>
                   {err}
                 </td>
               </tr>
@@ -490,15 +465,13 @@ export default function Decon() {
                     <strong>{r.clinic}</strong>
                   </td>
                   <td className="decon__td">{formatDateTime(r.receivedAt)}</td>
+                  <td className="decon__td">{r.sentAt ? formatDateTime(r.sentAt) : '—'}</td>
                   <td className="decon__td">
-                    {r.sentAt ? formatDateTime(r.sentAt) : "—"}
-                  </td>
-                  <td className="decon__td">
-                    {r.verifiedInBy ? <strong>{r.verifiedInBy}</strong> : "—"}
-                    {r.verifiedOutBy ? ` / ${r.verifiedOutBy}` : ""}
+                    {r.verifiedInBy ? <strong>{r.verifiedInBy}</strong> : '—'}
+                    {r.verifiedOutBy ? ` / ${r.verifiedOutBy}` : ''}
                   </td>
                   <td className="decon__td decon__tdMuted">{summaryFor(r)}</td>
-                  <td className="decon__td decon__tdMuted">{r.notes || "—"}</td>
+                  <td className="decon__td decon__tdMuted">{r.notes || '—'}</td>
                   <td className="decon__td">
                     <button
                       className="decon__btn"
@@ -523,10 +496,7 @@ export default function Decon() {
 
       {/* Details modal */}
       {detailRow && (
-        <ModalWithForm
-          title={`${detailRow.clinic} — Itemized`}
-          onClose={() => setDetailRow(null)}
-        >
+        <ModalWithForm title={`${detailRow.clinic} — Itemized`} onClose={() => setDetailRow(null)}>
           <div className="decon__detail">
             {/* Dental */}
             <div className="decon__tableWrap" style={{ marginBottom: 12 }}>
@@ -593,10 +563,7 @@ export default function Decon() {
             </div>
 
             <div className="decon__actions" style={{ marginTop: 12 }}>
-              <button
-                className="decon__btnGhost"
-                onClick={() => setDetailRow(null)}
-              >
+              <button className="decon__btnGhost" onClick={() => setDetailRow(null)}>
                 Close
               </button>
             </div>

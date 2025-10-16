@@ -5,7 +5,9 @@
   padding: var(--space-6);
   display: grid;
   gap: var(--space-3);
-  transition: transform 0.18s var(--easing), box-shadow 0.18s var(--easing);
+  transition:
+    transform 0.18s var(--easing),
+    box-shadow 0.18s var(--easing);
 }
 .kpi:hover {
   transform: translateY(-1px);

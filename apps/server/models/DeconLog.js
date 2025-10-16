@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 /**
  * Decontamination pickup/return log
@@ -17,8 +17,8 @@ const DeconLogSchema = new mongoose.Schema(
     // Dates & staff
     receivedAt: { type: Date, required: true }, // when sets were received/picked up
     sentAt: { type: Date }, // when sets were returned
-    verifiedInBy: { type: String, default: "" }, // initials
-    verifiedOutBy: { type: String, default: "" }, // initials
+    verifiedInBy: { type: String, default: '' }, // initials
+    verifiedOutBy: { type: String, default: '' }, // initials
 
     // Core dental sets
     sets: {
@@ -47,12 +47,12 @@ const DeconLogSchema = new mongoose.Schema(
       misc: { type: inOutSchema, default: () => ({}) },
     },
 
-    notes: { type: String, default: "" },
+    notes: { type: String, default: '' },
 
     // Who created this row
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
   },
@@ -62,4 +62,4 @@ const DeconLogSchema = new mongoose.Schema(
 DeconLogSchema.index({ receivedAt: -1 });
 DeconLogSchema.index({ clinic: 1, receivedAt: -1 });
 
-module.exports = mongoose.model("DeconLog", DeconLogSchema);
+module.exports = mongoose.model('DeconLog', DeconLogSchema);

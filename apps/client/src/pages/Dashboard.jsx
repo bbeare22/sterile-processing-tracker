@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import Card from "../components/Card/Card";
-import KPI from "../components/KPI/KPI";
-import common from "../components/common.module.css";
-import { apiFetch } from "../utils/api";
-import { daysSince, formatDateTime } from "../utils/date";
-import "./dashboard.css";
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Card from '../components/Card/Card';
+import KPI from '../components/KPI/KPI';
+import common from '../components/common.module.css';
+import { apiFetch } from '../utils/api';
+import { daysSince, formatDateTime } from '../utils/date';
+import './dashboard.css';
 
 const DESCALE_THRESHOLD_DAYS = 7;
 
@@ -17,40 +17,26 @@ export default function Dashboard() {
   const [cycles, setCycles] = useState([]);
   const [pendingSpores, setPendingSpores] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
 
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
-        setErr("");
+        setErr('');
 
         // ---- Build a UTC "today" window for start/end ----
         const now = new Date();
         const start = new Date(
-          Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
-            0,
-            0,
-            0
-          )
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
         );
         const end = new Date(
-          Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate() + 1,
-            0,
-            0,
-            0
-          )
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0)
         );
         const iso = (d) => d.toISOString();
 
         const [mRes, maRes, cRes, spRes] = await Promise.all([
-          apiFetch("/api/machines"),
+          apiFetch('/api/machines'),
           // Recent maintenance TODAY (start/end window)
           apiFetch(
             `/api/maintenance?start=${encodeURIComponent(
@@ -64,7 +50,7 @@ export default function Dashboard() {
             )}&end=${encodeURIComponent(iso(end))}&limit=5`
           ),
           // Pending spores list for the dashboard card (keep it small)
-          apiFetch("/api/spores?status=pending&limit=5"),
+          apiFetch('/api/spores?status=pending&limit=5'),
         ]);
 
         if (!mRes.ok) throw new Error(`Machines HTTP ${mRes.status}`);
@@ -90,35 +76,28 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const {
-    activeMachines,
-    overdueDescales,
-    cyclesToday,
-    failedCyclesToday,
-    pendingSporesCount,
-  } = useMemo(() => {
-    const activeMachines = machines.filter((m) => m.status === "active").length;
+  const { activeMachines, overdueDescales, cyclesToday, failedCyclesToday, pendingSporesCount } =
+    useMemo(() => {
+      const activeMachines = machines.filter((m) => m.status === 'active').length;
 
-    // Only washers should appear in overdue descales
-    const overdueDescales = machines.filter(
-      (m) =>
-        m.type === "washer" &&
-        daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
-    );
+      // Only washers should appear in overdue descales
+      const overdueDescales = machines.filter(
+        (m) => m.type === 'washer' && daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
+      );
 
-    const cyclesToday = cycles.length;
-    const failedCyclesToday = cycles.filter((c) => c.result === "fail").length;
+      const cyclesToday = cycles.length;
+      const failedCyclesToday = cycles.filter((c) => c.result === 'fail').length;
 
-    const pendingSporesCount = pendingSpores.length; // simple count (dashboard KPI)
+      const pendingSporesCount = pendingSpores.length; // simple count (dashboard KPI)
 
-    return {
-      activeMachines,
-      overdueDescales,
-      cyclesToday,
-      failedCyclesToday,
-      pendingSporesCount,
-    };
-  }, [machines, cycles, pendingSpores]);
+      return {
+        activeMachines,
+        overdueDescales,
+        cyclesToday,
+        failedCyclesToday,
+        pendingSporesCount,
+      };
+    }, [machines, cycles, pendingSpores]);
 
   return (
     <>
@@ -130,17 +109,17 @@ export default function Dashboard() {
         <KPI
           label="Failed Cycles"
           value={failedCyclesToday}
-          tone={failedCyclesToday > 0 ? "warn" : "ok"}
+          tone={failedCyclesToday > 0 ? 'warn' : 'ok'}
         />
         <KPI
           label="Overdue Descales"
           value={overdueDescales.length}
-          tone={overdueDescales.length ? "danger" : "ok"}
+          tone={overdueDescales.length ? 'danger' : 'ok'}
         />
         <KPI
           label="Pending Spore Readouts"
           value={pendingSporesCount}
-          tone={pendingSporesCount ? "warn" : "ok"}
+          tone={pendingSporesCount ? 'warn' : 'ok'}
         />
         <KPI label="Active Machines" value={activeMachines} tone="ok" />
       </div>
@@ -161,20 +140,18 @@ export default function Dashboard() {
                   <li key={c._id} className="dashboard__listItem">
                     <span
                       className={`${common.dot} ${
-                        c.result === "fail"
-                          ? common["dot--down"]
-                          : common["dot--ok"]
+                        c.result === 'fail' ? common['dot--down'] : common['dot--ok']
                       }`}
                     />
                     <span className="dashboard__mutedWrap">
-                      <strong>{c.machineId?.name || "Unknown"}</strong>
-                      &nbsp;— Load {c.loadNumber || "—"} ({c.result}) &nbsp;•{" "}
+                      <strong>{c.machineId?.name || 'Unknown'}</strong>
+                      &nbsp;— Load {c.loadNumber || '—'} ({c.result}) &nbsp;•{' '}
                       {formatDateTime(c.startedAt)}
                     </span>
                     <Link
-                      to={`/machines/${c.machineId?._id || ""}`}
+                      to={`/machines/${c.machineId?._id || ''}`}
                       className="dashboard__link"
-                      style={{ marginLeft: "auto" }}
+                      style={{ marginLeft: 'auto' }}
                     >
                       View
                     </Link>
@@ -194,18 +171,16 @@ export default function Dashboard() {
                   const sp = c.spore || {};
                   return (
                     <li key={c._id} className="dashboard__listItem">
-                      <span
-                        className={`${common.dot} ${common["dot--warn"]}`}
-                      />
+                      <span className={`${common.dot} ${common['dot--warn']}`} />
                       <span className="dashboard__mutedWrap">
-                        <strong>{c.machineId?.name || "Unknown"}</strong>
-                        &nbsp;— Load {c.loadNumber || "—"} • Lot {sp.lot || "—"}{" "}
-                        • Well {sp.well || "—"} • Incubated{" "}
-                        {sp.incubatedAt ? formatDateTime(sp.incubatedAt) : "—"}
+                        <strong>{c.machineId?.name || 'Unknown'}</strong>
+                        &nbsp;— Load {c.loadNumber || '—'} • Lot {sp.lot || '—'} • Well{' '}
+                        {sp.well || '—'} • Incubated{' '}
+                        {sp.incubatedAt ? formatDateTime(sp.incubatedAt) : '—'}
                       </span>
                       <button
                         className="dashboard__chip"
-                        onClick={() => navigate("/spores")}
+                        onClick={() => navigate('/spores')}
                         title="Go to Spore Queue"
                       >
                         Verify
@@ -225,15 +200,15 @@ export default function Dashboard() {
               <ul className="dashboard__list">
                 {maint.map((r) => (
                   <li key={r._id} className="dashboard__listItem">
-                    <span className={`${common.dot} ${common["dot--ok"]}`} />
+                    <span className={`${common.dot} ${common['dot--ok']}`} />
                     <span className="dashboard__mutedWrap">
-                      <strong>{r.machineId?.name || "Unknown"}</strong>
+                      <strong>{r.machineId?.name || 'Unknown'}</strong>
                       &nbsp;— {r.type} • {formatDateTime(r.performedAt)}
                     </span>
                     <Link
-                      to={`/machines/${r.machineId?._id || ""}`}
+                      to={`/machines/${r.machineId?._id || ''}`}
                       className="dashboard__link"
-                      style={{ marginLeft: "auto" }}
+                      style={{ marginLeft: 'auto' }}
                     >
                       View
                     </Link>
@@ -253,25 +228,15 @@ export default function Dashboard() {
                   const days = daysSince(m.lastDescaleAt);
                   const color =
                     days > 14
-                      ? "var(--color-danger)"
+                      ? 'var(--color-danger)'
                       : days > 7
-                      ? "var(--color-warn)"
-                      : "var(--color-text)";
-                  const dot =
-                    m.status === "active"
-                      ? common["dot--ok"]
-                      : common["dot--down"];
+                        ? 'var(--color-warn)'
+                        : 'var(--color-text)';
+                  const dot = m.status === 'active' ? common['dot--ok'] : common['dot--down'];
                   return (
-                    <li
-                      key={m._id}
-                      className="dashboard__listItem"
-                      style={{ color }}
-                    >
+                    <li key={m._id} className="dashboard__listItem" style={{ color }}>
                       <span className={`${common.dot} ${dot}`} />
-                      <Link
-                        to={`/machines/${m._id}`}
-                        className="dashboard__link"
-                      >
+                      <Link to={`/machines/${m._id}`} className="dashboard__link">
                         {m.name}
                       </Link>
                       — {days} days
@@ -287,9 +252,7 @@ export default function Dashboard() {
                 })}
               </ul>
             ) : (
-              <div className="dashboard__empty">
-                All good. No overdue descales 🎉
-              </div>
+              <div className="dashboard__empty">All good. No overdue descales 🎉</div>
             )}
           </Card>
         </div>

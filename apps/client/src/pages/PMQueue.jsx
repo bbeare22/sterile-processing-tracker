@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { apiFetch } from "../utils/api";
-import { useToast } from "../components/Toast/ToastProvider";
-import { formatDateTime } from "../utils/date";
-import "./pm-queue.css";
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { apiFetch } from '../utils/api';
+import { useToast } from '../components/Toast/ToastProvider';
+import { formatDateTime } from '../utils/date';
+import './pm-queue.css';
 
 const PAGE_SIZE = 25;
 
@@ -11,14 +11,14 @@ export default function PMQueue() {
   const { show } = useToast();
 
   // filters
-  const [status, setStatus] = useState("pending"); // pending | completed | skipped | all
-  const [q, setQ] = useState("");
+  const [status, setStatus] = useState('pending'); // pending | completed | skipped | all
+  const [q, setQ] = useState('');
   const [dueSoonOnly, setDueSoonOnly] = useState(false); // next 7 days
 
   // data
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   // modals
@@ -27,14 +27,14 @@ export default function PMQueue() {
   const [submitBusy, setSubmitBusy] = useState(false);
 
   // form fields
-  const [initials, setInitials] = useState("");
-  const [notes, setNotes] = useState("");
+  const [initials, setInitials] = useState('');
+  const [notes, setNotes] = useState('');
 
   const path = useMemo(() => {
     const params = new URLSearchParams();
-    if (status && status !== "all") params.set("status", status);
-    if (dueSoonOnly) params.set("dueSoon", "1");
-    params.set("limit", String(limit));
+    if (status && status !== 'all') params.set('status', status);
+    if (dueSoonOnly) params.set('dueSoon', '1');
+    params.set('limit', String(limit));
     return `/api/pm/tasks?${params.toString()}`;
   }, [status, dueSoonOnly, limit]);
 
@@ -43,13 +43,13 @@ export default function PMQueue() {
     async function load() {
       try {
         setLoading(true);
-        setErr("");
+        setErr('');
         const r = await apiFetch(path);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
         if (!cancel) setRows(j.tasks || []);
       } catch (e) {
-        if (!cancel) setErr(e.message || "Failed to load PM tasks");
+        if (!cancel) setErr(e.message || 'Failed to load PM tasks');
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -67,17 +67,9 @@ export default function PMQueue() {
     return rows.filter((t) => {
       const m = t.machineId || {};
       const plan = t.plan || {};
-      const hay = [
-        t._id,
-        m.name,
-        m.location,
-        plan.title,
-        plan.type,
-        plan.interval,
-        t.status,
-      ]
-        .map((x) => String(x || "").toLowerCase())
-        .join(" • ");
+      const hay = [t._id, m.name, m.location, plan.title, plan.type, plan.interval, t.status]
+        .map((x) => String(x || '').toLowerCase())
+        .join(' • ');
       return hay.includes(needle);
     });
   }, [rows, q]);
@@ -85,20 +77,20 @@ export default function PMQueue() {
   function openComplete(t) {
     setCompleteFor(t);
     setSkipFor(null);
-    setInitials("");
-    setNotes("");
+    setInitials('');
+    setNotes('');
   }
   function openSkip(t) {
     setSkipFor(t);
     setCompleteFor(null);
-    setInitials("");
-    setNotes("");
+    setInitials('');
+    setNotes('');
   }
   function closeModals() {
     setCompleteFor(null);
     setSkipFor(null);
-    setInitials("");
-    setNotes("");
+    setInitials('');
+    setNotes('');
   }
 
   async function submitComplete(e) {
@@ -107,7 +99,7 @@ export default function PMQueue() {
     try {
       setSubmitBusy(true);
       const r = await apiFetch(`/api/pm/tasks/${completeFor._id}/complete`, {
-        method: "PATCH",
+        method: 'PATCH',
         body: JSON.stringify({ completedBy: initials, notes }),
       });
       if (!r.ok) {
@@ -117,11 +109,11 @@ export default function PMQueue() {
       const j = await r.json();
       // update row in list
       setRows((prev) => prev.map((x) => (x._id === j.task._id ? j.task : x)));
-      show("PM marked completed ✔", { tone: "ok" });
+      show('PM marked completed ✔', { tone: 'ok' });
       closeModals();
     } catch (e) {
-      show(e.message || "Failed to complete PM task", {
-        tone: "danger",
+      show(e.message || 'Failed to complete PM task', {
+        tone: 'danger',
         ms: 8000,
       });
     } finally {
@@ -135,7 +127,7 @@ export default function PMQueue() {
     try {
       setSubmitBusy(true);
       const r = await apiFetch(`/api/pm/tasks/${skipFor._id}/skip`, {
-        method: "PATCH",
+        method: 'PATCH',
         body: JSON.stringify({ notes }),
       });
       if (!r.ok) {
@@ -144,10 +136,10 @@ export default function PMQueue() {
       }
       const j = await r.json();
       setRows((prev) => prev.map((x) => (x._id === j.task._id ? j.task : x)));
-      show("PM task skipped", { tone: "ok" });
+      show('PM task skipped', { tone: 'ok' });
       closeModals();
     } catch (e) {
-      show(e.message || "Failed to skip PM task", { tone: "danger", ms: 8000 });
+      show(e.message || 'Failed to skip PM task', { tone: 'danger', ms: 8000 });
     } finally {
       setSubmitBusy(false);
     }
@@ -209,61 +201,46 @@ export default function PMQueue() {
                 filtered.map((t) => {
                   const m = t.machineId || {};
                   const plan = t.plan || {};
-                  const due = t.dueAt ? formatDateTime(t.dueAt) : "—";
+                  const due = t.dueAt ? formatDateTime(t.dueAt) : '—';
                   const statusChip =
-                    t.status === "pending"
-                      ? "pmq__chip--warn"
-                      : t.status === "completed"
-                      ? "pmq__chip--ok"
-                      : "pmq__chip--muted";
+                    t.status === 'pending'
+                      ? 'pmq__chip--warn'
+                      : t.status === 'completed'
+                        ? 'pmq__chip--ok'
+                        : 'pmq__chip--muted';
 
                   return (
                     <tr key={t._id} className="pmq__tr">
                       <td className="pmq__td">
                         <div className="pmq__tdMain">
-                          <strong>{m.name || "Unknown"}</strong>
-                          <span className="pmq__muted">
-                            {m.location || "—"}
-                          </span>
+                          <strong>{m.name || 'Unknown'}</strong>
+                          <span className="pmq__muted">{m.location || '—'}</span>
                         </div>
                       </td>
                       <td className="pmq__td">
                         <div className="pmq__tdMain">
-                          <strong>{plan.title || plan.type || "—"}</strong>
+                          <strong>{plan.title || plan.type || '—'}</strong>
                           <span className="pmq__muted">
-                            {plan.interval ? `Every ${plan.interval}` : "—"}
+                            {plan.interval ? `Every ${plan.interval}` : '—'}
                           </span>
                         </div>
                       </td>
                       <td className="pmq__td">{due}</td>
                       <td className="pmq__td">
-                        <span className={`pmq__chip ${statusChip}`}>
-                          {t.status}
-                        </span>
+                        <span className={`pmq__chip ${statusChip}`}>{t.status}</span>
                       </td>
-                      <td className="pmq__td pmq__td--muted">
-                        {t.notes || "—"}
-                      </td>
+                      <td className="pmq__td pmq__td--muted">{t.notes || '—'}</td>
                       <td className="pmq__td">
                         <div className="pmq__actions">
-                          <Link
-                            className="pmq__link"
-                            to={`/machines/${m._id || ""}`}
-                          >
+                          <Link className="pmq__link" to={`/machines/${m._id || ''}`}>
                             View machine
                           </Link>
-                          {t.status === "pending" && (
+                          {t.status === 'pending' && (
                             <>
-                              <button
-                                className="pmq__btnPrimary"
-                                onClick={() => openComplete(t)}
-                              >
+                              <button className="pmq__btnPrimary" onClick={() => openComplete(t)}>
                                 Complete
                               </button>
-                              <button
-                                className="pmq__btn"
-                                onClick={() => openSkip(t)}
-                              >
+                              <button className="pmq__btn" onClick={() => openSkip(t)}>
                                 Skip
                               </button>
                             </>
@@ -287,10 +264,7 @@ export default function PMQueue() {
 
       {!loading && rows.length >= limit && (
         <div style={{ marginTop: 12 }}>
-          <button
-            className="pmq__btn"
-            onClick={() => setLimit((n) => n + PAGE_SIZE)}
-          >
+          <button className="pmq__btn" onClick={() => setLimit((n) => n + PAGE_SIZE)}>
             Load more
           </button>
         </div>
@@ -318,13 +292,9 @@ export default function PMQueue() {
               />
               <div className="pmq__actions">
                 <button className="pmq__btnPrimary" disabled={submitBusy}>
-                  {submitBusy ? "Saving…" : "Save"}
+                  {submitBusy ? 'Saving…' : 'Save'}
                 </button>
-                <button
-                  type="button"
-                  className="pmq__btn"
-                  onClick={closeModals}
-                >
+                <button type="button" className="pmq__btn" onClick={closeModals}>
                   Cancel
                 </button>
               </div>
@@ -349,13 +319,9 @@ export default function PMQueue() {
               />
               <div className="pmq__actions">
                 <button className="pmq__btnPrimary" disabled={submitBusy}>
-                  {submitBusy ? "Saving…" : "Save"}
+                  {submitBusy ? 'Saving…' : 'Save'}
                 </button>
-                <button
-                  type="button"
-                  className="pmq__btn"
-                  onClick={closeModals}
-                >
+                <button type="button" className="pmq__btn" onClick={closeModals}>
                   Cancel
                 </button>
               </div>

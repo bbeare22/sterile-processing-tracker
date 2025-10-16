@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { apiFetch } from "../utils/api";
-import { useToast } from "../components/Toast/ToastProvider";
-import "./maintenance.css";
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { apiFetch } from '../utils/api';
+import { useToast } from '../components/Toast/ToastProvider';
+import './maintenance.css';
 
 export default function Maintenance() {
   const { show } = useToast();
@@ -10,12 +10,12 @@ export default function Maintenance() {
 
   const [machines, setMachines] = useState([]);
   const [form, setForm] = useState({
-    machineId: "",
-    type: "descale",
+    machineId: '',
+    type: 'descale',
     performedAt: new Date().toISOString(),
-    volumeUsedMl: "",
-    notes: "",
-    performedBy: "",
+    volumeUsedMl: '',
+    notes: '',
+    performedBy: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,29 +41,27 @@ export default function Maintenance() {
 
   const allowedTypes = useMemo(() => {
     if (!selectedMachine) return [];
-    if (selectedMachine.type === "sterilizer") {
+    if (selectedMachine.type === 'sterilizer') {
       return [
-        { value: "daily_inspection", label: "Daily inspection" },
-        { value: "cleaning", label: "Quarterly cleaning" },
+        { value: 'daily_inspection', label: 'Daily inspection' },
+        { value: 'cleaning', label: 'Quarterly cleaning' },
       ];
     }
-    if (selectedMachine.type === "washer") {
+    if (selectedMachine.type === 'washer') {
       return [
-        { value: "descale", label: "Descale" },
+        { value: 'descale', label: 'Descale' },
         {
-          value: "washer_daily_verify",
-          label: "Daily washer verify (racks + screen)",
+          value: 'washer_daily_verify',
+          label: 'Daily washer verify (racks + screen)',
         },
-        { value: "washer_weekly_tasks", label: "Weekly washer tasks" },
+        { value: 'washer_weekly_tasks', label: 'Weekly washer tasks' },
       ];
     }
-    return [{ value: "descale", label: "Descale" }];
+    return [{ value: 'descale', label: 'Descale' }];
   }, [selectedMachine]);
 
   const showVolume =
-    selectedMachine &&
-    selectedMachine.type !== "sterilizer" &&
-    form.type === "descale";
+    selectedMachine && selectedMachine.type !== 'sterilizer' && form.type === 'descale';
 
   // helpers to reset sub-forms
   function resetDaily() {
@@ -88,32 +86,30 @@ export default function Maintenance() {
       arr
         .map((b, i) => (b ? `${i + 1}` : null))
         .filter(Boolean)
-        .join("/");
+        .join('/');
     const r1 = ok(daily.r1);
     const r2 = ok(daily.r2);
-    return `Daily verify — Rack1: [${r1 || "none"}], Rack2: [${
-      r2 || "none"
-    }], Debris screen: ${daily.debris ? "cleaned" : "not cleaned"}`;
+    return `Daily verify — Rack1: [${r1 || 'none'}], Rack2: [${
+      r2 || 'none'
+    }], Debris screen: ${daily.debris ? 'cleaned' : 'not cleaned'}`;
   }
   function weeklySummary() {
     const picked = [
-      weekly.sprayArms && "Clean/Inspect spray arms",
-      weekly.tubingFloat && "Inspect chemical tubing & float",
-      weekly.doorSeal && "Clean/Disinfect door seal",
-      weekly.deconDescale && "Run decontam/descale cycle",
+      weekly.sprayArms && 'Clean/Inspect spray arms',
+      weekly.tubingFloat && 'Inspect chemical tubing & float',
+      weekly.doorSeal && 'Clean/Disinfect door seal',
+      weekly.deconDescale && 'Run decontam/descale cycle',
     ].filter(Boolean);
-    return `Weekly washer tasks — ${
-      picked.length ? picked.join("; ") : "none selected"
-    }`;
+    return `Weekly washer tasks — ${picked.length ? picked.join('; ') : 'none selected'}`;
   }
 
   // load machines & preselect
   useEffect(() => {
     async function load() {
-      const r = await apiFetch("/api/machines");
+      const r = await apiFetch('/api/machines');
       const j = await r.json();
       setMachines(j.machines || []);
-      const preset = params.get("machineId");
+      const preset = params.get('machineId');
       if (preset) setForm((f) => ({ ...f, machineId: preset }));
     }
     load();
@@ -124,7 +120,7 @@ export default function Maintenance() {
     if (!selectedMachine) return;
     const first = allowedTypes[0]?.value;
     if (first && !allowedTypes.find((t) => t.value === form.type)) {
-      setForm((f) => ({ ...f, type: first, volumeUsedMl: "" }));
+      setForm((f) => ({ ...f, type: first, volumeUsedMl: '' }));
       resetDaily();
       resetWeekly();
     }
@@ -132,18 +128,16 @@ export default function Maintenance() {
 
   // when type changes, clear irrelevant fields/sections
   useEffect(() => {
-    if (form.type !== "descale" && form.volumeUsedMl) {
-      setForm((f) => ({ ...f, volumeUsedMl: "" }));
+    if (form.type !== 'descale' && form.volumeUsedMl) {
+      setForm((f) => ({ ...f, volumeUsedMl: '' }));
     }
-    if (form.type !== "washer_daily_verify") resetDaily();
-    if (form.type !== "washer_weekly_tasks") resetWeekly();
+    if (form.type !== 'washer_daily_verify') resetDaily();
+    if (form.type !== 'washer_weekly_tasks') resetWeekly();
   }, [form.type]);
 
   const dailyAllChecked =
-    form.type !== "washer_daily_verify" ||
-    (daily.r1.every(Boolean) &&
-      daily.r2.every(Boolean) &&
-      daily.debris === true);
+    form.type !== 'washer_daily_verify' ||
+    (daily.r1.every(Boolean) && daily.r2.every(Boolean) && daily.debris === true);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -151,11 +145,11 @@ export default function Maintenance() {
       setSubmitting(true);
 
       // compose notes with checklist summaries (keeps server contract)
-      let composedNotes = (form.notes || "").trim();
-      if (form.type === "washer_daily_verify") {
+      let composedNotes = (form.notes || '').trim();
+      if (form.type === 'washer_daily_verify') {
         const chunk = dailySummary();
         composedNotes = composedNotes ? `${composedNotes}\n${chunk}` : chunk;
-      } else if (form.type === "washer_weekly_tasks") {
+      } else if (form.type === 'washer_weekly_tasks') {
         const chunk = weeklySummary();
         composedNotes = composedNotes ? `${composedNotes}\n${chunk}` : chunk;
       }
@@ -165,12 +159,12 @@ export default function Maintenance() {
         type: form.type,
         performedAt: new Date(form.performedAt).toISOString(),
         notes: composedNotes,
-        performedBy: form.performedBy?.trim() || "",
+        performedBy: form.performedBy?.trim() || '',
       };
       if (showVolume) payload.volumeUsedMl = Number(form.volumeUsedMl || 0);
 
-      const r = await apiFetch("/api/maintenance", {
-        method: "POST",
+      const r = await apiFetch('/api/maintenance', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
       if (!r.ok) {
@@ -181,17 +175,17 @@ export default function Maintenance() {
       // reset form
       setForm((f) => ({
         ...f,
-        type: allowedTypes[0]?.value || "descale",
-        volumeUsedMl: "",
-        notes: "",
-        performedBy: "",
+        type: allowedTypes[0]?.value || 'descale',
+        volumeUsedMl: '',
+        notes: '',
+        performedBy: '',
       }));
       resetDaily();
       resetWeekly();
-      show("Maintenance saved ✔", { tone: "ok" });
+      show('Maintenance saved ✔', { tone: 'ok' });
     } catch (e2) {
-      show(e2.message || "Failed to save maintenance", {
-        tone: "danger",
+      show(e2.message || 'Failed to save maintenance', {
+        tone: 'danger',
         ms: 5000,
       });
     } finally {
@@ -209,9 +203,7 @@ export default function Maintenance() {
           <label className="maint__label">Machine</label>
           <select
             value={form.machineId}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, machineId: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, machineId: e.target.value }))}
             className="maint__input"
             required
           >
@@ -236,9 +228,7 @@ export default function Maintenance() {
             disabled={!selectedMachine}
             required
           >
-            {!selectedMachine && (
-              <option value="">Select a machine first</option>
-            )}
+            {!selectedMachine && <option value="">Select a machine first</option>}
             {allowedTypes.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
@@ -274,9 +264,7 @@ export default function Maintenance() {
                 min={0}
                 placeholder="e.g., 500"
                 value={form.volumeUsedMl}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, volumeUsedMl: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, volumeUsedMl: e.target.value }))}
                 className="maint__input"
                 required
               />
@@ -287,7 +275,7 @@ export default function Maintenance() {
                 value={
                   form.volumeUsedMl
                     ? (Number(form.volumeUsedMl) / 29.5735).toFixed(1)
-                    : "auto-calculated"
+                    : 'auto-calculated'
                 }
                 readOnly
                 className="maint__input"
@@ -297,7 +285,7 @@ export default function Maintenance() {
         )}
 
         {/* ===== Daily washer verify (checklist) ===== */}
-        {form.type === "washer_daily_verify" && (
+        {form.type === 'washer_daily_verify' && (
           <div className="maint__fieldset">
             <div className="maint__legend">Daily washer verify</div>
             <div className="maint__grid">
@@ -329,9 +317,7 @@ export default function Maintenance() {
                 <input
                   type="checkbox"
                   checked={daily.debris}
-                  onChange={(e) =>
-                    setDaily((d) => ({ ...d, debris: e.target.checked }))
-                  }
+                  onChange={(e) => setDaily((d) => ({ ...d, debris: e.target.checked }))}
                 />
                 <span>Clean debris screen</span>
               </label>
@@ -345,7 +331,7 @@ export default function Maintenance() {
         )}
 
         {/* ===== Weekly washer tasks (checklist) ===== */}
-        {form.type === "washer_weekly_tasks" && (
+        {form.type === 'washer_weekly_tasks' && (
           <div className="maint__fieldset">
             <div className="maint__legend">Weekly washer tasks</div>
             <div className="maint__checks">
@@ -382,11 +368,11 @@ export default function Maintenance() {
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
             className="maint__input maint__input--textarea"
             placeholder={
-              form.type === "washer_daily_verify"
-                ? "Any additional notes (the checklist summary will be included automatically)"
-                : form.type === "washer_weekly_tasks"
-                ? "Any additional notes (checked tasks will be summarized automatically)"
-                : ""
+              form.type === 'washer_daily_verify'
+                ? 'Any additional notes (the checklist summary will be included automatically)'
+                : form.type === 'washer_weekly_tasks'
+                  ? 'Any additional notes (checked tasks will be summarized automatically)'
+                  : ''
             }
           />
         </div>
@@ -397,9 +383,7 @@ export default function Maintenance() {
           <input
             placeholder="e.g., BB"
             value={form.performedBy}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, performedBy: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, performedBy: e.target.value }))}
             className="maint__input"
             required
           />
@@ -411,17 +395,17 @@ export default function Maintenance() {
             disabled={submitting || !dailyAllChecked}
             className="btn btn--primary"
           >
-            {submitting ? "Saving…" : "Save"}
+            {submitting ? 'Saving…' : 'Save'}
           </button>
           <button
             type="button"
             onClick={() =>
               setForm((f) => ({
                 ...f,
-                type: allowedTypes[0]?.value || "descale",
-                volumeUsedMl: "",
-                notes: "",
-                performedBy: "",
+                type: allowedTypes[0]?.value || 'descale',
+                volumeUsedMl: '',
+                notes: '',
+                performedBy: '',
               }))
             }
             className="btn btn--ghost"
@@ -442,11 +426,7 @@ function ChecklistRack({ title, values, onChange }) {
       <div className="maint__rackCols">
         {values.map((v, i) => (
           <label key={i} className="maint__checkbox">
-            <input
-              type="checkbox"
-              checked={v}
-              onChange={(e) => onChange(i, e.target.checked)}
-            />
+            <input type="checkbox" checked={v} onChange={(e) => onChange(i, e.target.checked)} />
             <span>{`${i + 1}ᵗʰ shelf`}</span>
           </label>
         ))}
@@ -458,11 +438,7 @@ function ChecklistRack({ title, values, onChange }) {
 function CheckRow({ label, checked, onChange }) {
   return (
     <label className="maint__checkbox">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>
   );
@@ -470,9 +446,9 @@ function CheckRow({ label, checked, onChange }) {
 
 /* ------- datetime helpers ------- */
 function isoToLocalInput(iso) {
-  if (!iso) return "";
+  if (!iso) return '';
   const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n) => String(n).padStart(2, '0');
   const yyyy = d.getFullYear();
   const mm = pad(d.getMonth() + 1);
   const dd = pad(d.getDate());

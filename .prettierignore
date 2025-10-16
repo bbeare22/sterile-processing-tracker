@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+coverage
+*.log
+apps/**/dist
+apps/**/build
+apps/**/.vite

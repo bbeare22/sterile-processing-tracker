@@ -1,8 +1,8 @@
-const express = require("express");
-const { z } = require("zod");
-const mongoose = require("mongoose");
-const AuditLog = require("../models/AuditLog");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const express = require('express');
+const { z } = require('zod');
+const mongoose = require('mongoose');
+const AuditLog = require('../models/AuditLog');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -14,9 +14,9 @@ const Query = z.object({
   until: z.string().datetime().optional(),
 });
 
-router.get("/", requireAuth, requireRole("supervisor"), async (req, res) => {
+router.get('/', requireAuth, requireRole('supervisor'), async (req, res) => {
   const parsed = Query.safeParse(req.query);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid query" });
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid query' });
   const { action, userId, limit, since, until } = parsed.data;
 
   const filter = {};
@@ -28,10 +28,7 @@ router.get("/", requireAuth, requireRole("supervisor"), async (req, res) => {
     if (until) filter.createdAt.$lte = new Date(until);
   }
 
-  const rows = await AuditLog.find(filter)
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean();
+  const rows = await AuditLog.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
 
   res.json({ logs: rows });
 });

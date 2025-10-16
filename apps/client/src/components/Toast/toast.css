@@ -15,7 +15,10 @@
   padding: 10px 12px;
   box-shadow: var(--shadow-soft);
   cursor: pointer;
-  transition: transform 120ms ease, opacity 120ms ease, border-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease,
+    border-color 120ms ease;
 }
 
 .toast:hover {

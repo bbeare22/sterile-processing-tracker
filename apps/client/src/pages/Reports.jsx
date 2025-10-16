@@ -1,31 +1,31 @@
-import { useMemo, useState } from "react";
-import { downloadWithAuth } from "../utils/download";
+import { useMemo, useState } from 'react';
+import { downloadWithAuth } from '../utils/download';
 
 let useToast;
 try {
   // eslint-disable-next-line import/no-unresolved
-  ({ useToast } = require("../components/Toast/ToastProvider"));
+  ({ useToast } = require('../components/Toast/ToastProvider'));
 } catch {}
 
-import "./reports.css";
+import './reports.css';
 
 const MONTHS = [
-  { value: 1, label: "January" },
-  { value: 2, label: "February" },
-  { value: 3, label: "March" },
-  { value: 4, label: "April" },
-  { value: 5, label: "May" },
-  { value: 6, label: "June" },
-  { value: 7, label: "July" },
-  { value: 8, label: "August" },
-  { value: 9, label: "September" },
-  { value: 10, label: "October" },
-  { value: 11, label: "November" },
-  { value: 12, label: "December" },
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' },
 ];
 
 function pad2(n) {
-  return String(n).padStart(2, "0");
+  return String(n).padStart(2, '0');
 }
 
 function useSafeToast() {
@@ -33,20 +33,19 @@ function useSafeToast() {
   try {
     const toast = useToast?.();
     const show = toast?.show;
-    if (typeof show === "function") {
+    if (typeof show === 'function') {
       return (type, message) => {
         try {
           // Try common signatures gracefully
           if (show.length >= 2) return show(type, String(message));
           return show(String(message)); // single-arg implementations
         } catch {
-          console[type === "error" ? "error" : "log"](message);
+          console[type === 'error' ? 'error' : 'log'](message);
         }
       };
     }
   } catch {}
-  return (type, message) =>
-    console[type === "error" ? "error" : "log"](message);
+  return (type, message) => console[type === 'error' ? 'error' : 'log'](message);
 }
 
 export default function Reports() {
@@ -61,9 +60,7 @@ export default function Reports() {
     setBusy(true);
     try {
       const name = `spt-report-${year}-${pad2(month)}.pdf`;
-      const qs = `?year=${encodeURIComponent(year)}&month=${encodeURIComponent(
-        month
-      )}`;
+      const qs = `?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`;
 
       // Try multiple likely server paths to avoid 404s due to mount differences
       await downloadWithAuth(
@@ -75,9 +72,9 @@ export default function Reports() {
         { filename: name }
       );
 
-      notify("success", `Downloaded ${name}`);
+      notify('success', `Downloaded ${name}`);
     } catch (e) {
-      notify("error", `Download failed: ${e?.message || "Unknown error"}`);
+      notify('error', `Download failed: ${e?.message || 'Unknown error'}`);
     } finally {
       setBusy(false);
     }
@@ -135,13 +132,13 @@ export default function Reports() {
             onClick={onDownloadPDF}
             disabled={busy}
           >
-            {busy ? "Preparing..." : "Download Monthly PDF"}
+            {busy ? 'Preparing...' : 'Download Monthly PDF'}
           </button>
         </div>
 
         <p className="reports__hint">
-          The report includes machines, maintenance, cycles, and audit snapshots
-          for the selected month.
+          The report includes machines, maintenance, cycles, and audit snapshots for the selected
+          month.
         </p>
       </section>
     </div>

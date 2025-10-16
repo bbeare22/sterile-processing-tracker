@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
@@ -17,15 +17,15 @@ const userSchema = new mongoose.Schema(
     sterilizationNumber: { type: String, trim: true },
     role: {
       type: String,
-      enum: ["tech", "lead", "admin"],
-      default: "tech",
+      enum: ['tech', 'lead', 'admin'],
+      default: 'tech',
     },
   },
   { timestamps: true }
 );
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
@@ -40,12 +40,12 @@ userSchema.methods.toPublicJSON = function () {
     _id: this._id,
     email: this.email,
     name: this.name,
-    employeeId: this.employeeId || "",
-    sterilizationNumber: this.sterilizationNumber || "",
-    role: this.role || "tech",
+    employeeId: this.employeeId || '',
+    sterilizationNumber: this.sterilizationNumber || '',
+    role: this.role || 'tech',
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model('User', userSchema);

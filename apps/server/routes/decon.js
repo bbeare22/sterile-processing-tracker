@@ -1,9 +1,9 @@
-const express = require("express");
-const { z } = require("zod");
-const DeconLog = require("../models/DeconLog");
-const { requireAuth } = require("../middleware/auth");
-const { recordAudit } = require("../utils/audit");
-const logger = require("../utils/logger");
+const express = require('express');
+const { z } = require('zod');
+const DeconLog = require('../models/DeconLog');
+const { requireAuth } = require('../middleware/auth');
+const { recordAudit } = require('../utils/audit');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -49,7 +49,7 @@ const Body = z.object({
 });
 
 // GET /api/decon?year=2025&month=9&clinic=IC&limit=100
-router.get("/", requireAuth, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit || 100), 500);
     const filter = {};
@@ -67,23 +67,21 @@ router.get("/", requireAuth, async (req, res) => {
     const rows = await DeconLog.find(filter)
       .sort({ receivedAt: -1, createdAt: -1 })
       .limit(limit)
-      .populate("createdBy", "name email _id")
+      .populate('createdBy', 'name email _id')
       .lean();
 
     res.json({ rows });
   } catch (e) {
-    res.status(500).json({ error: "Failed to list decon rows" });
+    res.status(500).json({ error: 'Failed to list decon rows' });
   }
 });
 
 // POST /api/decon
-router.post("/", requireAuth, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const parsed = Body.safeParse(req.body);
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({ error: "Validation failed", issues: parsed.error.issues });
+      return res.status(400).json({ error: 'Validation failed', issues: parsed.error.issues });
     }
     const b = parsed.data;
 
@@ -91,9 +89,9 @@ router.post("/", requireAuth, async (req, res) => {
       clinic: b.clinic,
       receivedAt: new Date(b.receivedAt),
       sentAt: b.sentAt ? new Date(b.sentAt) : undefined,
-      verifiedInBy: b.verifiedInBy || "",
-      verifiedOutBy: b.verifiedOutBy || "",
-      notes: b.notes || "",
+      verifiedInBy: b.verifiedInBy || '',
+      verifiedOutBy: b.verifiedOutBy || '',
+      notes: b.notes || '',
       sets: b.sets || {},
       womens: b.womens || {},
       createdBy: req.user?._id || req.userId || req.user,
@@ -101,8 +99,8 @@ router.post("/", requireAuth, async (req, res) => {
 
     // AUDIT
     await recordAudit(req, {
-      action: "decon.create",
-      targetType: "DeconLog",
+      action: 'decon.create',
+      targetType: 'DeconLog',
       targetId: doc._id,
       meta: { clinic: doc.clinic },
     });
@@ -110,7 +108,7 @@ router.post("/", requireAuth, async (req, res) => {
     res.status(201).json({ row: doc });
   } catch (e) {
     logger.error(e);
-    res.status(500).json({ error: "Failed to create decon row" });
+    res.status(500).json({ error: 'Failed to create decon row' });
   }
 });
 

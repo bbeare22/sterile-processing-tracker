@@ -23,13 +23,13 @@ body {
 
 /* Make clickable things nicely tappable */
 button,
-[type="button"],
-[type="submit"],
+[type='button'],
+[type='submit'],
 a.btn,
-[class$="__btn"],
-[class$="__btnPrimary"],
-[class$="__btnGhost"],
-[class$="__linkBtn"],
+[class$='__btn'],
+[class$='__btnPrimary'],
+[class$='__btnGhost'],
+[class$='__linkBtn'],
 .sq__btn,
 .sq__btnPrimary,
 .sq__btnGhost,
@@ -44,10 +44,10 @@ a.btn,
 }
 
 /* Inputs and selects */
-input[type="text"],
-input[type="number"],
-input[type="datetime-local"],
-input[type="date"],
+input[type='text'],
+input[type='number'],
+input[type='datetime-local'],
+input[type='date'],
 select,
 textarea,
 .sq__input,
@@ -129,7 +129,7 @@ textarea,
   }
 
   /* Keep year/month/basis controls from getting squished */
-  .sq__filters input[type="number"],
+  .sq__filters input[type='number'],
   .sq__filters select {
     min-width: 110px;
   }
@@ -138,9 +138,9 @@ textarea,
 /* ---------- Larger tap targets for tiny screens ---------- */
 @media (max-width: 640px) {
   button,
-  [class$="__btn"],
-  [class$="__btnPrimary"],
-  [class$="__btnGhost"] {
+  [class$='__btn'],
+  [class$='__btnPrimary'],
+  [class$='__btnGhost'] {
     width: auto;
   }
 

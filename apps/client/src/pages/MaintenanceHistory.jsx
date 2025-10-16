@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import Skeleton from "../components/Skeleton/Skeleton";
-import { formatDateTime } from "../utils/date";
-import { apiFetch } from "../utils/api";
-import "./maintenance-history.css";
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import Skeleton from '../components/Skeleton/Skeleton';
+import { formatDateTime } from '../utils/date';
+import { apiFetch } from '../utils/api';
+import './maintenance-history.css';
 
 export default function MaintenanceHistory() {
   const { id } = useParams();
   const [machine, setMachine] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
   const [limit, setLimit] = useState(20);
 
   // Month export controls (match Spore Queue)
@@ -22,7 +22,7 @@ export default function MaintenanceHistory() {
     async function load() {
       try {
         setLoading(true);
-        setErr("");
+        setErr('');
 
         // fetch machine (for title)
         const mRes = await apiFetch(`/api/machines/${id}`);
@@ -31,9 +31,7 @@ export default function MaintenanceHistory() {
         setMachine(mJson.machine || null);
 
         // fetch maintenance list
-        const r = await apiFetch(
-          `/api/maintenance?machineId=${id}&limit=${limit}`
-        );
+        const r = await apiFetch(`/api/maintenance?machineId=${id}&limit=${limit}`);
         if (!r.ok) throw new Error(`Maintenance HTTP ${r.status}`);
         const j = await r.json();
         setRows(j.maintenance || []);
@@ -49,9 +47,9 @@ export default function MaintenanceHistory() {
 
   async function exportCSVMonth() {
     try {
-      const serverOrigin = window.location.origin.replace(":5173", ":3001");
+      const serverOrigin = window.location.origin.replace(':5173', ':3001');
       const params = new URLSearchParams({
-        kind: "maintenance",
+        kind: 'maintenance',
         year: String(exportYear),
         month: String(exportMonth),
         machineId: id, // per-machine export
@@ -60,7 +58,7 @@ export default function MaintenanceHistory() {
 
       const res = await fetch(url, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
       });
       if (!res.ok) {
@@ -70,16 +68,16 @@ export default function MaintenanceHistory() {
       const blob = await res.blob();
       const fname = `maintenance-${machine?.name || id}-${exportYear}-${String(
         exportMonth
-      ).padStart(2, "0")}.csv`;
+      ).padStart(2, '0')}.csv`;
 
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = fname;
       document.body.appendChild(a);
       a.click();
       a.remove();
     } catch (e) {
-      alert(e.message || "Failed to export CSV");
+      alert(e.message || 'Failed to export CSV');
     }
   }
 
@@ -88,20 +86,18 @@ export default function MaintenanceHistory() {
       {/* Header */}
       <div className="mh__header">
         <h1 className="mh__title">
-          {machine ? `Maintenance — ${machine.name}` : "Maintenance History"}
+          {machine ? `Maintenance — ${machine.name}` : 'Maintenance History'}
         </h1>
 
         {/* Top-right export controls (reuse Spore Queue styles for match) */}
-        <div className="mh__actions" style={{ marginLeft: "auto", gap: 10 }}>
+        <div className="mh__actions" style={{ marginLeft: 'auto', gap: 10 }}>
           <input
             className="sq__input"
             type="number"
             min={2000}
             max={2100}
             value={exportYear}
-            onChange={(e) =>
-              setExportYear(Number(e.target.value || now.getUTCFullYear()))
-            }
+            onChange={(e) => setExportYear(Number(e.target.value || now.getUTCFullYear()))}
             title="Year"
             style={{ width: 100 }}
           />
@@ -113,7 +109,7 @@ export default function MaintenanceHistory() {
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
-                {String(m).padStart(2, "0")}
+                {String(m).padStart(2, '0')}
               </option>
             ))}
           </select>
@@ -167,8 +163,8 @@ export default function MaintenanceHistory() {
                   <td className="mh__td">{r.type}</td>
                   <td className="mh__td">{formatDateTime(r.performedAt)}</td>
                   <td className="mh__td">{Number(r.volumeUsedMl || 0)}</td>
-                  <td className="mh__td mh__td--muted">{r.notes || "—"}</td>
-                  <td className="mh__td">{r.performedBy || "—"}</td>
+                  <td className="mh__td mh__td--muted">{r.notes || '—'}</td>
+                  <td className="mh__td">{r.performedBy || '—'}</td>
                 </tr>
               ))
             ) : (

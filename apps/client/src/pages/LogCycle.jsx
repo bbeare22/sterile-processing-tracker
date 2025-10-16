@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../utils/api";
-import { useToast } from "../components/Toast/ToastProvider";
-import { formatLocalInputDateTime, localInputToISO } from "../utils/date";
-import "./logcycle.css";
+import { useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '../utils/api';
+import { useToast } from '../components/Toast/ToastProvider';
+import { formatLocalInputDateTime, localInputToISO } from '../utils/date';
+import './logcycle.css';
 
 export default function LogCycle() {
   const { show } = useToast();
@@ -10,48 +10,47 @@ export default function LogCycle() {
   // machines
   const [machines, setMachines] = useState([]);
   const [loadingMachines, setLoadingMachines] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
 
   const [form, setForm] = useState({
-    machineId: "",
+    machineId: '',
     startedAt: formatLocalInputDateTime(new Date()),
-    completedAt: "",
-    loadNumber: "",
-    result: "pass",
-    clinicName: "",
-    loadStaff: "",
-    unloadStaff: "",
-    sterileDryMinutes: "",
-    maxTempPressure: "",
-    items: "",
-    notes: "",
+    completedAt: '',
+    loadNumber: '',
+    result: 'pass',
+    clinicName: '',
+    loadStaff: '',
+    unloadStaff: '',
+    sterileDryMinutes: '',
+    maxTempPressure: '',
+    items: '',
+    notes: '',
     sporeRan: false,
     spore: {
-      well: "",
-      lot: "",
-      expireDate: "",
-      incubatedAt: "",
+      well: '',
+      lot: '',
+      expireDate: '',
+      incubatedAt: '',
       // NOTE: result/verifiedAt/verifiedBy removed so spores start as "pending"
     },
   });
 
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const setSpore = (k, v) =>
-    setForm((f) => ({ ...f, spore: { ...f.spore, [k]: v } }));
+  const setSpore = (k, v) => setForm((f) => ({ ...f, spore: { ...f.spore, [k]: v } }));
 
   // load sterilizers
   useEffect(() => {
     let cancel = false;
     async function load() {
       try {
-        setErr("");
+        setErr('');
         setLoadingMachines(true);
-        const r = await apiFetch("/api/machines?type=sterilizer&status=active");
+        const r = await apiFetch('/api/machines?type=sterilizer&status=active');
         if (!r.ok) throw new Error(`Machines HTTP ${r.status}`);
         const j = await r.json();
         if (!cancel) setMachines(j.machines || []);
       } catch (e) {
-        if (!cancel) setErr(e.message || "Failed to load machines");
+        if (!cancel) setErr(e.message || 'Failed to load machines');
       } finally {
         if (!cancel) setLoadingMachines(false);
       }
@@ -63,7 +62,7 @@ export default function LogCycle() {
   }, []);
 
   const sterilizers = useMemo(
-    () => (machines || []).filter((m) => m.type === "sterilizer"),
+    () => (machines || []).filter((m) => m.type === 'sterilizer'),
     [machines]
   );
 
@@ -78,8 +77,8 @@ export default function LogCycle() {
     const out = {};
     for (const k of Object.keys(obj)) {
       const v = obj[k];
-      if (v === "" || v === null || v === undefined) continue;
-      if (typeof v === "object" && !Array.isArray(v)) {
+      if (v === '' || v === null || v === undefined) continue;
+      if (typeof v === 'object' && !Array.isArray(v)) {
         const nested = stripEmpty(v);
         if (Object.keys(nested).length) out[k] = nested;
       } else {
@@ -92,7 +91,7 @@ export default function LogCycle() {
   function buildPayload() {
     const base = {
       machineId: form.machineId || undefined,
-      machineType: "sterilizer",
+      machineType: 'sterilizer',
       startedAt: toISOOrUndefinedFromLocal(form.startedAt),
       completedAt: toISOOrUndefinedFromLocal(form.completedAt),
       loadNumber: form.loadNumber,
@@ -105,7 +104,7 @@ export default function LogCycle() {
       maxTempPressure: form.maxTempPressure,
     };
 
-    if (form.sterileDryMinutes !== "") {
+    if (form.sterileDryMinutes !== '') {
       const n = Number(form.sterileDryMinutes);
       if (!isNaN(n)) base.sterileDryMinutes = n;
     }
@@ -131,15 +130,15 @@ export default function LogCycle() {
 
   async function onSubmit(e) {
     e.preventDefault();
-    setErr("");
+    setErr('');
 
     try {
       const payload = buildPayload();
-      if (!payload.machineId) throw new Error("Please select a sterilizer.");
-      if (!payload.startedAt) throw new Error("Start time is required.");
+      if (!payload.machineId) throw new Error('Please select a sterilizer.');
+      if (!payload.startedAt) throw new Error('Start time is required.');
 
-      const r = await apiFetch("/api/cycles", {
-        method: "POST",
+      const r = await apiFetch('/api/cycles', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
 
@@ -153,56 +152,56 @@ export default function LogCycle() {
         throw new Error(msg || `HTTP ${r.status}`);
       }
 
-      show("Cycle saved ✔", { tone: "ok" });
+      show('Cycle saved ✔', { tone: 'ok' });
 
       // soft reset (keep selected machine)
       setForm((f) => ({
         ...f,
         startedAt: formatLocalInputDateTime(new Date()),
-        completedAt: "",
-        loadNumber: "",
-        result: "pass",
-        clinicName: "",
-        loadStaff: "",
-        unloadStaff: "",
-        sterileDryMinutes: "",
-        maxTempPressure: "",
-        items: "",
-        notes: "",
+        completedAt: '',
+        loadNumber: '',
+        result: 'pass',
+        clinicName: '',
+        loadStaff: '',
+        unloadStaff: '',
+        sterileDryMinutes: '',
+        maxTempPressure: '',
+        items: '',
+        notes: '',
         sporeRan: false,
         spore: {
-          well: "",
-          lot: "",
-          expireDate: "",
-          incubatedAt: "",
+          well: '',
+          lot: '',
+          expireDate: '',
+          incubatedAt: '',
         },
       }));
     } catch (e) {
-      const msg = e.message || "Failed to save cycle";
+      const msg = e.message || 'Failed to save cycle';
       setErr(msg);
-      show(msg, { tone: "danger", ms: 8000 });
+      show(msg, { tone: 'danger', ms: 8000 });
     }
   }
 
   function onReset() {
     setForm((f) => ({
       ...f,
-      completedAt: "",
-      loadNumber: "",
-      result: "pass",
-      clinicName: "",
-      loadStaff: "",
-      unloadStaff: "",
-      sterileDryMinutes: "",
-      maxTempPressure: "",
-      items: "",
-      notes: "",
+      completedAt: '',
+      loadNumber: '',
+      result: 'pass',
+      clinicName: '',
+      loadStaff: '',
+      unloadStaff: '',
+      sterileDryMinutes: '',
+      maxTempPressure: '',
+      items: '',
+      notes: '',
       sporeRan: false,
       spore: {
-        well: "",
-        lot: "",
-        expireDate: "",
-        incubatedAt: "",
+        well: '',
+        lot: '',
+        expireDate: '',
+        incubatedAt: '',
       },
     }));
   }
@@ -223,14 +222,12 @@ export default function LogCycle() {
           <label className="logcycle__label">Machine</label>
           <select
             value={form.machineId}
-            onChange={(e) => setField("machineId", e.target.value)}
+            onChange={(e) => setField('machineId', e.target.value)}
             className="logcycle__input"
             disabled={loadingMachines}
             required
           >
-            <option value="">
-              {loadingMachines ? "Loading…" : "Select a sterilizer"}
-            </option>
+            <option value="">{loadingMachines ? 'Loading…' : 'Select a sterilizer'}</option>
             {sterilizers.map((m) => (
               <option key={m._id} value={m._id}>
                 {m.name}
@@ -246,7 +243,7 @@ export default function LogCycle() {
             <input
               type="datetime-local"
               value={form.startedAt}
-              onChange={(e) => setField("startedAt", e.target.value)}
+              onChange={(e) => setField('startedAt', e.target.value)}
               className="logcycle__input"
               required
             />
@@ -256,7 +253,7 @@ export default function LogCycle() {
             <input
               type="datetime-local"
               value={form.completedAt}
-              onChange={(e) => setField("completedAt", e.target.value)}
+              onChange={(e) => setField('completedAt', e.target.value)}
               className="logcycle__input"
             />
           </div>
@@ -269,7 +266,7 @@ export default function LogCycle() {
             <input
               placeholder="e.g., 01"
               value={form.loadNumber}
-              onChange={(e) => setField("loadNumber", e.target.value)}
+              onChange={(e) => setField('loadNumber', e.target.value)}
               className="logcycle__input"
             />
           </div>
@@ -277,7 +274,7 @@ export default function LogCycle() {
             <label className="logcycle__label">Result</label>
             <select
               value={form.result}
-              onChange={(e) => setField("result", e.target.value)}
+              onChange={(e) => setField('result', e.target.value)}
               className="logcycle__input"
             >
               <option value="pass">pass</option>
@@ -288,13 +285,11 @@ export default function LogCycle() {
 
         {/* clinic + staff */}
         <div className="logcycle__field">
-          <label className="logcycle__label">
-            Clinic / Department (optional)
-          </label>
+          <label className="logcycle__label">Clinic / Department (optional)</label>
           <input
             placeholder="e.g., Jet Wing"
             value={form.clinicName}
-            onChange={(e) => setField("clinicName", e.target.value)}
+            onChange={(e) => setField('clinicName', e.target.value)}
             className="logcycle__input"
           />
         </div>
@@ -305,7 +300,7 @@ export default function LogCycle() {
             <input
               placeholder="e.g., BB"
               value={form.loadStaff}
-              onChange={(e) => setField("loadStaff", e.target.value)}
+              onChange={(e) => setField('loadStaff', e.target.value)}
               className="logcycle__input"
             />
           </div>
@@ -314,7 +309,7 @@ export default function LogCycle() {
             <input
               placeholder="e.g., BB"
               value={form.unloadStaff}
-              onChange={(e) => setField("unloadStaff", e.target.value)}
+              onChange={(e) => setField('unloadStaff', e.target.value)}
               className="logcycle__input"
             />
           </div>
@@ -323,14 +318,12 @@ export default function LogCycle() {
         {/* timing + gauge */}
         <div className="logcycle__row2">
           <div className="logcycle__field">
-            <label className="logcycle__label">
-              Sterile & Dry Time (minutes)
-            </label>
+            <label className="logcycle__label">Sterile & Dry Time (minutes)</label>
             <input
               inputMode="numeric"
               placeholder="e.g., 7m 35m"
               value={form.sterileDryMinutes}
-              onChange={(e) => setField("sterileDryMinutes", e.target.value)}
+              onChange={(e) => setField('sterileDryMinutes', e.target.value)}
               className="logcycle__input"
             />
           </div>
@@ -339,7 +332,7 @@ export default function LogCycle() {
             <input
               placeholder="e.g., 270°F / 27 psi"
               value={form.maxTempPressure}
-              onChange={(e) => setField("maxTempPressure", e.target.value)}
+              onChange={(e) => setField('maxTempPressure', e.target.value)}
               className="logcycle__input"
             />
           </div>
@@ -347,14 +340,12 @@ export default function LogCycle() {
 
         {/* items */}
         <div className="logcycle__field">
-          <label className="logcycle__label">
-            Items (what’s inside the load)
-          </label>
+          <label className="logcycle__label">Items (what’s inside the load)</label>
           <textarea
             rows={3}
             placeholder="e.g., ×15 Pouches, ×6 OS, ×8 Restorative, ×12 XCP, ×15 basic"
             value={form.items}
-            onChange={(e) => setField("items", e.target.value)}
+            onChange={(e) => setField('items', e.target.value)}
             className="logcycle__input"
           />
         </div>
@@ -364,7 +355,7 @@ export default function LogCycle() {
           <input
             type="checkbox"
             checked={form.sporeRan}
-            onChange={(e) => setField("sporeRan", e.target.checked)}
+            onChange={(e) => setField('sporeRan', e.target.checked)}
           />
           Spore Test Ran
         </label>
@@ -378,7 +369,7 @@ export default function LogCycle() {
                 <input
                   placeholder="e.g., 2"
                   value={form.spore.well}
-                  onChange={(e) => setSpore("well", e.target.value)}
+                  onChange={(e) => setSpore('well', e.target.value)}
                   className="logcycle__input"
                 />
               </div>
@@ -387,7 +378,7 @@ export default function LogCycle() {
                 <input
                   placeholder="e.g., 20261018"
                   value={form.spore.lot}
-                  onChange={(e) => setSpore("lot", e.target.value)}
+                  onChange={(e) => setSpore('lot', e.target.value)}
                   className="logcycle__input"
                 />
               </div>
@@ -399,18 +390,16 @@ export default function LogCycle() {
                 <input
                   type="date"
                   value={form.spore.expireDate}
-                  onChange={(e) => setSpore("expireDate", e.target.value)}
+                  onChange={(e) => setSpore('expireDate', e.target.value)}
                   className="logcycle__input"
                 />
               </div>
               <div className="logcycle__field">
-                <label className="logcycle__label">
-                  Incubation Date & Time
-                </label>
+                <label className="logcycle__label">Incubation Date & Time</label>
                 <input
                   type="datetime-local"
                   value={form.spore.incubatedAt}
-                  onChange={(e) => setSpore("incubatedAt", e.target.value)}
+                  onChange={(e) => setSpore('incubatedAt', e.target.value)}
                   className="logcycle__input"
                 />
               </div>
@@ -424,7 +413,7 @@ export default function LogCycle() {
           <textarea
             rows={3}
             value={form.notes}
-            onChange={(e) => setField("notes", e.target.value)}
+            onChange={(e) => setField('notes', e.target.value)}
             className="logcycle__input"
           />
         </div>
@@ -433,11 +422,7 @@ export default function LogCycle() {
           <button type="submit" className="logcycle__btnPrimary">
             Save
           </button>
-          <button
-            type="button"
-            onClick={onReset}
-            className="logcycle__btnGhost"
-          >
+          <button type="button" onClick={onReset} className="logcycle__btnGhost">
             Reset
           </button>
         </div>

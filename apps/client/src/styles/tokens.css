@@ -35,5 +35,11 @@ body,
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial;
 }

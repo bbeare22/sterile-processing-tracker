@@ -1,4 +1,4 @@
-import { apiFetch } from "../utils/api";
+import { apiFetch } from '../utils/api';
 
 async function toError(res) {
   try {
@@ -10,15 +10,9 @@ async function toError(res) {
 }
 
 /** Register */
-export async function register({
-  email,
-  password,
-  name,
-  employeeId,
-  sterilizationNumber,
-}) {
-  const r = await apiFetch("/api/auth/register", {
-    method: "POST",
+export async function register({ email, password, name, employeeId, sterilizationNumber }) {
+  const r = await apiFetch('/api/auth/register', {
+    method: 'POST',
     body: JSON.stringify({
       email,
       password,
@@ -33,8 +27,8 @@ export async function register({
 
 /** Login */
 export async function login({ email, password }) {
-  const r = await apiFetch("/api/auth/login", {
-    method: "POST",
+  const r = await apiFetch('/api/auth/login', {
+    method: 'POST',
     body: JSON.stringify({ email, password }),
   });
   if (!r.ok) throw await toError(r);
@@ -42,7 +36,7 @@ export async function login({ email, password }) {
 }
 
 export async function me() {
-  const r = await apiFetch("/api/auth/me");
+  const r = await apiFetch('/api/auth/me');
   if (!r.ok) throw await toError(r);
   return r.json();
 }

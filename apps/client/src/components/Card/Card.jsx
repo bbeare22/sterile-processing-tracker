@@ -1,4 +1,4 @@
-import styles from "./Card.module.css";
+import styles from './Card.module.css';
 
 export default function Card({ title, right, children, style }) {
   return (
@@ -15,17 +15,17 @@ export default function Card({ title, right, children, style }) {
 }
 
 const card = {
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border)',
   borderRadius: 16,
   padding: 16,
-  boxShadow: "var(--shadow-soft)",
+  boxShadow: 'var(--shadow-soft)',
 };
 
 const head = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
   gap: 12,
   marginBottom: 12,
 };

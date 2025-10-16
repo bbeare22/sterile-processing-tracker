@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { login as apiLogin, register as apiRegister } from "../utils/auth";
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { login as apiLogin, register as apiRegister } from '../utils/auth';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
@@ -7,14 +7,14 @@ export const useAuth = () => useContext(AuthCtx);
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      const raw = localStorage.getItem("user");
+      const raw = localStorage.getItem('user');
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
   });
 
-  const [token, setToken] = useState(() => localStorage.getItem("token") || "");
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function AuthProvider({ children }) {
         setLoading(true);
         const { user: u } = await apiMe();
         if (u) {
-          localStorage.setItem("user", JSON.stringify(u));
+          localStorage.setItem('user', JSON.stringify(u));
           setUser(u);
         }
       } catch {
@@ -38,13 +38,13 @@ export default function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { token: t, user: u } = await apiRegister(payload);
-      if (t) localStorage.setItem("token", t);
-      if (u) localStorage.setItem("user", JSON.stringify(u));
-      setToken(t || "");
+      if (t) localStorage.setItem('token', t);
+      if (u) localStorage.setItem('user', JSON.stringify(u));
+      setToken(t || '');
       setUser(u || null);
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: e.message || "Registration failed" };
+      return { ok: false, error: e.message || 'Registration failed' };
     } finally {
       setLoading(false);
     }
@@ -54,24 +54,24 @@ export default function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { token: t, user: u } = await apiLogin(credentials);
-      if (t) localStorage.setItem("token", t);
-      if (u) localStorage.setItem("user", JSON.stringify(u));
-      setToken(t || "");
+      if (t) localStorage.setItem('token', t);
+      if (u) localStorage.setItem('user', JSON.stringify(u));
+      setToken(t || '');
       setUser(u || null);
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: e.message || "Login failed" };
+      return { ok: false, error: e.message || 'Login failed' };
     } finally {
       setLoading(false);
     }
   }
 
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setToken("");
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken('');
     setUser(null);
-    window.location.href = "/login";
+    window.location.href = '/login';
   }
 
   const value = useMemo(

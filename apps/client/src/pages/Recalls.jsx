@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import Skeleton from "../components/Skeleton/Skeleton";
-import { apiFetch } from "../utils/api";
-import "./recalls.css";
+import { useEffect, useMemo, useState } from 'react';
+import Skeleton from '../components/Skeleton/Skeleton';
+import { apiFetch } from '../utils/api';
+import './recalls.css';
 
 function formatDate(yyyymmdd) {
-  if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd || "";
+  if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd || '';
   const y = yyyymmdd.slice(0, 4),
     m = yyyymmdd.slice(4, 6),
     d = yyyymmdd.slice(6, 8);
@@ -12,11 +12,11 @@ function formatDate(yyyymmdd) {
 }
 
 export default function Recalls() {
-  const [brand, setBrand] = useState("STERIS");
+  const [brand, setBrand] = useState('STERIS');
   const [limit, setLimit] = useState(25);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const path = useMemo(() => {
@@ -26,11 +26,9 @@ export default function Recalls() {
 
   const fetchRecalls = () => {
     setLoading(true);
-    setErr("");
+    setErr('');
     apiFetch(path)
-      .then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
-      )
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((d) => {
         setRows(d.rows || []);
         setLastUpdated(new Date());
@@ -70,7 +68,7 @@ export default function Recalls() {
           Refresh
         </button>
         <div className="rec__meta">
-          {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : ""}
+          {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : ''}
         </div>
       </div>
 

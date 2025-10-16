@@ -2,25 +2,25 @@
 
 function getToken() {
   return (
-    localStorage.getItem("token") ||
-    localStorage.getItem("jwt") ||
-    sessionStorage.getItem("token") ||
-    ""
+    localStorage.getItem('token') ||
+    localStorage.getItem('jwt') ||
+    sessionStorage.getItem('token') ||
+    ''
   );
 }
 
 export function getServerOrigin() {
   // Access import.meta safely (it's valid ESM syntax; no "typeof import"!)
   const envOrigin =
-    (typeof import.meta !== "undefined" &&
+    (typeof import.meta !== 'undefined' &&
       import.meta?.env &&
       (import.meta.env.VITE_API_ORIGIN || import.meta.env.VITE_API_URL)) ||
-    "";
+    '';
 
-  if (envOrigin) return String(envOrigin).replace(/\/+$/, "");
+  if (envOrigin) return String(envOrigin).replace(/\/+$/, '');
 
   const origin = window.location.origin;
-  if (origin.includes(":5173")) return origin.replace(":5173", ":3001");
+  if (origin.includes(':5173')) return origin.replace(':5173', ':3001');
   return origin;
 }
 
@@ -28,18 +28,18 @@ export function getServerOrigin() {
 
 async function tryFetchFile(url, token, extraHeaders = {}) {
   const res = await fetch(url, {
-    method: "GET",
+    method: 'GET',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...extraHeaders,
     },
-    credentials: "include",
+    credentials: 'include',
   });
 
   if (!res.ok) {
-    const responseContentType = res.headers.get("content-type") || "";
+    const responseContentType = res.headers.get('content-type') || '';
     let msg = `HTTP ${res.status}`;
-    if (responseContentType.includes("application/json")) {
+    if (responseContentType.includes('application/json')) {
       try {
         const j = await res.json();
         msg = j.error || j.message || msg;
@@ -57,13 +57,10 @@ async function tryFetchFile(url, token, extraHeaders = {}) {
     throw new Error(msg);
   }
 
-  const contentType = res.headers.get("content-type") || "";
+  const contentType = res.headers.get('content-type') || '';
   // Avoid accidentally downloading JSON/HTML as a file
-  if (
-    contentType.includes("application/json") ||
-    contentType.includes("text/html")
-  ) {
-    let msg = "Unexpected non-file response";
+  if (contentType.includes('application/json') || contentType.includes('text/html')) {
+    let msg = 'Unexpected non-file response';
     try {
       const j = await res.json();
       msg = j.error || j.message || msg;
@@ -81,13 +78,13 @@ async function tryFetchFile(url, token, extraHeaders = {}) {
   return await res.blob();
 }
 
-export function triggerDownload(blob, filename = "download.bin") {
+export function triggerDownload(blob, filename = 'download.bin') {
   const url = URL.createObjectURL(blob);
   try {
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = filename;
-    a.style.display = "none";
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -98,12 +95,12 @@ export function triggerDownload(blob, filename = "download.bin") {
 
 /* ---------------- high-level helpers ---------------- */
 
-export async function downloadCSVFromReports(params, filename = "export.csv") {
+export async function downloadCSVFromReports(params, filename = 'export.csv') {
   const server = getServerOrigin();
   const usp = new URLSearchParams();
 
   for (const [k, v] of Object.entries(params || {})) {
-    if (v !== undefined && v !== null && v !== "") usp.set(k, String(v));
+    if (v !== undefined && v !== null && v !== '') usp.set(k, String(v));
   }
 
   const token = getToken();
@@ -124,7 +121,7 @@ export async function downloadCSVFromReports(params, filename = "export.csv") {
       return;
     } catch {}
   }
-  throw new Error("CSV download failed. Tried:\n" + attempted.join("\n"));
+  throw new Error('CSV download failed. Tried:\n' + attempted.join('\n'));
 }
 
 export async function downloadWithAuth(paths, { filename }) {
@@ -135,7 +132,7 @@ export async function downloadWithAuth(paths, { filename }) {
   const attempted = [];
 
   for (const p of list) {
-    const full = p.startsWith("http") ? p : `${base}${p}`;
+    const full = p.startsWith('http') ? p : `${base}${p}`;
     attempted.push(full);
     try {
       const blob = await tryFetchFile(full, token);
@@ -145,7 +142,6 @@ export async function downloadWithAuth(paths, { filename }) {
   }
 
   throw new Error(
-    "Download failed: endpoint not found or returned an error.\nTried:\n" +
-      attempted.join("\n")
+    'Download failed: endpoint not found or returned an error.\nTried:\n' + attempted.join('\n')
   );
 }

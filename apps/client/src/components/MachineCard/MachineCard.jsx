@@ -1,38 +1,33 @@
-import styles from "./MachineCard.module.css";
-import common from "../common.module.css";
-import { Link } from "react-router-dom";
-import { daysSince } from "../../utils/date";
+import styles from './MachineCard.module.css';
+import common from '../common.module.css';
+import { Link } from 'react-router-dom';
+import { daysSince } from '../../utils/date';
 
-export default function MachineCard({
-  m,
-  canManage = false,
-  onEdit,
-  onDelete,
-}) {
-  const isActive = m.status === "active";
-  const badge = isActive ? styles["badge--ok"] : styles["badge--down"];
-  const dot = isActive ? common["dot--ok"] : common["dot--down"];
+export default function MachineCard({ m, canManage = false, onEdit, onDelete }) {
+  const isActive = m.status === 'active';
+  const badge = isActive ? styles['badge--ok'] : styles['badge--down'];
+  const dot = isActive ? common['dot--ok'] : common['dot--down'];
 
   // Descale chip: only meaningful for washers
-  const isWasher = m.type === "washer";
+  const isWasher = m.type === 'washer';
   const d = isWasher ? daysSince(m.lastDescaleAt) : NaN;
   const chipTone =
     isWasher && isFinite(d)
       ? d > 14
-        ? styles["chip--danger"]
+        ? styles['chip--danger']
         : d > 7
-        ? styles["chip--warn"]
-        : ""
-      : "";
+          ? styles['chip--warn']
+          : ''
+      : '';
 
   return (
     <article className={styles.card} aria-label={`${m.name} ${m.model}`}>
       <div className={styles.card__top}>
         <h3 className={styles.card__title}>{m.name}</h3>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {isWasher && (
             <span className={`${styles.chip} ${chipTone}`}>
-              {isFinite(d) ? `${d}d since descale` : "—"}
+              {isFinite(d) ? `${d}d since descale` : '—'}
             </span>
           )}
           <span className={`${styles.badge} ${badge}`}>
@@ -46,7 +41,7 @@ export default function MachineCard({
         {m.type} • Model {m.model} • {m.location}
       </div>
 
-      <div className={styles.card__footer} style={{ display: "flex", gap: 8 }}>
+      <div className={styles.card__footer} style={{ display: 'flex', gap: 8 }}>
         <Link className={styles.link} to={`/machines/${m._id}`}>
           View
         </Link>

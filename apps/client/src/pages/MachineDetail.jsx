@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { apiFetch } from "../utils/api";
-import { formatDateTime } from "../utils/date";
-import "./machinedetail.css";
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { apiFetch } from '../utils/api';
+import { formatDateTime } from '../utils/date';
+import './machinedetail.css';
 
 export default function MachineDetail() {
   const { id } = useParams();
@@ -10,13 +10,13 @@ export default function MachineDetail() {
   const [maint, setMaint] = useState([]);
   const [cycles, setCycles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
 
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
-        setErr("");
+        setErr('');
 
         const [mRes, maRes, cyRes] = await Promise.all([
           apiFetch(`/api/machines/${id}`),
@@ -69,7 +69,7 @@ export default function MachineDetail() {
           <Link to={`/maintenance?machineId=${m._id}`} className="md__linkBtn">
             Log maintenance
           </Link>
-          {m.type === "sterilizer" && (
+          {m.type === 'sterilizer' && (
             <Link to={`/cycles?machineId=${m._id}`} className="md__linkBtn">
               Log cycle
             </Link>
@@ -94,10 +94,9 @@ export default function MachineDetail() {
         <div>
           <strong>Status:</strong> {m.status}
         </div>
-        {m.type === "washer" && (
+        {m.type === 'washer' && (
           <div>
-            <strong>Last Descale:</strong>{" "}
-            {m.lastDescaleAt ? formatDateTime(m.lastDescaleAt) : "—"}
+            <strong>Last Descale:</strong> {m.lastDescaleAt ? formatDateTime(m.lastDescaleAt) : '—'}
           </div>
         )}
       </div>
@@ -122,10 +121,8 @@ export default function MachineDetail() {
                   <td className="md__td">{row.type}</td>
                   <td className="md__td">{formatDateTime(row.performedAt)}</td>
                   <td className="md__td">{Number(row.volumeUsedMl || 0)}</td>
-                  <td className="md__td md__td--muted">{row.notes || "—"}</td>
-                  <td className="md__td">
-                    {row.createdBy?.name || row.createdBy?.email || "—"}
-                  </td>
+                  <td className="md__td md__td--muted">{row.notes || '—'}</td>
+                  <td className="md__td">{row.createdBy?.name || row.createdBy?.email || '—'}</td>
                 </tr>
               ))
             ) : (
@@ -145,7 +142,7 @@ export default function MachineDetail() {
       </div>
 
       {/* Cycle history (sterilizer only) */}
-      {m.type === "sterilizer" && (
+      {m.type === 'sterilizer' && (
         <>
           <h2 className="md__sectionTitle">Recent Cycles</h2>
           <div className="md__tableWrap">
@@ -164,16 +161,14 @@ export default function MachineDetail() {
                 {cycles.length ? (
                   cycles.map((r) => (
                     <tr key={r._id} className="md__tr">
-                      <td className="md__td">{r.loadNumber || "—"}</td>
+                      <td className="md__td">{r.loadNumber || '—'}</td>
                       <td className="md__td">{formatDateTime(r.startedAt)}</td>
                       <td className="md__td">
-                        {r.completedAt ? formatDateTime(r.completedAt) : "—"}
+                        {r.completedAt ? formatDateTime(r.completedAt) : '—'}
                       </td>
                       <td className="md__td">{r.result}</td>
-                      <td className="md__td md__td--muted">{r.items || "—"}</td>
-                      <td className="md__td">
-                        {r.createdBy?.name || r.createdBy?.email || "—"}
-                      </td>
+                      <td className="md__td md__td--muted">{r.items || '—'}</td>
+                      <td className="md__td">{r.createdBy?.name || r.createdBy?.email || '—'}</td>
                     </tr>
                   ))
                 ) : (

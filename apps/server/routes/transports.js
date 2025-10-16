@@ -1,11 +1,11 @@
-const express = require("express");
-const { z } = require("zod");
-const mongoose = require("mongoose");
-const TransportTrip = require("../models/TransportTrip");
-const FuelPurchase = require("../models/FuelPurchase");
-const { requireAuth } = require("../middleware/auth");
-const { recordAudit } = require("../utils/audit");
-const logger = require("../utils/logger");
+const express = require('express');
+const { z } = require('zod');
+const mongoose = require('mongoose');
+const TransportTrip = require('../models/TransportTrip');
+const FuelPurchase = require('../models/FuelPurchase');
+const { requireAuth } = require('../middleware/auth');
+const { recordAudit } = require('../utils/audit');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -31,8 +31,8 @@ const TripBody = z.object({
   countTransportsMorning: z.boolean().optional(),
   countTransportsReturn: z.boolean().optional(),
   countTransportsEndOfDay: z.boolean().optional(),
-  copySheetsNeeded: z.enum(["yes", "no", ""]).optional(),
-  gasReceiptSubmitted: z.enum(["yes", "na", ""]).optional(),
+  copySheetsNeeded: z.enum(['yes', 'no', '']).optional(),
+  gasReceiptSubmitted: z.enum(['yes', 'na', '']).optional(),
   techSignature: z.string().optional(),
   supervisorSignature: z.string().optional(),
   notes: z.string().optional(),
@@ -50,17 +50,17 @@ const FuelBody = z.object({
 });
 
 const ListQuery = z.object({
-  kind: z.enum(["trip", "fuel"]).optional(), // filter subtype
+  kind: z.enum(['trip', 'fuel']).optional(), // filter subtype
   limit: z.coerce.number().int().min(1).max(500).optional(),
   dateFrom: z.string().datetime().optional(),
 });
 
 /* ---------------- trips ------------------- */
-router.get("/", requireAuth, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const parsed = ListQuery.safeParse(req.query);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid query" });
+      return res.status(400).json({ error: 'Invalid query' });
     }
     const { kind, limit = 100, dateFrom } = parsed.data;
 
@@ -72,40 +72,38 @@ router.get("/", requireAuth, async (req, res) => {
       fuelFilter.date = { $gte: s };
     }
 
-    if (!kind || kind === "trip") {
+    if (!kind || kind === 'trip') {
       const trips = await TransportTrip.find(tripFilter)
         .sort({ date: -1, createdAt: -1 })
         .limit(limit)
-        .populate("createdBy", "name _id email")
+        .populate('createdBy', 'name _id email')
         .lean();
-      if (kind === "trip") return res.json({ trips });
+      if (kind === 'trip') return res.json({ trips });
       // if no kind, include both
       const fuels = await FuelPurchase.find(fuelFilter)
         .sort({ date: -1, createdAt: -1 })
         .limit(limit)
-        .populate("createdBy", "name _id email")
+        .populate('createdBy', 'name _id email')
         .lean();
       return res.json({ trips, fuels });
     } else {
       const fuels = await FuelPurchase.find(fuelFilter)
         .sort({ date: -1, createdAt: -1 })
         .limit(limit)
-        .populate("createdBy", "name _id email")
+        .populate('createdBy', 'name _id email')
         .lean();
       return res.json({ fuels });
     }
   } catch {
-    res.status(500).json({ error: "Failed to list transports" });
+    res.status(500).json({ error: 'Failed to list transports' });
   }
 });
 
-router.post("/trip", requireAuth, async (req, res) => {
+router.post('/trip', requireAuth, async (req, res) => {
   try {
     const parsed = TripBody.safeParse(req.body);
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({ error: "Validation failed", issues: parsed.error.issues });
+      return res.status(400).json({ error: 'Validation failed', issues: parsed.error.issues });
     }
     const b = parsed.data;
     const doc = await TransportTrip.create({
@@ -118,8 +116,8 @@ router.post("/trip", requireAuth, async (req, res) => {
 
     // AUDIT
     await recordAudit(req, {
-      action: "transport.trip.create",
-      targetType: "TransportTrip",
+      action: 'transport.trip.create',
+      targetType: 'TransportTrip',
       targetId: doc._id,
       meta: { driver: doc.driver, destination: doc.destination },
     });
@@ -127,17 +125,15 @@ router.post("/trip", requireAuth, async (req, res) => {
     res.status(201).json({ trip: doc });
   } catch (e) {
     logger.error(e);
-    res.status(500).json({ error: "Failed to create trip" });
+    res.status(500).json({ error: 'Failed to create trip' });
   }
 });
 
-router.post("/fuel", requireAuth, async (req, res) => {
+router.post('/fuel', requireAuth, async (req, res) => {
   try {
     const parsed = FuelBody.safeParse(req.body);
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({ error: "Validation failed", issues: parsed.error.issues });
+      return res.status(400).json({ error: 'Validation failed', issues: parsed.error.issues });
     }
     const b = parsed.data;
     const doc = await FuelPurchase.create({
@@ -148,8 +144,8 @@ router.post("/fuel", requireAuth, async (req, res) => {
 
     // AUDIT
     await recordAudit(req, {
-      action: "transport.fuel.create",
-      targetType: "FuelPurchase",
+      action: 'transport.fuel.create',
+      targetType: 'FuelPurchase',
       targetId: doc._id,
       meta: {
         amount: doc.amount,
@@ -161,7 +157,7 @@ router.post("/fuel", requireAuth, async (req, res) => {
     res.status(201).json({ fuel: doc });
   } catch (e) {
     logger.error(e);
-    res.status(500).json({ error: "Failed to create fuel record" });
+    res.status(500).json({ error: 'Failed to create fuel record' });
   }
 });
 

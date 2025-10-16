@@ -1,13 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
-  useEffect,
-} from "react";
-import { createPortal } from "react-dom";
-import "./toast.css";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import './toast.css';
 
 const ToastCtx = createContext(null);
 export const useToast = () => useContext(ToastCtx);
@@ -22,7 +15,7 @@ export default function ToastProvider({ children }) {
   }, []);
 
   const show = useCallback(
-    (msg, { tone = "ok", ms = 3000 } = {}) => {
+    (msg, { tone = 'ok', ms = 3000 } = {}) => {
       const id = ++idSeq;
       setToasts((t) => [...t, { id, msg, tone }]);
       if (ms > 0) setTimeout(() => remove(id), ms);
@@ -35,10 +28,10 @@ export default function ToastProvider({ children }) {
   // portal root
   const [root, setRoot] = useState(null);
   useEffect(() => {
-    let el = document.getElementById("toast-root");
+    let el = document.getElementById('toast-root');
     if (!el) {
-      el = document.createElement("div");
-      el.id = "toast-root";
+      el = document.createElement('div');
+      el.id = 'toast-root';
       document.body.appendChild(el);
     }
     setRoot(el);
@@ -54,12 +47,12 @@ export default function ToastProvider({ children }) {
               <div
                 key={t.id}
                 className={
-                  "toast" +
-                  (t.tone === "danger"
-                    ? " toast--danger"
-                    : t.tone === "warn"
-                    ? " toast--warn"
-                    : " toast--ok")
+                  'toast' +
+                  (t.tone === 'danger'
+                    ? ' toast--danger'
+                    : t.tone === 'warn'
+                      ? ' toast--warn'
+                      : ' toast--ok')
                 }
                 onClick={() => remove(t.id)}
                 role="status"

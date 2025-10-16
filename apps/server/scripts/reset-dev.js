@@ -1,31 +1,31 @@
-require("dotenv").config({
-  path: require("path").join(__dirname, "..", ".env"),
+require('dotenv').config({
+  path: require('path').join(__dirname, '..', '.env'),
 });
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const Maintenance = require("../models/Maintenance");
-const Cycle = require("../models/Cycle");
-const DeconLog = require("../models/DeconLog");
-const ControlBI = require("../models/ControlBI");
-const TransportTrip = require("../models/TransportTrip");
-const FuelPurchase = require("../models/FuelPurchase");
-const AuditLog = require("../models/AuditLog");
+const Maintenance = require('../models/Maintenance');
+const Cycle = require('../models/Cycle');
+const DeconLog = require('../models/DeconLog');
+const ControlBI = require('../models/ControlBI');
+const TransportTrip = require('../models/TransportTrip');
+const FuelPurchase = require('../models/FuelPurchase');
+const AuditLog = require('../models/AuditLog');
 
 (async function main() {
   try {
     const uri = process.env.MONGO_URI;
     if (!uri) {
-      console.error("❌ Missing MONGO_URI in apps/server/.env");
+      console.error('❌ Missing MONGO_URI in apps/server/.env');
       process.exit(1);
     }
 
-    console.log("Connecting…");
+    console.log('Connecting…');
     await mongoose.connect(uri);
-    console.log("✓ Connected");
+    console.log('✓ Connected');
 
     // Optional flags
-    const wipeMachines = process.argv.includes("--machines");
-    const wipeUsers = process.argv.includes("--users");
+    const wipeMachines = process.argv.includes('--machines');
+    const wipeUsers = process.argv.includes('--users');
 
     // --- Show before counts
     const countsBefore = await Promise.all([
@@ -59,13 +59,13 @@ const AuditLog = require("../models/AuditLog");
 
     // --- Optional extras
     if (wipeMachines) {
-      const Machine = require("../models/Machine");
+      const Machine = require('../models/Machine');
       const mDel = await Machine.deleteMany({});
       console.log(`Deleted machines=${mDel.deletedCount}`);
     }
 
     if (wipeUsers) {
-      const User = require("../models/User");
+      const User = require('../models/User');
       const uDel = await User.deleteMany({});
       console.log(`Deleted users=${uDel.deletedCount}`);
     }
@@ -86,9 +86,9 @@ const AuditLog = require("../models/AuditLog");
     );
 
     await mongoose.disconnect();
-    console.log("✓ Done — dev data cleared (users & machines preserved)");
+    console.log('✓ Done — dev data cleared (users & machines preserved)');
   } catch (e) {
-    console.error("Reset error:", e);
+    console.error('Reset error:', e);
     process.exit(1);
   }
 })();

@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import MachineCard from "../components/MachineCard/MachineCard";
-import MachineForm from "../components/MachineForm/MachineForm";
-import ModalWithForm from "../components/ModalWithForm/ModalWithForm";
-import { useAuth } from "../context/AuthContext";
-import { useToast } from "../components/Toast/ToastProvider";
-import { apiFetch } from "../utils/api";
-import "./machines.css";
+import { useEffect, useMemo, useState } from 'react';
+import MachineCard from '../components/MachineCard/MachineCard';
+import MachineForm from '../components/MachineForm/MachineForm';
+import ModalWithForm from '../components/ModalWithForm/ModalWithForm';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast/ToastProvider';
+import { apiFetch } from '../utils/api';
+import './machines.css';
 
 export default function Machines() {
-  const [q, setQ] = useState("");
-  const [type, setType] = useState("all");
+  const [q, setQ] = useState('');
+  const [type, setType] = useState('all');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -20,16 +20,14 @@ export default function Machines() {
 
   const { user } = useAuth();
   const { show } = useToast();
-  const canManage = user?.role === "supervisor";
+  const canManage = user?.role === 'supervisor';
 
   // Load machines
   useEffect(() => {
     setLoading(true);
-    setErr("");
+    setErr('');
     apiFetch(`/api/machines`)
-      .then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
-      )
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((d) => setRows(d.machines || []))
       .catch((e) => setErr(e.message))
       .finally(() => setLoading(false));
@@ -38,11 +36,11 @@ export default function Machines() {
   const filtered = useMemo(() => {
     return rows.filter((m) => {
       const matchesQ = [m.name, m.model, m.location, m._id].some((v) =>
-        String(v || "")
+        String(v || '')
           .toLowerCase()
           .includes(q.toLowerCase())
       );
-      const matchesType = type === "all" ? true : m.type === type;
+      const matchesType = type === 'all' ? true : m.type === type;
       return matchesQ && matchesType;
     });
   }, [rows, q, type]);
@@ -72,7 +70,7 @@ export default function Machines() {
 
       const url = editing ? `/api/machines/${editing._id}` : `/api/machines`;
       const res = await apiFetch(url, {
-        method: editing ? "PUT" : "POST",
+        method: editing ? 'PUT' : 'POST',
         body: JSON.stringify(payload),
       });
 
@@ -83,17 +81,15 @@ export default function Machines() {
       const j = await res.json();
 
       if (editing) {
-        setRows((prev) =>
-          prev.map((x) => (x._id === editing._id ? j.machine : x))
-        );
-        show("Machine updated ✔", { tone: "ok" });
+        setRows((prev) => prev.map((x) => (x._id === editing._id ? j.machine : x)));
+        show('Machine updated ✔', { tone: 'ok' });
       } else {
         setRows((prev) => [j.machine, ...prev]);
-        show("Machine added ✔", { tone: "ok" });
+        show('Machine added ✔', { tone: 'ok' });
       }
       closeForm();
     } catch (e) {
-      show(e.message || "Failed to save machine", { tone: "danger", ms: 5000 });
+      show(e.message || 'Failed to save machine', { tone: 'danger', ms: 5000 });
     } finally {
       setSubmitting(false);
     }
@@ -102,16 +98,16 @@ export default function Machines() {
   async function handleDelete(x) {
     if (!confirm(`Delete machine "${x.name}"? This cannot be undone.`)) return;
     try {
-      const r = await apiFetch(`/api/machines/${x._id}`, { method: "DELETE" });
+      const r = await apiFetch(`/api/machines/${x._id}`, { method: 'DELETE' });
       if (!r.ok && r.status !== 204) {
         const e = await r.json().catch(() => ({}));
         throw new Error(e.error || `HTTP ${r.status}`);
       }
       setRows((prev) => prev.filter((p) => p._id !== x._id));
-      show("Machine deleted ✔", { tone: "ok" });
+      show('Machine deleted ✔', { tone: 'ok' });
     } catch (e) {
-      show(e.message || "Failed to delete machine", {
-        tone: "danger",
+      show(e.message || 'Failed to delete machine', {
+        tone: 'danger',
         ms: 5000,
       });
     }
@@ -135,11 +131,7 @@ export default function Machines() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <select
-          className="mach__input"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
+        <select className="mach__input" value={type} onChange={(e) => setType(e.target.value)}>
           <option value="all">All types</option>
           <option value="washer">Washer</option>
           <option value="sterilizer">Sterilizer</option>
@@ -161,19 +153,14 @@ export default function Machines() {
               onDelete={canManage ? handleDelete : undefined}
             />
           ))}
-          {!filtered.length && (
-            <div className="mach__empty">No machines match your filter.</div>
-          )}
+          {!filtered.length && <div className="mach__empty">No machines match your filter.</div>}
         </div>
       )}
 
       {showForm && canManage && (
-        <ModalWithForm
-          title={editing ? "Edit Machine" : "Add Machine"}
-          onClose={closeForm}
-        >
+        <ModalWithForm title={editing ? 'Edit Machine' : 'Add Machine'} onClose={closeForm}>
           <MachineForm
-            title={editing ? "Edit Machine" : "Add Machine"}
+            title={editing ? 'Edit Machine' : 'Add Machine'}
             initialValues={editing || undefined}
             onCancel={closeForm}
             onSubmit={handleSave}

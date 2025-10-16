@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 /**
  * PMPlan: defines a recurring preventive maintenance schedule
@@ -14,7 +14,7 @@ const PMPlanSchema = new mongoose.Schema(
   {
     machineId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Machine",
+      ref: 'Machine',
       required: true,
       index: true,
     },
@@ -22,11 +22,11 @@ const PMPlanSchema = new mongoose.Schema(
     intervalDays: { type: Number, required: true, min: 1 },
     nextDueAt: { type: Date, required: true, index: true },
     isActive: { type: Boolean, default: true, index: true },
-    notes: { type: String, default: "" },
+    notes: { type: String, default: '' },
   },
   { timestamps: true }
 );
 
 PMPlanSchema.index({ machineId: 1, nextDueAt: 1, isActive: 1 });
 
-module.exports = mongoose.model("PMPlan", PMPlanSchema);
+module.exports = mongoose.model('PMPlan', PMPlanSchema);

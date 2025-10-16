@@ -1,0 +1,16 @@
+{
+  "name": "sterile-processing-tracker-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n client,server -c auto \"npm --prefix apps/client run dev\" \"npm --prefix apps/server run dev\"",
+    "dev:client": "npm --prefix apps/client run dev",
+    "dev:server": "npm --prefix apps/server run dev",
+    "build": "concurrently -n client,server -c auto \"npm --prefix apps/client run build\" \"npm --prefix apps/server run build\"",
+    "format": "prettier \"apps/**/*.{js,jsx,json,css,md}\" --write",
+    "format:check": "prettier \"apps/**/*.{js,jsx,json,css,md}\" --check"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "prettier": "^3.3.3"
+  }
+}

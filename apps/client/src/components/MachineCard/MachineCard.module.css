@@ -4,7 +4,9 @@
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   box-shadow: var(--shadow-soft);
-  transition: transform 0.18s var(--easing), box-shadow 0.18s var(--easing);
+  transition:
+    transform 0.18s var(--easing),
+    box-shadow 0.18s var(--easing);
 }
 .card:hover {
   transform: translateY(-1px);
@@ -58,8 +60,11 @@
   padding: 8px 12px;
   border-radius: 12px;
   border: 1px solid var(--color-border);
-  transition: background 0.2s var(--easing), color 0.2s var(--easing),
-    transform 0.12s var(--easing), border-color 0.2s var(--easing);
+  transition:
+    background 0.2s var(--easing),
+    color 0.2s var(--easing),
+    transform 0.12s var(--easing),
+    border-color 0.2s var(--easing);
 }
 
 .link:hover {

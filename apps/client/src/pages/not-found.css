@@ -33,5 +33,7 @@
   background: var(--color-brand);
   color: #fff;
   text-decoration: none;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }

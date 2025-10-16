@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import ModalWithForm from "../components/ModalWithForm/ModalWithForm";
-import { useToast } from "../components/Toast/ToastProvider";
-import { apiFetch } from "../utils/api";
-import {
-  formatDateTime,
-  formatLocalInputDateTime,
-  localInputToISO,
-} from "../utils/date";
-import "./spore-queue.css";
+import { useEffect, useMemo, useState } from 'react';
+import ModalWithForm from '../components/ModalWithForm/ModalWithForm';
+import { useToast } from '../components/Toast/ToastProvider';
+import { apiFetch } from '../utils/api';
+import { formatDateTime, formatLocalInputDateTime, localInputToISO } from '../utils/date';
+import './spore-queue.css';
 
 export default function ControlQueue() {
   const { show } = useToast();
 
   // list filters
-  const [status, setStatus] = useState("pending"); // pending | verified | all
-  const [q, setQ] = useState("");
+  const [status, setStatus] = useState('pending'); // pending | verified | all
+  const [q, setQ] = useState('');
 
   // month export controls
   const now = new Date();
@@ -24,27 +20,27 @@ export default function ControlQueue() {
   // data
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState('');
 
   // create modal
   const [createOpen, setCreateOpen] = useState(false);
-  const [cIncubator, setCIncubator] = useState("");
-  const [cLot, setCLot] = useState("");
-  const [cWell, setCWell] = useState("");
+  const [cIncubator, setCIncubator] = useState('');
+  const [cLot, setCLot] = useState('');
+  const [cWell, setCWell] = useState('');
   const [cIncubatedAt, setCIncubatedAt] = useState(
     formatLocalInputDateTime(new Date()) // ← local wall-clock string
   );
-  const [cNotes, setCNotes] = useState("");
+  const [cNotes, setCNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
   // verify modal
   const [verifyFor, setVerifyFor] = useState(null);
-  const [verifyBy, setVerifyBy] = useState("");
+  const [verifyBy, setVerifyBy] = useState('');
   const [verifySubmitting, setVerifySubmitting] = useState(false);
 
   const path = useMemo(() => {
     const p = new URLSearchParams();
-    p.set("status", status);
+    p.set('status', status);
     return `/api/controls?${p.toString()}`;
   }, [status]);
 
@@ -53,13 +49,13 @@ export default function ControlQueue() {
     (async () => {
       try {
         setLoading(true);
-        setErr("");
+        setErr('');
         const r = await apiFetch(path);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
         if (!cancel) setRows(j.controls || []);
       } catch (e) {
-        if (!cancel) setErr(e.message || "Failed to load controls");
+        if (!cancel) setErr(e.message || 'Failed to load controls');
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -73,40 +69,30 @@ export default function ControlQueue() {
     const needle = q.trim().toLowerCase();
     if (!needle) return rows;
     return rows.filter((r) => {
-      const hay = [
-        r.incubatorId,
-        r.well,
-        r.lot,
-        r.result,
-        r.verifiedBy,
-        r.notes,
-      ]
-        .map((x) => String(x || "").toLowerCase())
-        .join(" • ");
+      const hay = [r.incubatorId, r.well, r.lot, r.result, r.verifiedBy, r.notes]
+        .map((x) => String(x || '').toLowerCase())
+        .join(' • ');
       return hay.includes(needle);
     });
   }, [rows, q]);
 
   async function exportCSVMonth() {
     try {
-      const serverOrigin = window.location.origin.replace(":5173", ":3001");
+      const serverOrigin = window.location.origin.replace(':5173', ':3001');
       const u = new URL(
         `/api/reports/csv?kind=control&year=${exportYear}&month=${exportMonth}`,
         serverOrigin
       );
       const res = await fetch(u.toString(), {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
-      const fname = `control-${exportYear}-${String(exportMonth).padStart(
-        2,
-        "0"
-      )}.csv`;
+      const fname = `control-${exportYear}-${String(exportMonth).padStart(2, '0')}.csv`;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = fname;
       document.body.appendChild(a);
@@ -114,7 +100,7 @@ export default function ControlQueue() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      show(e.message || "Export failed", { tone: "danger", ms: 8000 });
+      show(e.message || 'Export failed', { tone: 'danger', ms: 8000 });
     }
   }
 
@@ -122,8 +108,8 @@ export default function ControlQueue() {
     e.preventDefault();
     try {
       setSaving(true);
-      const r = await apiFetch("/api/controls", {
-        method: "POST",
+      const r = await apiFetch('/api/controls', {
+        method: 'POST',
         body: JSON.stringify({
           incubatorId: cIncubator,
           lot: cLot,
@@ -140,14 +126,14 @@ export default function ControlQueue() {
       const j = await r.json();
       setRows((prev) => [j.control, ...prev]);
       setCreateOpen(false);
-      setCIncubator("");
-      setCLot("");
-      setCWell("");
+      setCIncubator('');
+      setCLot('');
+      setCWell('');
       setCIncubatedAt(formatLocalInputDateTime(new Date())); // refresh to *now* local
-      setCNotes("");
-      show("Control BI logged ✔", { tone: "ok" });
+      setCNotes('');
+      show('Control BI logged ✔', { tone: 'ok' });
     } catch (e2) {
-      show(e2.message || "Failed to log control", { tone: "danger", ms: 8000 });
+      show(e2.message || 'Failed to log control', { tone: 'danger', ms: 8000 });
     } finally {
       setSaving(false);
     }
@@ -159,22 +145,20 @@ export default function ControlQueue() {
     try {
       setVerifySubmitting(true);
       const r = await apiFetch(`/api/controls/${verifyFor._id}/verify`, {
-        method: "PATCH",
-        body: JSON.stringify({ result: "positive", verifiedBy: verifyBy }),
+        method: 'PATCH',
+        body: JSON.stringify({ result: 'positive', verifiedBy: verifyBy }),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         throw new Error(j.error || `HTTP ${r.status}`);
       }
       const j = await r.json();
-      setRows((prev) =>
-        prev.map((x) => (x._id === j.control._id ? j.control : x))
-      );
+      setRows((prev) => prev.map((x) => (x._id === j.control._id ? j.control : x)));
       setVerifyFor(null);
-      setVerifyBy("");
-      show("Control verified ✔", { tone: "ok" });
+      setVerifyBy('');
+      show('Control verified ✔', { tone: 'ok' });
     } catch (e2) {
-      show(e2.message || "Failed to verify", { tone: "danger", ms: 8000 });
+      show(e2.message || 'Failed to verify', { tone: 'danger', ms: 8000 });
     } finally {
       setVerifySubmitting(false);
     }
@@ -186,7 +170,7 @@ export default function ControlQueue() {
         <h1 className="sq__title">Control BIs</h1>
 
         {/* Export controls */}
-        <div className="sq__filters" style={{ marginLeft: "auto" }}>
+        <div className="sq__filters" style={{ marginLeft: 'auto' }}>
           <input
             className="sq__input"
             type="number"
@@ -205,7 +189,7 @@ export default function ControlQueue() {
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
-                {String(m).padStart(2, "0")}
+                {String(m).padStart(2, '0')}
               </option>
             ))}
           </select>
@@ -263,38 +247,27 @@ export default function ControlQueue() {
                   const pending = !r.result;
                   return (
                     <tr key={r._id} className="sq__tr">
-                      <td className="sq__td">{r.incubatorId || "—"}</td>
-                      <td className="sq__td">{r.well || "—"}</td>
-                      <td className="sq__td">{r.lot || "—"}</td>
+                      <td className="sq__td">{r.incubatorId || '—'}</td>
+                      <td className="sq__td">{r.well || '—'}</td>
+                      <td className="sq__td">{r.lot || '—'}</td>
                       <td className="sq__td">
-                        {r.incubatedAt ? formatDateTime(r.incubatedAt) : "—"}
+                        {r.incubatedAt ? formatDateTime(r.incubatedAt) : '—'}
                       </td>
-                      <td className="sq__td">
-                        {r.result || (pending ? "pending" : "—")}
-                      </td>
+                      <td className="sq__td">{r.result || (pending ? 'pending' : '—')}</td>
                       <td className="sq__td">
                         {r.verifiedAt || r.verifiedBy ? (
                           <span>
-                            {r.verifiedBy ? (
-                              <strong>{r.verifiedBy}</strong>
-                            ) : (
-                              "—"
-                            )}
-                            {r.verifiedAt
-                              ? ` — ${formatDateTime(r.verifiedAt)}`
-                              : ""}
+                            {r.verifiedBy ? <strong>{r.verifiedBy}</strong> : '—'}
+                            {r.verifiedAt ? ` — ${formatDateTime(r.verifiedAt)}` : ''}
                           </span>
                         ) : (
-                          "—"
+                          '—'
                         )}
                       </td>
                       <td className="sq__td">
                         <div className="sq__actions">
                           {pending && (
-                            <button
-                              className="sq__btn"
-                              onClick={() => setVerifyFor(r)}
-                            >
+                            <button className="sq__btn" onClick={() => setVerifyFor(r)}>
                               Verify
                             </button>
                           )}
@@ -317,10 +290,7 @@ export default function ControlQueue() {
 
       {/* Create modal */}
       {createOpen && (
-        <ModalWithForm
-          title="Log Control BI"
-          onClose={() => setCreateOpen(false)}
-        >
+        <ModalWithForm title="Log Control BI" onClose={() => setCreateOpen(false)}>
           <form onSubmit={createControl} className="sq__verifyForm">
             <div className="sq__field">
               <label className="sq__label">Incubator ID</label>
@@ -374,13 +344,9 @@ export default function ControlQueue() {
 
             <div className="sq__actionsBar">
               <button className="sq__btnPrimary" disabled={saving}>
-                {saving ? "Saving…" : "Save"}
+                {saving ? 'Saving…' : 'Save'}
               </button>
-              <button
-                type="button"
-                className="sq__btnGhost"
-                onClick={() => setCreateOpen(false)}
-              >
+              <button type="button" className="sq__btnGhost" onClick={() => setCreateOpen(false)}>
                 Cancel
               </button>
             </div>
@@ -390,10 +356,7 @@ export default function ControlQueue() {
 
       {/* Verify modal */}
       {verifyFor && (
-        <ModalWithForm
-          title="Verify Control BI"
-          onClose={() => setVerifyFor(null)}
-        >
+        <ModalWithForm title="Verify Control BI" onClose={() => setVerifyFor(null)}>
           <form onSubmit={submitVerify} className="sq__verifyForm">
             <div className="sq__field">
               <label className="sq__label">Result</label>
@@ -413,13 +376,9 @@ export default function ControlQueue() {
 
             <div className="sq__actionsBar">
               <button className="sq__btnPrimary" disabled={verifySubmitting}>
-                {verifySubmitting ? "Saving…" : "Save"}
+                {verifySubmitting ? 'Saving…' : 'Save'}
               </button>
-              <button
-                type="button"
-                className="sq__btnGhost"
-                onClick={() => setVerifyFor(null)}
-              >
+              <button type="button" className="sq__btnGhost" onClick={() => setVerifyFor(null)}>
                 Cancel
               </button>
             </div>

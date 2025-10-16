@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { useToast } from "../components/Toast/ToastProvider";
-import { apiFetch } from "../utils/api";
-import { formatDateTime } from "../utils/date";
-import "./spore-queue.css"; // reuse same compact UI
+import { useEffect, useMemo, useState } from 'react';
+import { useToast } from '../components/Toast/ToastProvider';
+import { apiFetch } from '../utils/api';
+import { formatDateTime } from '../utils/date';
+import './spore-queue.css'; // reuse same compact UI
 
 export default function Transport() {
   const { show } = useToast();
 
   // tab: "trips" | "fuel"
-  const [tab, setTab] = useState("trips");
+  const [tab, setTab] = useState('trips');
 
   // export / month selection (top-right)
   const now = new Date();
@@ -19,42 +19,42 @@ export default function Transport() {
   const [trips, setTrips] = useState([]);
   const [fuels, setFuels] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-  const [q, setQ] = useState("");
+  const [err, setErr] = useState('');
+  const [q, setQ] = useState('');
 
   // create forms
   const [tripOpen, setTripOpen] = useState(false);
   const [fuelOpen, setFuelOpen] = useState(false);
 
   // Trip form
-  const [tDriver, setTDriver] = useState("");
-  const [tDestination, setTDestination] = useState("");
-  const [tStartMileage, setTStartMileage] = useState("");
+  const [tDriver, setTDriver] = useState('');
+  const [tDestination, setTDestination] = useState('');
+  const [tStartMileage, setTStartMileage] = useState('');
   const [tDepartAt, setTDepartAt] = useState(localInputNow());
   const [tReturnAt, setTReturnAt] = useState(localInputNow());
-  const [tReturnMileage, setTReturnMileage] = useState("");
+  const [tReturnMileage, setTReturnMileage] = useState('');
   const [tWashGas, setTWashGas] = useState(false);
   const [tReceipt, setTReceipt] = useState(false);
   const [tReviewed, setTReviewed] = useState(false);
   const [tCountM, setTCountM] = useState(false);
   const [tCountR, setTCountR] = useState(false);
   const [tCountE, setTCountE] = useState(false);
-  const [tCopySheets, setTCopySheets] = useState(""); // yes/no/""
-  const [tGasReceipt, setTGasReceipt] = useState(""); // yes/na/""
-  const [tTechSig, setTTechSig] = useState("");
-  const [tSupSig, setTSupSig] = useState("");
-  const [tNotes, setTNotes] = useState("");
+  const [tCopySheets, setTCopySheets] = useState(''); // yes/no/""
+  const [tGasReceipt, setTGasReceipt] = useState(''); // yes/na/""
+  const [tTechSig, setTTechSig] = useState('');
+  const [tSupSig, setTSupSig] = useState('');
+  const [tNotes, setTNotes] = useState('');
   const [savingTrip, setSavingTrip] = useState(false);
 
   // Fuel form
   const [fDate, setFDate] = useState(localInputNow());
-  const [fMileage, setFMilage] = useState("");
-  const [fPrice, setFPrice] = useState("");
-  const [fGallons, setFGallons] = useState("");
-  const [fAmount, setFAmount] = useState("");
-  const [fVendor, setFVendor] = useState("");
-  const [fSig, setFSig] = useState("");
-  const [fNotes, setFNotes] = useState("");
+  const [fMileage, setFMilage] = useState('');
+  const [fPrice, setFPrice] = useState('');
+  const [fGallons, setFGallons] = useState('');
+  const [fAmount, setFAmount] = useState('');
+  const [fVendor, setFVendor] = useState('');
+  const [fSig, setFSig] = useState('');
+  const [fNotes, setFNotes] = useState('');
   const [savingFuel, setSavingFuel] = useState(false);
 
   const path = useMemo(() => `/api/transports`, []);
@@ -64,7 +64,7 @@ export default function Transport() {
     (async () => {
       try {
         setLoading(true);
-        setErr("");
+        setErr('');
         const r = await apiFetch(path);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
@@ -73,7 +73,7 @@ export default function Transport() {
           setFuels(j.fuels || []);
         }
       } catch (e) {
-        if (!cancel) setErr(e.message || "Failed to load transport");
+        if (!cancel) setErr(e.message || 'Failed to load transport');
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -118,17 +118,17 @@ export default function Transport() {
   const filteredTrips = useMemo(
     () =>
       filterByText(tripsInMonth, q, [
-        "driver",
-        "destination",
-        "notes",
-        "techSignature",
-        "supervisorSignature",
+        'driver',
+        'destination',
+        'notes',
+        'techSignature',
+        'supervisorSignature',
       ]),
     [tripsInMonth, q]
   );
 
   const filteredFuels = useMemo(
-    () => filterByText(fuelsInMonth, q, ["vendor", "signature", "notes"]),
+    () => filterByText(fuelsInMonth, q, ['vendor', 'signature', 'notes']),
     [fuelsInMonth, q]
   );
 
@@ -181,24 +181,21 @@ export default function Transport() {
   /* ---------- actions ---------- */
   async function exportCSV(kind) {
     try {
-      const serverOrigin = window.location.origin.replace(":5173", ":3001");
+      const serverOrigin = window.location.origin.replace(':5173', ':3001');
       const u = new URL(
         `/api/reports/csv?kind=${kind}&year=${exportYear}&month=${exportMonth}`,
         serverOrigin
       );
       const res = await fetch(u.toString(), {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
-      const fname = `${kind}-${exportYear}-${String(exportMonth).padStart(
-        2,
-        "0"
-      )}.csv`;
+      const fname = `${kind}-${exportYear}-${String(exportMonth).padStart(2, '0')}.csv`;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = fname;
       document.body.appendChild(a);
@@ -206,7 +203,7 @@ export default function Transport() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      show(e.message || "Export failed", { tone: "danger", ms: 8000 });
+      show(e.message || 'Export failed', { tone: 'danger', ms: 8000 });
     }
   }
 
@@ -234,8 +231,8 @@ export default function Transport() {
         supervisorSignature: tSupSig,
         notes: tNotes,
       };
-      const r = await apiFetch("/api/transports/trip", {
-        method: "POST",
+      const r = await apiFetch('/api/transports/trip', {
+        method: 'POST',
         body: JSON.stringify(b),
       });
       if (!r.ok) {
@@ -245,9 +242,9 @@ export default function Transport() {
       const j = await r.json();
       setTrips((p) => [j.trip, ...p]);
       setTripOpen(false);
-      show("Trip logged ✔", { tone: "ok" });
+      show('Trip logged ✔', { tone: 'ok' });
     } catch (e2) {
-      show(e2.message || "Failed to save trip", { tone: "danger", ms: 8000 });
+      show(e2.message || 'Failed to save trip', { tone: 'danger', ms: 8000 });
     } finally {
       setSavingTrip(false);
     }
@@ -267,8 +264,8 @@ export default function Transport() {
         signature: fSig,
         notes: fNotes,
       };
-      const r = await apiFetch("/api/transports/fuel", {
-        method: "POST",
+      const r = await apiFetch('/api/transports/fuel', {
+        method: 'POST',
         body: JSON.stringify(b),
       });
       if (!r.ok) {
@@ -278,9 +275,9 @@ export default function Transport() {
       const j = await r.json();
       setFuels((p) => [j.fuel, ...p]);
       setFuelOpen(false);
-      show("Fuel logged ✔", { tone: "ok" });
+      show('Fuel logged ✔', { tone: 'ok' });
     } catch (e2) {
-      show(e2.message || "Failed to save fuel", { tone: "danger", ms: 8000 });
+      show(e2.message || 'Failed to save fuel', { tone: 'danger', ms: 8000 });
     } finally {
       setSavingFuel(false);
     }
@@ -291,7 +288,7 @@ export default function Transport() {
       {/* Header: title + export controls */}
       <div className="sq__header">
         <h1 className="sq__title">Transport</h1>
-        <div className="sq__filters" style={{ marginLeft: "auto" }}>
+        <div className="sq__filters" style={{ marginLeft: 'auto' }}>
           <input
             className="sq__input"
             type="number"
@@ -310,19 +307,16 @@ export default function Transport() {
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
-                {String(m).padStart(2, "0")}
+                {String(m).padStart(2, '0')}
               </option>
             ))}
           </select>
-          {tab === "trips" ? (
-            <button
-              className="sq__btnGhost"
-              onClick={() => exportCSV("transport")}
-            >
+          {tab === 'trips' ? (
+            <button className="sq__btnGhost" onClick={() => exportCSV('transport')}>
               Export CSV
             </button>
           ) : (
-            <button className="sq__btnGhost" onClick={() => exportCSV("fuel")}>
+            <button className="sq__btnGhost" onClick={() => exportCSV('fuel')}>
               Export CSV
             </button>
           )}
@@ -334,11 +328,11 @@ export default function Transport() {
         className="sq__filters"
         style={{
           gap: 12,
-          flexWrap: "wrap",
+          flexWrap: 'wrap',
           marginTop: 6,
           paddingTop: 8,
           paddingBottom: 8,
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: '1px solid rgba(255,255,255,0.06)',
         }}
       >
         <KPI label="Trips" value={kpis.trips} />
@@ -346,13 +340,10 @@ export default function Transport() {
         <KPI label="Drive time (h)" value={fmtNum(kpis.hours, 1)} />
         <KPI label="Fuel (gal)" value={fmtNum(kpis.gallons, 2)} />
         <KPI label="Fuel spend" value={`$${fmtNum(kpis.spend, 2)}`} />
-        <KPI
-          label="Avg $/gal"
-          value={kpis.avgPrice ? `$${fmtNum(kpis.avgPrice, 3)}` : "—"}
-        />
+        <KPI label="Avg $/gal" value={kpis.avgPrice ? `$${fmtNum(kpis.avgPrice, 3)}` : '—'} />
         <KPI
           label="Cost / mile"
-          value={kpis.costPerMile ? `$${fmtNum(kpis.costPerMile, 2)}` : "—"}
+          value={kpis.costPerMile ? `$${fmtNum(kpis.costPerMile, 2)}` : '—'}
         />
       </div>
 
@@ -361,21 +352,21 @@ export default function Transport() {
         <div
           className="sq__input"
           style={{
-            display: "flex",
+            display: 'flex',
             gap: 8,
-            alignItems: "center",
-            width: "fit-content",
+            alignItems: 'center',
+            width: 'fit-content',
           }}
         >
           <button
-            className={`sq__btn ${tab === "trips" ? "sq__btnPrimary" : ""}`}
-            onClick={() => setTab("trips")}
+            className={`sq__btn ${tab === 'trips' ? 'sq__btnPrimary' : ''}`}
+            onClick={() => setTab('trips')}
           >
             Trips
           </button>
           <button
-            className={`sq__btn ${tab === "fuel" ? "sq__btnPrimary" : ""}`}
-            onClick={() => setTab("fuel")}
+            className={`sq__btn ${tab === 'fuel' ? 'sq__btnPrimary' : ''}`}
+            onClick={() => setTab('fuel')}
           >
             Fuel
           </button>
@@ -386,7 +377,7 @@ export default function Transport() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        {tab === "trips" ? (
+        {tab === 'trips' ? (
           <button className="sq__btn" onClick={() => setTripOpen(true)}>
             Log trip
           </button>
@@ -400,7 +391,7 @@ export default function Transport() {
       {err && <div className="sq__error">Failed to load: {err}</div>}
       {loading && <div className="sq__loading">Loading…</div>}
 
-      {!loading && !err && tab === "trips" && (
+      {!loading && !err && tab === 'trips' && (
         <div className="sq__tableWrap">
           <table className="sq__table">
             <thead className="sq__thead">
@@ -420,35 +411,25 @@ export default function Transport() {
               {filteredTrips.length ? (
                 filteredTrips.map((r) => (
                   <tr key={r._id} className="sq__tr">
+                    <td className="sq__td">{r.date ? formatDateTime(r.date) : '—'}</td>
+                    <td className="sq__td">{r.driver || '—'}</td>
+                    <td className="sq__td">{r.destination || '—'}</td>
+                    <td className="sq__td">{r.startMileage ?? '—'}</td>
+                    <td className="sq__td">{r.departAt ? formatDateTime(r.departAt) : '—'}</td>
+                    <td className="sq__td">{r.returnAt ? formatDateTime(r.returnAt) : '—'}</td>
+                    <td className="sq__td">{r.returnMileage ?? '—'}</td>
                     <td className="sq__td">
-                      {r.date ? formatDateTime(r.date) : "—"}
-                    </td>
-                    <td className="sq__td">{r.driver || "—"}</td>
-                    <td className="sq__td">{r.destination || "—"}</td>
-                    <td className="sq__td">{r.startMileage ?? "—"}</td>
-                    <td className="sq__td">
-                      {r.departAt ? formatDateTime(r.departAt) : "—"}
-                    </td>
-                    <td className="sq__td">
-                      {r.returnAt ? formatDateTime(r.returnAt) : "—"}
-                    </td>
-                    <td className="sq__td">{r.returnMileage ?? "—"}</td>
-                    <td className="sq__td">
-                      {(r.washOrGas ? "Wash/Gas • " : "") +
-                        (r.receiptFiled ? "Receipt • " : "") +
-                        (r.reviewedSchedule ? "Reviewed • " : "") +
-                        (r.countTransportsMorning ? "AM • " : "") +
-                        (r.countTransportsReturn ? "Ret • " : "") +
-                        (r.countTransportsEndOfDay ? "EOD • " : "")}
-                      {r.copySheetsNeeded ? `Copy:${r.copySheetsNeeded}` : ""}
-                      {r.gasReceiptSubmitted
-                        ? ` • GasRec:${r.gasReceiptSubmitted}`
-                        : ""}
+                      {(r.washOrGas ? 'Wash/Gas • ' : '') +
+                        (r.receiptFiled ? 'Receipt • ' : '') +
+                        (r.reviewedSchedule ? 'Reviewed • ' : '') +
+                        (r.countTransportsMorning ? 'AM • ' : '') +
+                        (r.countTransportsReturn ? 'Ret • ' : '') +
+                        (r.countTransportsEndOfDay ? 'EOD • ' : '')}
+                      {r.copySheetsNeeded ? `Copy:${r.copySheetsNeeded}` : ''}
+                      {r.gasReceiptSubmitted ? ` • GasRec:${r.gasReceiptSubmitted}` : ''}
                     </td>
                     <td className="sq__td">
-                      {(r.techSignature || "—") +
-                        " / " +
-                        (r.supervisorSignature || "—")}
+                      {(r.techSignature || '—') + ' / ' + (r.supervisorSignature || '—')}
                     </td>
                   </tr>
                 ))
@@ -464,7 +445,7 @@ export default function Transport() {
         </div>
       )}
 
-      {!loading && !err && tab === "fuel" && (
+      {!loading && !err && tab === 'fuel' && (
         <div className="sq__tableWrap">
           <table className="sq__table">
             <thead className="sq__thead">
@@ -483,16 +464,14 @@ export default function Transport() {
               {filteredFuels.length ? (
                 filteredFuels.map((r) => (
                   <tr key={r._id} className="sq__tr">
-                    <td className="sq__td">
-                      {r.date ? formatDateTime(r.date) : "—"}
-                    </td>
-                    <td className="sq__td">{r.mileage ?? "—"}</td>
-                    <td className="sq__td">{r.pricePerGallon ?? "—"}</td>
-                    <td className="sq__td">{r.gallons ?? "—"}</td>
-                    <td className="sq__td">{r.amount ?? "—"}</td>
-                    <td className="sq__td">{r.vendor || "—"}</td>
-                    <td className="sq__td">{r.signature || "—"}</td>
-                    <td className="sq__td">{r.notes || "—"}</td>
+                    <td className="sq__td">{r.date ? formatDateTime(r.date) : '—'}</td>
+                    <td className="sq__td">{r.mileage ?? '—'}</td>
+                    <td className="sq__td">{r.pricePerGallon ?? '—'}</td>
+                    <td className="sq__td">{r.gallons ?? '—'}</td>
+                    <td className="sq__td">{r.amount ?? '—'}</td>
+                    <td className="sq__td">{r.vendor || '—'}</td>
+                    <td className="sq__td">{r.signature || '—'}</td>
+                    <td className="sq__td">{r.notes || '—'}</td>
                   </tr>
                 ))
               ) : (
@@ -513,10 +492,7 @@ export default function Transport() {
           <div className="sq__modalCard">
             <div className="sq__modalHeader">
               <h3>Log Trip</h3>
-              <button
-                className="sq__btnGhost"
-                onClick={() => setTripOpen(false)}
-              >
+              <button className="sq__btnGhost" onClick={() => setTripOpen(false)}>
                 Close
               </button>
             </div>
@@ -594,7 +570,7 @@ export default function Transport() {
                     type="checkbox"
                     checked={tWashGas}
                     onChange={(e) => setTWashGas(e.target.checked)}
-                  />{" "}
+                  />{' '}
                   Wash/Gas
                 </label>
                 <label className="sq__checkbox">
@@ -602,7 +578,7 @@ export default function Transport() {
                     type="checkbox"
                     checked={tReceipt}
                     onChange={(e) => setTReceipt(e.target.checked)}
-                  />{" "}
+                  />{' '}
                   Receipt filed
                 </label>
                 <label className="sq__checkbox">
@@ -610,7 +586,7 @@ export default function Transport() {
                     type="checkbox"
                     checked={tReviewed}
                     onChange={(e) => setTReviewed(e.target.checked)}
-                  />{" "}
+                  />{' '}
                   Reviewed schedule
                 </label>
               </div>
@@ -620,7 +596,7 @@ export default function Transport() {
                     type="checkbox"
                     checked={tCountM}
                     onChange={(e) => setTCountM(e.target.checked)}
-                  />{" "}
+                  />{' '}
                   Count Morning
                 </label>
                 <label className="sq__checkbox">
@@ -628,7 +604,7 @@ export default function Transport() {
                     type="checkbox"
                     checked={tCountR}
                     onChange={(e) => setTCountR(e.target.checked)}
-                  />{" "}
+                  />{' '}
                   Count Return
                 </label>
                 <label className="sq__checkbox">
@@ -636,7 +612,7 @@ export default function Transport() {
                     type="checkbox"
                     checked={tCountE}
                     onChange={(e) => setTCountE(e.target.checked)}
-                  />{" "}
+                  />{' '}
                   Count End of day
                 </label>
               </div>
@@ -698,13 +674,9 @@ export default function Transport() {
 
               <div className="sq__actionsBar">
                 <button className="sq__btnPrimary" disabled={savingTrip}>
-                  {savingTrip ? "Saving…" : "Save"}
+                  {savingTrip ? 'Saving…' : 'Save'}
                 </button>
-                <button
-                  type="button"
-                  className="sq__btnGhost"
-                  onClick={() => setTripOpen(false)}
-                >
+                <button type="button" className="sq__btnGhost" onClick={() => setTripOpen(false)}>
                   Cancel
                 </button>
               </div>
@@ -719,10 +691,7 @@ export default function Transport() {
           <div className="sq__modalCard">
             <div className="sq__modalHeader">
               <h3>Log Fuel Purchase</h3>
-              <button
-                className="sq__btnGhost"
-                onClick={() => setFuelOpen(false)}
-              >
+              <button className="sq__btnGhost" onClick={() => setFuelOpen(false)}>
                 Close
               </button>
             </div>
@@ -811,13 +780,9 @@ export default function Transport() {
 
               <div className="sq__actionsBar">
                 <button className="sq__btnPrimary" disabled={savingFuel}>
-                  {savingFuel ? "Saving…" : "Save"}
+                  {savingFuel ? 'Saving…' : 'Save'}
                 </button>
-                <button
-                  type="button"
-                  className="sq__btnGhost"
-                  onClick={() => setFuelOpen(false)}
-                >
+                <button type="button" className="sq__btnGhost" onClick={() => setFuelOpen(false)}>
                   Cancel
                 </button>
               </div>
@@ -832,7 +797,7 @@ export default function Transport() {
 /* ---------- helpers ---------- */
 function localInputNow() {
   const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n) => String(n).padStart(2, '0');
   const yyyy = d.getFullYear();
   const mm = pad(d.getMonth() + 1);
   const dd = pad(d.getDate());
@@ -846,8 +811,8 @@ function filterByText(list, q, keys) {
   if (!needle) return list;
   return list.filter((x) =>
     keys
-      .map((k) => String(x?.[k] ?? "").toLowerCase())
-      .join(" • ")
+      .map((k) => String(x?.[k] ?? '').toLowerCase())
+      .join(' • ')
       .includes(needle)
   );
 }
@@ -865,16 +830,14 @@ function KPI({ label, value }) {
     <div
       className="sq__input"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
         minWidth: 120,
       }}
       title={label}
     >
-      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 2 }}>
-        {label}
-      </div>
+      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 2 }}>{label}</div>
       <div style={{ fontWeight: 700 }}>{value}</div>
     </div>
   );
