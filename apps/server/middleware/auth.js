@@ -1,68 +1,66 @@
+// apps/server/middleware/auth.js
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
 
-/** Extract Bearer token from Authorization header */
-function parseBearer(authHeader) {
-  if (!authHeader) return null;
-  const [scheme, token] = String(authHeader).split(" ");
-  if (!/^Bearer$/i.test(scheme) || !token) return null;
-  return token.trim();
+/**
+ * Extract token from Authorization: Bearer <token> OR cookie "spt_token".
+ */
+function getToken(req) {
+  const auth = req.headers.authorization || "";
+  if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
+  // simple cookie parse (no dependency)
+  const cookie = req.headers.cookie || "";
+  const m = /(?:^|;\s*)spt_token=([^;]+)/i.exec(cookie);
+  if (m) return decodeURIComponent(m[1]);
+  return null;
 }
 
 /**
- * Require a valid JWT. Attaches:
- *   - req.userId  : ObjectId as string
- *   - req.user    : minimal user document (no password)
+ * requireAuth: verifies JWT and sets req.user (and req.userId).
+ * - NEVER throws; always responds 401 on failure.
  */
-async function requireAuth(req, res, next) {
+function requireAuth(req, res, next) {
   try {
-    const token = parseBearer(req.headers.authorization);
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized: no token" });
-    }
+    const token = getToken(req);
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    let decoded;
+    const secret = process.env.JWT_SECRET || process.env.SECRET || "devsecret";
+    let payload;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch {
-      return res.status(401).json({ error: "Unauthorized: invalid token" });
+      payload = jwt.verify(token, secret);
+    } catch (e) {
+      return res.status(401).json({ error: "Invalid token" });
     }
 
-    const userId = decoded.userId || decoded._id || decoded.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized: malformed token" });
-    }
-
-    // Load the user; exclude password
-    const user = await User.findById(userId).select("+role +email +name");
-    if (!user) {
-      return res.status(401).json({ error: "Unauthorized: user not found" });
-    }
-
-    req.userId = user._id.toString();
-    // expose a minimal safe user (no password)
-    req.user = {
-      _id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role || "tech",
-    };
+    // normalize
+    const userId = payload.userId || payload.sub || payload._id || payload.id;
+    req.user = { _id: userId, ...payload };
+    req.userId = userId;
+    res.locals.userId = userId;
 
     return next();
-  } catch (e) {
-    return res.status(500).json({ error: "Auth middleware error" });
+  } catch (err) {
+    // Absolute last-resort safety: never leak a 500 out of auth.
+    console.error("requireAuth error:", err && err.stack ? err.stack : err);
+    return res.status(401).json({ error: "Unauthorized" });
   }
 }
 
 /**
- * Require a specific role. Example:
- *   router.post("/admin-only", requireAuth, requireRole("supervisor"), handler)
+ * requireRole(role): optional role gate. Never throws; 403 on fail.
  */
 function requireRole(role) {
   return (req, res, next) => {
-    const ok = req?.user?.role === role;
-    if (!ok) return res.status(403).json({ error: "Forbidden" });
-    next();
+    try {
+      const roles = (req.user && (req.user.roles || req.user.role)) || [];
+      const has = Array.isArray(roles)
+        ? roles.includes(role)
+        : String(roles) === role;
+      if (!has) return res.status(403).json({ error: "Forbidden" });
+      return next();
+    } catch (err) {
+      console.error("requireRole error:", err && err.stack ? err.stack : err);
+      return res.status(403).json({ error: "Forbidden" });
+    }
   };
 }
 

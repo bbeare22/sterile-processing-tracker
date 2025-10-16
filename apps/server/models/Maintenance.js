@@ -1,3 +1,4 @@
+// apps/server/models/Maintenance.js
 const mongoose = require("mongoose");
 
 const MaintenanceSchema = new mongoose.Schema(
@@ -8,7 +9,7 @@ const MaintenanceSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Types now include washer-specific daily & weekly
+    // Types include washer-specific daily & weekly
     type: {
       type: String,
       enum: [
@@ -23,11 +24,11 @@ const MaintenanceSchema = new mongoose.Schema(
       required: true,
     },
 
-    volumeUsedMl: { type: Number, default: 0 }, // used only for "descale"
+    volumeUsedMl: { type: Number, default: 0 }, // only used for "descale"
     performedAt: { type: Date, required: true },
     notes: { type: String, default: "" },
 
-    // NEW: structured payload for per-shelf results / checklists / initials
+    // structured payload for checklists / initials
     details: { type: mongoose.Schema.Types.Mixed, default: {} },
 
     // who logged it (from auth)

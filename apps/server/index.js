@@ -33,11 +33,24 @@ app.use(
 app.use(express.json());
 app.use(morgan("tiny"));
 
+// CORS (dev + prod) — must allow credentials and mirror the Origin
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, cb) => {
+      // Allow no-origin (curl/Postman) and your dev UI
+      const allowList = new Set([
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        process.env.CLIENT_URL || "", // e.g., https://weatherapp.jumpingcrab.com
+      ]);
+
+      if (!origin || allowList.has(origin)) return cb(null, true);
+      return cb(null, false);
+    },
+    credentials: true, // << required for cookies/Auth headers with fetch(..., { credentials: 'include' })
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Authorization", "Content-Type", "X-Requested-With"],
+    exposedHeaders: ["Content-Disposition"], // so filename works on downloads
     optionsSuccessStatus: 204,
   })
 );
