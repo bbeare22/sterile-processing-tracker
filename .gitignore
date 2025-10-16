@@ -13,8 +13,11 @@ build/
 .vercel/
 
 # --- Env files (don’t commit secrets) ---
-.env
-apps/*/.env
+*.env
+**/.env
+/apps/**/.env
+/apps/**/.env.local
+/apps/**/.env.*.local
 
 # --- Logs ---
 *.log
