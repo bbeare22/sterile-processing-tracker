@@ -96,6 +96,14 @@ export default function AppShell({ children }) {
               >
                 PM Tasks
               </NavLink>
+              <NavLink
+                to="/reports"
+                className={({ isActive }) =>
+                  isActive ? styles.active : undefined
+                }
+              >
+                Reports
+              </NavLink>
             </>
           )}
         </nav>

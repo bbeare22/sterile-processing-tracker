@@ -19,6 +19,7 @@ import PMQueue from "./pages/PMQueue";
 import Decon from "./pages/Decon";
 import ControlQueue from "./pages/ControlQueue";
 import Transport from "./pages/Transport";
+import Reports from "./pages/Reports";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -134,6 +135,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 element={
                   <ProtectedRoute>
                     <PMQueue />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <Reports />
                   </ProtectedRoute>
                 }
               />
