@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { apiFetch } from '../utils/api';
+
 import { useToast } from '../components/Toast/ToastProvider';
+import { apiFetch } from '../utils/api';
 import './maintenance.css';
 
 export default function Maintenance() {

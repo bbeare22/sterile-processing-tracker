@@ -1,7 +1,9 @@
-import styles from './MachineCard.module.css';
-import common from '../common.module.css';
 import { Link } from 'react-router-dom';
+
 import { daysSince } from '../../utils/date';
+import common from '../common.module.css';
+
+import styles from './MachineCard.module.css';
 
 export default function MachineCard({ m, canManage = false, onEdit, onDelete }) {
   const isActive = m.status === 'active';

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+
 import { login as apiLogin, register as apiRegister } from '../utils/auth';
 
 const AuthCtx = createContext(null);

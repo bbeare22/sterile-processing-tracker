@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { formatDateTime } from '../utils/date';
+
 import { apiFetch } from '../utils/api';
+import { formatDateTime } from '../utils/date';
 import './cycles-history.css';
 
 export default function CyclesHistory() {

@@ -5,30 +5,28 @@ import './styles/tokens.css';
 import './styles/touch.css';
 
 import AppShell from './components/AppShell/AppShell';
-import Dashboard from './pages/Dashboard';
-import Recalls from './pages/Recalls';
-import Machines from './pages/Machines';
-import About from './pages/About';
-import Maintenance from './pages/Maintenance';
-import MachineDetail from './pages/MachineDetail';
-import MaintenanceHistory from './pages/MaintenanceHistory';
-import CyclesHistory from './pages/CyclesHistory';
-import LogCycle from './pages/LogCycle';
-import SporeQueue from './pages/SporeQueue';
-import PMQueue from './pages/PMQueue';
-import Decon from './pages/Decon';
-import ControlQueue from './pages/ControlQueue';
-import Transport from './pages/Transport';
-import Reports from './pages/Reports';
-
-import Login from './pages/Login';
-import Register from './pages/Register';
-import NotFound from './pages/NotFound';
-
-import AuthProvider from './context/AuthContext.jsx';
-import ToastProvider from './components/Toast/ToastProvider.jsx';
-import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import ProtectedRoute from './components/ProtectedRoute';
+import ToastProvider from './components/Toast/ToastProvider.jsx';
+import AuthProvider from './context/AuthContext.jsx';
+import About from './pages/About';
+import ControlQueue from './pages/ControlQueue';
+import CyclesHistory from './pages/CyclesHistory';
+import Dashboard from './pages/Dashboard';
+import Decon from './pages/Decon';
+import LogCycle from './pages/LogCycle';
+import Login from './pages/Login';
+import MachineDetail from './pages/MachineDetail';
+import Machines from './pages/Machines';
+import Maintenance from './pages/Maintenance';
+import MaintenanceHistory from './pages/MaintenanceHistory';
+import NotFound from './pages/NotFound';
+import PMQueue from './pages/PMQueue';
+import Recalls from './pages/Recalls';
+import Register from './pages/Register';
+import Reports from './pages/Reports';
+import SporeQueue from './pages/SporeQueue';
+import Transport from './pages/Transport';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

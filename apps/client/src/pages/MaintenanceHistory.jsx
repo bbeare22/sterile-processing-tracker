@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+
 import Skeleton from '../components/Skeleton/Skeleton';
-import { formatDateTime } from '../utils/date';
 import { apiFetch } from '../utils/api';
+import { formatDateTime } from '../utils/date';
 import './maintenance-history.css';
 
 export default function MaintenanceHistory() {

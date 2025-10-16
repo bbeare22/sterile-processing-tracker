@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom';
+
 import { useAuth } from '../../context/AuthContext';
-import styles from './AppShell.module.css';
 import Footer from '../Footer/Footer';
+
+import styles from './AppShell.module.css';
 
 export default function AppShell({ children }) {
   const { user, isAuthed, logout } = useAuth();

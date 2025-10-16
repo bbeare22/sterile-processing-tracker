@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+
 import MachineCard from '../components/MachineCard/MachineCard';
 import MachineForm from '../components/MachineForm/MachineForm';
 import ModalWithForm from '../components/ModalWithForm/ModalWithForm';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast/ToastProvider';
+import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 import './machines.css';
 

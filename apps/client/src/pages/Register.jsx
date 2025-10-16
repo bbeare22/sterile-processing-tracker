@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+
 import { useToast } from '../components/Toast/ToastProvider';
+import { useAuth } from '../context/AuthContext';
 import './register.css';
 
 export default function Register() {
