@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const logger = require("../utils/logger");
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -14,14 +15,14 @@ async function connectDB(uri) {
 
   for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
     try {
-      console.log(`Connecting to MongoDB (attempt ${attempt}/${MAX_TRIES})...`);
+      logger.info(`Connecting to MongoDB (attempt ${attempt}/${MAX_TRIES})...`);
       await mongoose.connect(uri, {
         serverSelectionTimeoutMS: TIMEOUT_MS,
       });
-      console.log("✓ MongoDB connected");
+      logger.info("✓ MongoDB connected");
       return;
     } catch (err) {
-      console.error(
+      logger.error(
         `✗ MongoDB connection failed (attempt ${attempt}):`,
         err.message
       );

@@ -1,5 +1,5 @@
-// apps/server/utils.js
 const AuditLog = require("../models/AuditLog");
+const logger = require("./logger");
 
 /**
  * recordAudit: safely logs user actions to AuditLog.
@@ -28,7 +28,7 @@ async function recordAudit(req, { action, targetType, targetId, meta = {} }) {
     });
   } catch (err) {
     // Log once for visibility but never crash
-    console.error(
+    logger.error(
       "⚠️  Audit log failed (ignored):",
       err?.message || err,
       err?.stack ? "\n" + err.stack : ""

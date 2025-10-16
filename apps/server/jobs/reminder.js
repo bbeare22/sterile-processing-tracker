@@ -5,6 +5,7 @@ const Machine = require("../models/Machine");
 const Maintenance = require("../models/Maintenance");
 const ControlBI = require("../models/ControlBI");
 const { sendMail } = require("../utils/mailer");
+const logger = require("../utils/logger");
 
 /* ---------------- time helpers (TZ-aware “today” bounds) ---------------- */
 function tzDayBounds(timeZone, when = new Date()) {
@@ -288,7 +289,7 @@ function start() {
         if (compliance) sections.push(compliance);
 
         if (!sections.length) {
-          console.log("[reminders] Nothing to notify today.");
+          logger.info("[reminders] Nothing to notify today.");
           return;
         }
 
@@ -298,15 +299,15 @@ function start() {
           subject: "SPD Tracker — Daily Alerts",
           text: body,
         });
-        console.log("[reminders] Sent daily alerts.");
+        logger.info("[reminders] Sent daily alerts.");
       } catch (e) {
-        console.error("[reminders] Failed:", e);
+        logger.error("[reminders] Failed:", e);
       }
     },
     { timezone: tz }
   );
 
-  console.log(
+  logger.info(
     `[reminders] Scheduled daily digest at ${hr.padStart(
       2,
       "0"

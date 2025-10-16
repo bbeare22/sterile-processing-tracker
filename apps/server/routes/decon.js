@@ -3,6 +3,7 @@ const { z } = require("zod");
 const DeconLog = require("../models/DeconLog");
 const { requireAuth } = require("../middleware/auth");
 const { recordAudit } = require("../utils/audit");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -108,7 +109,7 @@ router.post("/", requireAuth, async (req, res) => {
 
     res.status(201).json({ row: doc });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Failed to create decon row" });
   }
 });

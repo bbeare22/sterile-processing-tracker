@@ -1,6 +1,7 @@
 const express = require("express");
 const PDFDocument = require("pdfkit");
 const { requireAuth } = require("../middleware/auth");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -422,7 +423,7 @@ router.get("/csv", requireAuth, async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).send(csv);
   } catch (err) {
-    console.error("CSV error:", err?.message, err?.stack);
+    logger.error("CSV error:", err?.message, err?.stack);
     return res.status(500).json({ error: "Failed to generate CSV." });
   }
 });
@@ -556,7 +557,7 @@ router.get("/monthly", requireAuth, async (req, res) => {
 
     const chunks = [];
     doc.on("data", (b) => chunks.push(b));
-    doc.on("error", (e) => console.error("PDF error", e));
+    doc.on("error", (e) => logger.error("PDF error", e));
     doc.on("end", () => {
       const buffer = Buffer.concat(chunks);
       res.setHeader("Content-Type", "application/pdf");
@@ -909,7 +910,7 @@ router.get("/monthly", requireAuth, async (req, res) => {
 
     doc.end();
   } catch (err) {
-    console.error("Monthly report error:", err?.message, err?.stack);
+    logger.error("Monthly report error:", err?.message, err?.stack);
     res.status(500).json({ error: "Failed to generate report." });
   }
 });

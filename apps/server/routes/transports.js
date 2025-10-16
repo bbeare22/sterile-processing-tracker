@@ -5,6 +5,7 @@ const TransportTrip = require("../models/TransportTrip");
 const FuelPurchase = require("../models/FuelPurchase");
 const { requireAuth } = require("../middleware/auth");
 const { recordAudit } = require("../utils/audit");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -125,7 +126,7 @@ router.post("/trip", requireAuth, async (req, res) => {
 
     res.status(201).json({ trip: doc });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Failed to create trip" });
   }
 });
@@ -159,7 +160,7 @@ router.post("/fuel", requireAuth, async (req, res) => {
 
     res.status(201).json({ fuel: doc });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Failed to create fuel record" });
   }
 });

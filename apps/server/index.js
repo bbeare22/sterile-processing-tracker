@@ -6,6 +6,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const axios = require("axios");
+const logger = require("./utils/logger");
 
 const { connectDB } = require("./config/db");
 
@@ -149,7 +150,7 @@ app.use((req, res, next) => {
 
 /* ---------------- global error handler ---------------- */
 app.use((err, req, res, next) => {
-  console.error(err);
+  logger.error(err);
   const status = err.status || 500;
   res.status(status).json({ error: err.message || "Internal Server Error" });
 });
@@ -160,11 +161,11 @@ const PORT = process.env.PORT || 3001;
 connectDB(process.env.MONGO_URI)
   .then(() => {
     app.listen(PORT, () =>
-      console.log(`SPT server listening on http://localhost:${PORT}`)
+      logger.info(`SPT server listening on http://localhost:${PORT}`)
     );
   })
   .catch((err) => {
-    console.error("DB connection failed, exiting:", err.message);
+    logger.error("DB connection failed, exiting:", err.message);
     process.exit(1);
   });
 

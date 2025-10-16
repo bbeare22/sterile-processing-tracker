@@ -6,6 +6,7 @@ const PMTask = require("../models/PMTask");
 const Machine = require("../models/Machine");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { recordAudit } = require("../utils/audit");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -78,7 +79,7 @@ router.post(
 
       res.status(201).json({ plan });
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       res.status(500).json({ error: "Failed to create plan" });
     }
   }
@@ -153,7 +154,7 @@ router.post(
 
       res.json({ created });
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       res.status(500).json({ error: "Failed to generate tasks" });
     }
   }
@@ -228,7 +229,7 @@ router.patch("/tasks/:id/complete", requireAuth, async (req, res) => {
 
     res.json({ task: populated });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Failed to complete task" });
   }
 });
@@ -260,7 +261,7 @@ router.patch("/tasks/:id/skip", requireAuth, async (req, res) => {
 
     res.json({ task: populated });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Failed to skip task" });
   }
 });

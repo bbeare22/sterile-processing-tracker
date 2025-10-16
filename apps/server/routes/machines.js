@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Machine = require("../models/Machine");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { recordAudit } = require("../utils/audit");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -113,7 +114,7 @@ router.put("/:id", requireAuth, requireRole("supervisor"), async (req, res) => {
 
     res.json({ machine });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -138,7 +139,7 @@ router.delete(
 
       res.status(204).end();
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       res.status(500).json({ error: "Server error" });
     }
   }

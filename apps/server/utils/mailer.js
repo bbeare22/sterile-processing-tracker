@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const logger = require("./logger");
 
 function makeTransport() {
   const host = process.env.SMTP_HOST;
@@ -20,12 +21,12 @@ async function sendMail({ to, subject, text, html }) {
   const from = process.env.ALERT_FROM || "SPD Tracker <no-reply@localhost>";
   const recipients = to || process.env.ALERT_TO || "";
   if (!recipients) {
-    console.log("[mailer] No ALERT_TO configured; skipping send.");
-    console.log(`[mailer] Subject: ${subject}\n${text || html || ""}`);
+    logger.info("[mailer] No ALERT_TO configured; skipping send.");
+    logger.info(`[mailer] Subject: ${subject}\n${text || html || ""}`);
     return { ok: false, skipped: true };
   }
   if (!transport) {
-    console.log("[mailer] No SMTP configured; logging instead.");
+    logger.info("[mailer] No SMTP configured; logging instead.");
     console.log(
       `[mailer] To: ${recipients}\nSubject: ${subject}\n${text || html || ""}`
     );

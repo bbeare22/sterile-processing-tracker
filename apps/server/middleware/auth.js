@@ -1,5 +1,5 @@
-// apps/server/middleware/auth.js
 const jwt = require("jsonwebtoken");
+const logger = require("../utils/logger");
 
 /**
  * Extract token from Authorization: Bearer <token> OR cookie "spt_token".
@@ -40,7 +40,7 @@ function requireAuth(req, res, next) {
     return next();
   } catch (err) {
     // Absolute last-resort safety: never leak a 500 out of auth.
-    console.error("requireAuth error:", err && err.stack ? err.stack : err);
+    logger.error("requireAuth error:", err && err.stack ? err.stack : err);
     return res.status(401).json({ error: "Unauthorized" });
   }
 }
@@ -58,7 +58,7 @@ function requireRole(role) {
       if (!has) return res.status(403).json({ error: "Forbidden" });
       return next();
     } catch (err) {
-      console.error("requireRole error:", err && err.stack ? err.stack : err);
+      logger.error("requireRole error:", err && err.stack ? err.stack : err);
       return res.status(403).json({ error: "Forbidden" });
     }
   };

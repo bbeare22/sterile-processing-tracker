@@ -3,7 +3,8 @@ const { z } = require("zod");
 const mongoose = require("mongoose");
 const Cycle = require("../models/Cycle");
 const { requireAuth } = require("../middleware/auth");
-const { recordAudit } = require("../utils/audit"); // ← NEW
+const { recordAudit } = require("../utils/audit");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -66,7 +67,7 @@ router.get("/", requireAuth, async (req, res) => {
 
     res.json({ spores: rows });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Failed to load spore queue" });
   }
 });
@@ -125,7 +126,7 @@ router.patch("/:id/verify", requireAuth, async (req, res) => {
 
     res.json({ cycle: populated });
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     res.status(500).json({ error: "Failed to verify spore" });
   }
 });
