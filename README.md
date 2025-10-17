@@ -1,201 +1,245 @@
-# Sterile Processing Tracker (SPT)
+# 🧼 Sterile Processing Tracker (SPT)
 
-> **Reviewer Note**:  
-> The project is fully deployed and ready to test online.
->
-> - Frontend: [https://spt-front.onrender.com](https://spt-front.onrender.com)
-> - Backend API: [https://spt-api-w5vi.onrender.com](https://spt-api-w5vi.onrender.com)
->
-> When logged out, only the **Dashboard** is visible.  
-> To access **Machines, Maintenance, Cycles, and Detail views**, you must register/login.
+> **Reviewer Note:**  
+> This project is fully deployed and ready for live testing.
 
----
+**Frontend (React/Vite):**  
+🔗 https://spt-front.onrender.com
 
-A modern web app to track sterile processing equipment, maintenance, and sterilizer cycles (loads).  
-Built with **React (Vite)**, **Express**, **MongoDB**, and **JWT auth**.
+**Backend (Express/MongoDB API):**  
+🔗 https://spt-api-w5vi.onrender.com
+
+When logged out, only the **Dashboard** is visible.  
+To access **Machines**, **Maintenance**, **Cycles**, and **Detail** views, please register or log in.
 
 ---
 
-## 🌍 Live Demo
+## 🧭 Overview
 
-- **Frontend (React/Vite):** [https://spt-front.onrender.com](https://spt-front.onrender.com)
-- **Backend (Express/MongoDB API):** [https://spt-api-w5vi.onrender.com](https://spt-api-w5vi.onrender.com)
-
----
-
-## ✨ Features
-
-- **Machines**: add/edit/delete washers, sterilizers, ultrasonics _(auth required)_
-- **Maintenance**:
-  - Washers/Ultrasonic: **Descale** (with “days since” tracking) _(auth required)_
-  - Sterilizers: **Daily Inspection** & **Quarterly Cleaning** _(auth required)_
-- **Sterilizer Cycles (Loads)**: items, result, load #, staff, spore test details _(auth required)_
-- **Dashboard**: KPIs + Today’s Sterilizer Cycles + Recent Maintenance _(publicly visible)_
-- **Machine Detail**: recent maintenance & cycles _(auth required)_
-- **CSV Export** for per-machine maintenance & cycles _(auth required)_
-- **Auth**: register/login/logout, protected write routes  
-  ➝ When **not signed in**, only the **Dashboard** is visible.  
-  ➝ All other routes (Machines, Maintenance, Cycles, Detail views) require login.
-- **UI polish**: toast notifications, loading skeletons, consistent card/layout
+A modern full-stack web app for tracking sterile processing equipment, maintenance, and sterilizer cycles (loads).  
+Built with **React (Vite)**, **Express**, **MongoDB**, and **JWT authentication**.
 
 ---
 
-## 📦 Monorepo Layout
+## 🌐 Live Demo
 
-- `apps/`
-  - `server/` → Express API + MongoDB
-  - `client/` → React client (Vite)
+| Service                          | URL                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| 🖥️ Frontend (React/Vite)         | [https://spt-front.onrender.com](https://spt-front.onrender.com)       |
+| ⚙️ Backend (Express/MongoDB API) | [https://spt-api-w5vi.onrender.com](https://spt-api-w5vi.onrender.com) |
 
 ---
 
-## 🚀 Run Locally
+## 🚀 Features
 
-### Install dependencies (from root)
+### Machines
 
-```bash
-  npm install
+- Add / edit / delete washers, sterilizers, ultrasonics (auth required)
+- Machine detail: recent maintenance & cycles (auth required)
+
+### Maintenance
+
+- Washer / Ultrasonic descale with daily & time-based tracking (auth required)
+- Sterilizers: **Daily Inspection** and **Quarterly Cleaning** (auth required)
+- Maintenance history view & export
+
+### Sterilizer Cycles
+
+- Log sterilizer loads, test types, and results (auth required)
+- Track cycles by date, load type, and operator
+
+### Dashboard
+
+- KPIs for today’s sterilizer cycles & recent maintenance
+- Real-time load tracking overview (public)
+
+### Authentication
+
+- Register / Login / Logout with JWT
+- Protected routes for all critical data
+- Session persistence via `localStorage` token
+
+### UI/UX
+
+- Toast notifications
+- Reusable card layouts
+- Loading skeletons
+- Consistent CSS-based dashboard layout
+
+---
+
+## 🧱 Monorepo Layout
+
+```
+apps/
+├─ server/     → Express API + MongoDB
+└─ client/     → React client (Vite)
 ```
 
-### Copy .env.example → .env and update values:
+---
 
-```env
+## 🧩 Run Locally
+
+### 1. Install Dependencies (from root)
+
+```bash
+npm install
+```
+
+### 2. Copy `.env.example` → `.env` and update values
+
+Example for local development:
+
+```bash
+# apps/server/.env
 PORT=3001
 CLIENT_URL=http://localhost:5173
-MONGO_URI=mongodb://localhost:27017/spt
-JWT_SECRET=dev-super-secret-change-this
+MONGO_URL=mongodb://localhost:27017/spt
+JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=7d
 ```
 
-### (Optional) seed demo data
-
 ```bash
-   node apps/server/scripts/seed.js
+# apps/client/.env
+VITE_API_URL=http://localhost:3001
 ```
 
-### Start servers (two terminals)
+### 3. (Optional) Seed Demo Data
 
 ```bash
-   npm run dev:server # Express on :3001
-   npm run dev:web # Vite on :5173
+node apps/server/scripts/seed.js
 ```
 
----
-
-### 🏗️ Build for Production
-
-##### Build client
+### 4. Start Both Servers (two terminals)
 
 ```bash
-   npm run build:web
-```
+# Terminal 1: Express API
+npm run dev:server   # Runs on http://localhost:3001
 
-#### Start API (serve client via any static host or a reverse proxy)
-
-```bash
-   npm run start:server
+# Terminal 2: React client
+npm run dev:web      # Runs on http://localhost:5173
 ```
 
 ---
 
-### Useful Scripts
+## 🏗️ Build for Production
 
-- dev:server — nodemon API
+```bash
+# Build web client
+npm run build:web
 
-- dev:web — Vite dev server
-
-- build:web — Vite client build
-
-- start:server — start API
-
-- seed — seed sample data
+# Start Express API (after build)
+npm run start:server
+```
 
 ---
 
-## 🔌 API Overview
+## 🧰 Useful Scripts
 
-Auth
-
-- POST /api/auth/register — { email, password, name, employeeId?, sterilizationNumber? }
-
-- POST /api/auth/login
-
-Machines
-
-- GET /api/machines
-
-- GET /api/machines/:id
-
-- POST /api/machines (auth)
-
-- PUT /api/machines/:id (auth)
-
-- DELETE /api/machines/:id (auth)
-
-Maintenance
-
-- GET /api/maintenance?machineId=&limit=
-
-- POST /api/maintenance (auth)
-
-- Washer/Ultrasonic: type="descale" (+ volumeUsedMl)
-
-- Sterilizer: type="daily_inspection" or type="cleaning" (no volume)
-
-Cycles
-
-- GET /api/cycles?machineId=&date=YYYY-MM-DD&limit=
-
-- POST /api/cycles (auth)
-
-Auth uses Authorization: Bearer <jwt>.
+| Command        | Description                     |
+| -------------- | ------------------------------- |
+| `dev:server`   | Run Express API with nodemon    |
+| `dev:web`      | Start Vite dev server           |
+| `build:web`    | Build production-ready client   |
+| `start:server` | Run API in production mode      |
+| `seed`         | Populate MongoDB with demo data |
 
 ---
 
-## 🔒 Security & Validation
+## 🔑 API Overview
 
-- Server validation with Zod + Mongoose schemas
+### **Auth**
 
-- Write endpoints protected by JWT
+| Method | Endpoint             | Description                                                                |
+| ------ | -------------------- | -------------------------------------------------------------------------- |
+| `POST` | `/api/auth/register` | Create new user _(email, password, name, employeeId, sterilizationNumber)_ |
+| `POST` | `/api/auth/login`    | Authenticate existing user                                                 |
+| `GET`  | `/api/auth/me`       | Fetch logged-in user profile (JWT required)                                |
 
-- CORS restricted to CLIENT_URL
+### **Machines**
 
-- Helmet enabled for sensible headers
+| Method   | Endpoint            | Description               |
+| -------- | ------------------- | ------------------------- |
+| `GET`    | `/api/machines`     | Get all machines          |
+| `GET`    | `/api/machines/:id` | Get machine by ID         |
+| `POST`   | `/api/machines`     | Create new machine (auth) |
+| `PUT`    | `/api/machines/:id` | Update machine (auth)     |
+| `DELETE` | `/api/machines/:id` | Delete machine (auth)     |
+
+### **Maintenance**
+
+| Method | Endpoint                            | Description               |
+| ------ | ----------------------------------- | ------------------------- |
+| `GET`  | `/api/maintenance?machineId=&date=` | Fetch maintenance records |
+| `POST` | `/api/maintenance`                  | Log maintenance activity  |
+| `GET`  | `/api/maintenance/history`          | Fetch maintenance history |
+
+### **Cycles**
+
+| Method   | Endpoint          | Description          |
+| -------- | ----------------- | -------------------- |
+| `GET`    | `/api/cycles`     | List cycles          |
+| `POST`   | `/api/cycles`     | Log sterilizer cycle |
+| `GET`    | `/api/cycles/:id` | Get cycle detail     |
+| `DELETE` | `/api/cycles/:id` | Delete a cycle       |
+
+> **Auth required:** All write operations.  
+> **Header:** `Authorization: Bearer <token>`
 
 ---
 
-## 🗃️ DB Indexes
+## 🧿 Security & Validation
 
-- Maintenance: { machineId: 1, performedAt: -1 }
-
-- Cycles: { machineId: 1, startedAt: -1 } and { startedAt: -1 }
+- Server-side validation with **Zod + Mongoose schemas**
+- Endpoints protected by **JWT**
+- CORS restricted to `CLIENT_URL`
+- **Helmet** middleware enabled for HTTP security headers
+- Sensitive config via `.env` (never committed)
 
 ---
 
-## ✅ Reviewer Walkthrough
+## 🗃️ Database Indexes
 
-1. Login with demo user (or register)
+| Collection      | Index                               |
+| --------------- | ----------------------------------- |
+| **Maintenance** | `{ machineId: 1, performedAt: -1 }` |
+| **Cycles**      | `{ machineId: 1, startedAt: -1 }`   |
 
-   - Use the seeded demo data or register/login with your own account.
+Indexes ensure efficient lookups by machine and date.
 
-   - Note: when logged out, only the **Dashboard** is visible.
+---
 
-   - To access Machines, Maintenance, Cycles, or Detail pages, you must sign in.
+## 🧠 Usage Guide
 
-2. Dashboard: see KPIs + Today’s Sterilizer Cycles + Recent Maintenance
+1. **Login with demo user** _(or register a new account)_
 
-3. Machines: add → edit → delete a machine (auth required)
+   - Use seeded demo data or create your own.
+   - When logged out, only the Dashboard is visible.
 
-4. Machine Detail:
+2. **Access Restricted Views**
 
-   - Washer: log Descale → appears on detail & dashboard
+   - Machines, Maintenance, Cycles, and Detail pages require login.
 
-   - Sterilizer: log Daily Inspection/Quarterly Cleaning → appears on detail & dashboard
+3. **Dashboard KPIs**
 
-   - Click View all maintenance / View all cycles
+   - Today’s sterilizer cycles and recent maintenance appear in real-time.
 
-5. Cycles: log a sterilizer cycle (load #, items, result)
+4. **Machine Detail View**
 
-6. Export CSV from “View all …” pages
+   - Log or view maintenance and sterilizer cycles by machine.
+
+5. **Cycle & Maintenance History**
+
+   - Export reports via CSV from "View All…" pages.
+
+6. **Reports & Recall Tracking**
+   - Track historical loads and maintenance schedules with filters.
+
+---
+
+### ❤️ Made with care
+
+Created to streamline and modernize sterile processing operations — from washer to sterilizer — with data-driven visibility.
 
 ---
 
