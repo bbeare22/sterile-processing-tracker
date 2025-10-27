@@ -7,6 +7,10 @@ import styles from './AppShell.module.css';
 
 export default function AppShell({ children }) {
   const { user, isAuthed, logout } = useAuth();
+  const publicRead = String(import.meta.env.VITE_PUBLIC_READ || '').toLowerCase() === 'true';
+
+  // Show all app links when authed OR in demo/public mode
+  const showAppNav = publicRead || isAuthed;
 
   return (
     <div className={styles.shell}>
@@ -19,8 +23,8 @@ export default function AppShell({ children }) {
             Dashboard
           </NavLink>
 
-          {/* Only show these when authenticated */}
-          {isAuthed && (
+          {/* App pages */}
+          {showAppNav && (
             <>
               <NavLink
                 to="/recalls"
@@ -86,7 +90,7 @@ export default function AppShell({ children }) {
           )}
         </nav>
 
-        {/* Auth controls at bottom */}
+        {/* Auth controls at bottom — restored to always show when NOT authed */}
         <div className={styles.authBox}>
           {isAuthed ? (
             <>
@@ -110,6 +114,8 @@ export default function AppShell({ children }) {
             </div>
           )}
         </div>
+
+        {publicRead && <div className={styles.demoBadge}>Demo mode: read-only for guests</div>}
 
         <Footer />
       </aside>

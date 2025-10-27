@@ -16,7 +16,7 @@ export default function CyclesHistory() {
   // Month export controls (match Spore Queue look)
   const now = new Date();
   const [exportYear, setExportYear] = useState(now.getUTCFullYear());
-  const [exportMonth, setExportMonth] = useState(now.getUTCMonth() + 1); // 1..12
+  const [exportMonth, setExportMonth] = useState(now.getUTCMonth() + 1);
 
   useEffect(() => {
     async function load() {
@@ -24,17 +24,21 @@ export default function CyclesHistory() {
         setLoading(true);
         setErr('');
 
-        // machine (title)
         const mRes = await apiFetch(`/api/machines/${id}`);
         if (!mRes.ok) throw new Error(`Machine HTTP ${mRes.status}`);
         const mJson = await mRes.json();
         setMachine(mJson.machine || null);
 
-        // cycles (all for this machine)
         const r = await apiFetch(`/api/cycles?machineId=${id}`);
         if (!r.ok) throw new Error(`Cycles HTTP ${r.status}`);
         const j = await r.json();
-        setRows(j.cycles || []);
+
+        const list = (j.cycles || []).slice().sort((a, b) => {
+          const da = a.startedAt ? new Date(a.startedAt).getTime() : 0;
+          const db = b.startedAt ? new Date(b.startedAt).getTime() : 0;
+          return db - da;
+        });
+        setRows(list);
       } catch (e) {
         setErr(String(e.message || e));
       } finally {
@@ -47,21 +51,19 @@ export default function CyclesHistory() {
 
   async function exportCSVMonth() {
     try {
-      // dev port swap 5173 -> 3001 like Spore Queue
       const serverOrigin = window.location.origin.replace(':5173', ':3001');
       const params = new URLSearchParams({
         kind: 'cycles',
         year: String(exportYear),
         month: String(exportMonth),
-        machineId: id, // per-machine export from this page
+        machineId: id,
       });
       const url = `${serverOrigin}/api/reports/csv?${params.toString()}`;
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-      });
+      const token = localStorage.getItem('token') || '';
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await fetch(url, { headers });
       if (!res.ok) {
         const txt = await res.text();
         throw new Error(txt || `HTTP ${res.status}`);
@@ -117,7 +119,6 @@ export default function CyclesHistory() {
             Export CSV
           </button>
 
-          {/* Keep the original nav actions */}
           <Link to={`/machines/${id}`} className="cycles__linkBtn">
             Back to machine
           </Link>

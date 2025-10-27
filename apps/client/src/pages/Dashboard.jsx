@@ -15,7 +15,8 @@ export default function Dashboard() {
 
   const [machines, setMachines] = useState([]);
   const [maint, setMaint] = useState([]);
-  const [cycles, setCycles] = useState([]);
+  const [cyclesTodayArr, setCyclesTodayArr] = useState([]);
+  const [recentCycles, setRecentCycles] = useState([]);
   const [pendingSpores, setPendingSpores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -26,31 +27,27 @@ export default function Dashboard() {
         setLoading(true);
         setErr('');
 
-        // ---- Build a UTC "today" window for start/end ----
         const now = new Date();
-        const start = new Date(
+        const startToday = new Date(
           Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
         );
-        const end = new Date(
+        const endToday = new Date(
           Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0)
         );
         const iso = (d) => d.toISOString();
 
         const [mRes, maRes, cRes, spRes] = await Promise.all([
           apiFetch('/api/machines'),
-          // Recent maintenance TODAY (start/end window)
           apiFetch(
             `/api/maintenance?start=${encodeURIComponent(
-              iso(start)
-            )}&end=${encodeURIComponent(iso(end))}&limit=5`
+              iso(startToday)
+            )}&end=${encodeURIComponent(iso(endToday))}&limit=5`
           ),
-          // Recent cycles TODAY (start/end window; works with your updated cycles route)
           apiFetch(
             `/api/cycles?start=${encodeURIComponent(
-              iso(start)
-            )}&end=${encodeURIComponent(iso(end))}&limit=5`
+              iso(startToday)
+            )}&end=${encodeURIComponent(iso(endToday))}&limit=5`
           ),
-          // Pending spores list for the dashboard card (keep it small)
           apiFetch('/api/spores?status=pending&limit=5'),
         ]);
 
@@ -66,8 +63,28 @@ export default function Dashboard() {
 
         setMachines(mJson.machines || []);
         setMaint(maJson.maintenance || []);
-        setCycles(cJson.cycles || []);
+        setCyclesTodayArr(cJson.cycles || []);
         setPendingSpores(spJson.spores || []);
+
+        let rcList = [];
+        let rcRes = await apiFetch('/api/cycles?limit=200');
+        if (!rcRes.ok) rcRes = await apiFetch('/api/cycles');
+
+        if (rcRes.ok) {
+          const rcJson = await rcRes.json();
+          rcList = rcJson.cycles || [];
+        }
+
+        const sorted = rcList
+          .slice()
+          .sort((a, b) => {
+            const da = a.startedAt ? new Date(a.startedAt).getTime() : 0;
+            const db = b.startedAt ? new Date(b.startedAt).getTime() : 0;
+            return db - da;
+          })
+          .slice(0, 10);
+
+        setRecentCycles(sorted);
       } catch (e) {
         setErr(String(e.message || e));
       } finally {
@@ -86,10 +103,10 @@ export default function Dashboard() {
         (m) => m.type === 'washer' && daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
       );
 
-      const cyclesToday = cycles.length;
-      const failedCyclesToday = cycles.filter((c) => c.result === 'fail').length;
+      const cyclesToday = cyclesTodayArr.length;
+      const failedCyclesToday = cyclesTodayArr.filter((c) => c.result === 'fail').length;
 
-      const pendingSporesCount = pendingSpores.length; // simple count (dashboard KPI)
+      const pendingSporesCount = pendingSpores.length;
 
       return {
         activeMachines,
@@ -98,13 +115,13 @@ export default function Dashboard() {
         failedCyclesToday,
         pendingSporesCount,
       };
-    }, [machines, cycles, pendingSpores]);
+    }, [machines, cyclesTodayArr, pendingSpores]);
 
   return (
     <>
       <h1 className="dashboard__title">Dashboard</h1>
 
-      {/* KPI row (includes Pending Spore Readouts count) */}
+      {/* KPI row */}
       <div className="dashboard__kpis">
         <KPI label="Cycles Today" value={cyclesToday} tone="ok" />
         <KPI
@@ -129,15 +146,12 @@ export default function Dashboard() {
       {err && <div className="dashboard__error">Failed to load: {err}</div>}
 
       {!loading && !err && (
-        // Layout order:
-        // Top row: Recent Cycles (left) • Pending Spore Readouts (right)
-        // Bottom row: Recent Maintenance (left) • Overdue Descales (right)
         <div className="dashboard__grid">
-          {/* 1) Recent Cycles */}
-          <Card title="Recent Cycles">
-            {cycles.length ? (
+          {/* 1) Recent Cycles (last 10) */}
+          <Card title="Recent Cycles (Last 10)">
+            {recentCycles.length ? (
               <ul className="dashboard__list">
-                {cycles.map((c) => (
+                {recentCycles.map((c) => (
                   <li key={c._id} className="dashboard__listItem">
                     <span
                       className={`${common.dot} ${
@@ -146,8 +160,8 @@ export default function Dashboard() {
                     />
                     <span className="dashboard__mutedWrap">
                       <strong>{c.machineId?.name || 'Unknown'}</strong>
-                      &nbsp;— Load {c.loadNumber || '—'} ({c.result}) &nbsp;•{' '}
-                      {formatDateTime(c.startedAt)}
+                      &nbsp;— Load {c.loadNumber || '—'} ({c.result || '—'}) &nbsp;•{' '}
+                      {c.startedAt ? formatDateTime(c.startedAt) : '—'}
                     </span>
                     <Link
                       to={`/machines/${c.machineId?._id || ''}`}
@@ -160,7 +174,7 @@ export default function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div className="dashboard__empty">No cycles today.</div>
+              <div className="dashboard__empty">No cycles yet.</div>
             )}
           </Card>
 
@@ -195,7 +209,7 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* 3) Recent Maintenance (TODAY via start/end) */}
+          {/* 3) Recent Maintenance (today) */}
           <Card title="Recent Maintenance">
             {maint.length ? (
               <ul className="dashboard__list">
@@ -223,34 +237,41 @@ export default function Dashboard() {
 
           {/* 4) Overdue Descales (washers only) */}
           <Card title="Overdue Descales">
-            {overdueDescales.length ? (
+            {machines.filter(
+              (m) => m.type === 'washer' && daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
+            ).length ? (
               <ul className="dashboard__list">
-                {overdueDescales.map((m) => {
-                  const days = daysSince(m.lastDescaleAt);
-                  const color =
-                    days > 14
-                      ? 'var(--color-danger)'
-                      : days > 7
-                        ? 'var(--color-warn)'
-                        : 'var(--color-text)';
-                  const dot = m.status === 'active' ? common['dot--ok'] : common['dot--down'];
-                  return (
-                    <li key={m._id} className="dashboard__listItem" style={{ color }}>
-                      <span className={`${common.dot} ${dot}`} />
-                      <Link to={`/machines/${m._id}`} className="dashboard__link">
-                        {m.name}
-                      </Link>
-                      — {days} days
-                      <Link
-                        to={`/maintenance?machineId=${m._id}`}
-                        className="dashboard__chip"
-                        title="Log maintenance for this machine"
-                      >
-                        Log
-                      </Link>
-                    </li>
-                  );
-                })}
+                {machines
+                  .filter(
+                    (m) =>
+                      m.type === 'washer' && daysSince(m.lastDescaleAt) > DESCALE_THRESHOLD_DAYS
+                  )
+                  .map((m) => {
+                    const days = daysSince(m.lastDescaleAt);
+                    const color =
+                      days > 14
+                        ? 'var(--color-danger)'
+                        : days > 7
+                          ? 'var(--color-warn)'
+                          : 'var(--color-text)';
+                    const dot = m.status === 'active' ? common['dot--ok'] : common['dot--down'];
+                    return (
+                      <li key={m._id} className="dashboard__listItem" style={{ color }}>
+                        <span className={`${common.dot} ${dot}`} />
+                        <Link to={`/machines/${m._id}`} className="dashboard__link">
+                          {m.name}
+                        </Link>
+                        — {days} days
+                        <Link
+                          to={`/maintenance?machineId=${m._id}`}
+                          className="dashboard__chip"
+                          title="Log maintenance for this machine"
+                        >
+                          Log
+                        </Link>
+                      </li>
+                    );
+                  })}
               </ul>
             ) : (
               <div className="dashboard__empty">All good. No overdue descales 🎉</div>

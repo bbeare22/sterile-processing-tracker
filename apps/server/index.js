@@ -34,31 +34,50 @@ app.use(
 app.use(express.json());
 app.use(morgan('tiny'));
 
-// CORS (dev + prod) — must allow credentials and mirror the Origin
+/* ---------------- CORS (Render-friendly) ---------------- */
+const defaultAllowed = new Set([
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://localhost:5173',
+  'https://127.0.0.1:5173',
+]);
+
+function buildAllowList() {
+  const list = new Set(defaultAllowed);
+  const one = (process.env.CLIENT_URL || '').trim();
+  if (one) list.add(one);
+  const many = (process.env.CLIENT_URLS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  many.forEach((o) => list.add(o));
+  return list;
+}
+
+const allowList = buildAllowList();
+
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Allow no-origin (curl/Postman) and your dev UI
-      const allowList = new Set([
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        process.env.CLIENT_URL || '', // e.g., https://weatherapp.jumpingcrab.com
-      ]);
+      // Allow same-origin / server-to-server / health checks with no Origin
+      if (!origin) return cb(null, true);
+      if (allowList.has(origin)) return cb(null, true);
 
-      if (!origin || allowList.has(origin)) return cb(null, true);
+      // Log for visibility; return false to block
+      logger.warn(`CORS blocked origin: ${origin}`);
       return cb(null, false);
     },
-    credentials: true, // << required for cookies/Auth headers with fetch(..., { credentials: 'include' })
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'X-Requested-With'],
-    exposedHeaders: ['Content-Disposition'], // so filename works on downloads
+    exposedHeaders: ['Content-Disposition'],
     optionsSuccessStatus: 204,
   })
 );
 
 /* ---------------- auth rate limit ---------------- */
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
+  windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
@@ -69,12 +88,8 @@ app.use('/api/auth', authLimiter);
 app.get('/health', (req, res) => res.json({ ok: true }));
 
 /* ---------------- recalls proxy (OpenFDA) with caching ---------------- */
-/**
- * Dataset docs: https://api.fda.gov/device/enforcement.json
- * Client expects: { rows: [...] }
- */
-const recallCache = new Map(); // key -> { at: <ts>, data: { rows } }
-const RECALL_TTL_MS = 60_000; // 1 minute cache TTL (tune as needed)
+const recallCache = new Map();
+const RECALL_TTL_MS = 60_000;
 
 app.get('/api/external/recalls', async (req, res) => {
   try {
@@ -82,7 +97,6 @@ app.get('/api/external/recalls', async (req, res) => {
     const limit = Math.max(1, Math.min(Number(req.query.limit || 25), 100));
     const key = `${brand}:${limit}`;
 
-    // serve from cache if fresh
     const cached = recallCache.get(key);
     if (cached && Date.now() - cached.at < RECALL_TTL_MS) {
       return res.json(cached.data);
@@ -105,8 +119,8 @@ app.get('/api/external/recalls', async (req, res) => {
       codeInfo: it.code_info || '',
       firm: it.recalling_firm,
       states: it.distribution_pattern || '',
-      reportDate: it.report_date || '', // YYYYMMDD
-      recallInitiationDate: it.recall_initiation_date || '', // YYYYMMDD
+      reportDate: it.report_date || '',
+      recallInitiationDate: it.recall_initiation_date || '',
       centerClassificationDate: it.center_classification_date || '',
       productQuantity: it.product_quantity || '',
       kNumbers: it.k_numbers || [],
@@ -118,7 +132,6 @@ app.get('/api/external/recalls', async (req, res) => {
   } catch (e) {
     const status = e?.response?.status;
     if (status === 429) {
-      // FDA rate limit
       return res.status(502).json({ error: 'FDA rate limit hit — please try again in a minute.' });
     }
     return res.status(502).json({ error: 'Upstream recall service failed' });
@@ -165,5 +178,4 @@ connectDB(process.env.MONGO_URI)
     process.exit(1);
   });
 
-// start daily reminder scheduler (no-op if module doesn't export start)
 require('./jobs/reminder').start?.();

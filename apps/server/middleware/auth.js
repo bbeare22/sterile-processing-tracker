@@ -1,53 +1,38 @@
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 
-/**
- * Extract token from Authorization: Bearer <token> OR cookie "spt_token".
- */
+const PUBLIC_READ = String(process.env.PUBLIC_READ || '').toLowerCase() === 'true';
+
 function getToken(req) {
   const auth = req.headers.authorization || '';
   if (auth.startsWith('Bearer ')) return auth.slice(7).trim();
-  // simple cookie parse (no dependency)
   const cookie = req.headers.cookie || '';
   const m = /(?:^|;\s*)spt_token=([^;]+)/i.exec(cookie);
   if (m) return decodeURIComponent(m[1]);
   return null;
 }
 
-/**
- * requireAuth: verifies JWT and sets req.user (and req.userId).
- * - NEVER throws; always responds 401 on failure.
- */
 function requireAuth(req, res, next) {
   try {
+    if (
+      PUBLIC_READ &&
+      (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS')
+    ) {
+      return next();
+    }
     const token = getToken(req);
     if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-    const secret = process.env.JWT_SECRET || process.env.SECRET || 'devsecret';
-    let payload;
-    try {
-      payload = jwt.verify(token, secret);
-    } catch (e) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    // normalize
-    const userId = payload.userId || payload.sub || payload._id || payload.id;
-    req.user = { _id: userId, ...payload };
-    req.userId = userId;
-    res.locals.userId = userId;
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    req.user = { _id: decoded.userId, role: decoded.role || 'tech' };
     return next();
   } catch (err) {
-    // Absolute last-resort safety: never leak a 500 out of auth.
-    logger.error('requireAuth error:', err && err.stack ? err.stack : err);
+    logger.error('Auth error:', err && err.stack ? err.stack : err);
     return res.status(401).json({ error: 'Unauthorized' });
   }
 }
 
-/**
- * requireRole(role): optional role gate. Never throws; 403 on fail.
- */
 function requireRole(role) {
   return (req, res, next) => {
     try {
