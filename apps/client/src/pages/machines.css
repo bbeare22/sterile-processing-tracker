@@ -1,0 +1,51 @@
+.mach__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.mach__title {
+  margin: 0;
+}
+
+.mach__addBtn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+  cursor: pointer;
+}
+
+.mach__filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mach__input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: #0e1525;
+  color: var(--color-text);
+}
+
+.mach__loading {
+  opacity: 0.7;
+}
+
+.mach__error {
+  color: var(--color-danger);
+}
+
+.mach__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.mach__empty {
+  opacity: 0.7;
+}

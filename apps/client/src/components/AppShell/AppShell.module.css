@@ -1,0 +1,121 @@
+.shell {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.shell__side {
+  flex: 0 0 260px;
+  width: 260px;
+  background: #0e1525;
+  border-right: 1px solid var(--color-border);
+  padding: var(--space-6);
+  position: sticky;
+  top: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1;
+  padding: var(--space-8);
+  min-height: 0;
+  overflow: auto;
+}
+
+.brand {
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.6px;
+  margin-bottom: var(--space-6);
+}
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.nav a {
+  color: #cbd5e1;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition:
+    background 0.2s var(--easing),
+    color 0.2s var(--easing),
+    transform 0.12s var(--easing);
+}
+.nav a:hover {
+  background: #121a2b;
+  color: #fff;
+  transform: translateY(-1px);
+}
+.active {
+  background: #111e38;
+  color: #fff;
+}
+
+.authBox {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.userHi {
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.userMeta {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.authLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.authBtn {
+  display: block;
+  width: 80%;
+  max-width: 200px;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.authBtn:hover {
+  background: var(--color-surface-hover, #1a2235);
+  border-color: var(--color-brand);
+}

@@ -1,0 +1,18 @@
+--- /dev/null
++++ apps/server/.env.example
+@@ -0,0 +1,22 @@
++# Server environment configuration (example / DO NOT COMMIT SECRETS)
++PORT=3001
++CLIENT_URL=http://localhost:5173
++MONGO_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/spt?retryWrites=true&w=majority
++JWT_SECRET=replace-with-64-char-random-string
++JWT_EXPIRES_IN=7d
++
++# SMTP (optional)
++SMTP_HOST=
++SMTP_PORT=587
++SMTP_SECURE=false
++SMTP_USER=
++SMTP_PASS=
++ALERT_FROM="SPD Tracker <no-reply@localhost>"
++ALERT_TO=alerts@example.com

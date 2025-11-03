@@ -1,0 +1,38 @@
+.reg__wrap {
+  max-width: 420px;
+  margin: 40px auto;
+}
+
+.reg__form {
+  display: grid;
+  gap: 12px;
+}
+
+.reg__input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: #0e1525;
+  color: var(--color-text);
+}
+
+.reg__btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+  cursor: pointer;
+}
+
+.reg__err {
+  border: 1px solid var(--color-danger);
+  padding: 8px 10px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  color: var(--color-danger);
+}
+
+.reg__footer {
+  margin-top: 12px;
+}

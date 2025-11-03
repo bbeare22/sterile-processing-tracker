@@ -1,0 +1,83 @@
+.mf {
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.mf__title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.mf__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mf__field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mf__label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.mf__input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: #0e1525;
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.mf__input:focus {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 1px;
+}
+
+.mf__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mf__btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.mf__btn--primary {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+}
+
+.mf__btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.mf__error {
+  color: var(--color-danger);
+  font-size: 12px;
+}

@@ -1,0 +1,96 @@
+.mh__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mh__title {
+  margin-bottom: 16px;
+}
+
+.mh__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mh__btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.mh__linkBtn {
+  color: #cbd5e1;
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.mh__error {
+  color: var(--color-danger);
+  margin-bottom: 12px;
+}
+
+.mh__tableWrap {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.mh__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.mh__thead {
+  background: #0e1525;
+  position: sticky;
+  top: 0;
+}
+
+.mh__th {
+  text-align: left;
+  padding: 12px 16px;
+}
+
+.mh__tr {
+  border-top: 1px solid var(--color-border);
+}
+
+.mh__td {
+  padding: 12px 16px;
+}
+
+.mh__td--muted {
+  color: var(--color-text-muted);
+}
+
+.mh__td--empty {
+  opacity: 0.7;
+}
+
+.mh__td--padTight {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.mh__skeletonRow {
+  display: grid;
+  gap: 8px;
+}
+
+.mh__skeletonCols {
+  display: flex;
+  gap: 16px;
+}
+
+.mh__loadMoreWrap {
+  margin-top: 12px;
+}

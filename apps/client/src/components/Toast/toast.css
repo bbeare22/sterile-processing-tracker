@@ -1,0 +1,40 @@
+.toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 10px;
+  z-index: 9999;
+}
+
+.toast {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease,
+    border-color 120ms ease;
+}
+
+.toast:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+/* Tones */
+.toast--ok {
+  border-color: var(--color-accent);
+}
+
+.toast--warn {
+  border-color: var(--color-warn);
+}
+
+.toast--danger {
+  border-color: var(--color-danger);
+}

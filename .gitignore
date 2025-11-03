@@ -1,0 +1,42 @@
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Build outputs ---
+dist/
+build/
+.out/
+.next/
+.vercel/
+
+# --- Env files (don’t commit secrets) ---
+*.env
+**/.env
+/apps/**/.env
+/apps/**/.env.local
+/apps/**/.env.*.local
+
+# --- Logs ---
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# --- Editor/OS ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# --- Coverage/testing ---
+coverage/
+*.lcov
+
+# --- Misc ---
+*.cache
+*.tmp
